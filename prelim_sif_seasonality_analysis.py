@@ -12,14 +12,15 @@ from matplotlib.patches import Polygon as mpl_Polygon
 from matplotlib.colors import LinearSegmentedColormap
 
 #get the data directory
-data_dir = '/media/ihavehands/SLAB/SIF_data/'
+data_dir = '.'
+#data_dir = '/media/ihavehands/SLAB/SIF_data/'
 
 #set a range of longitudes within which to plot any data
 plt_x = (-180, 180)
 
 #set a date range to plot (written in ISO format)
-start = '2015-05-07'
-stop = '2015-05-08'
+start = '2015-07-01'
+stop = '2015-07-17'
 
 
 def convert_iso_date(iso_date):
@@ -174,13 +175,15 @@ files, dates = get_netcdf_files(data_dir)
 start, stop = list(map(convert_iso_date, [start, stop]))
 print('\nFOUND THE FOLLOWING FILES:\n%s' % '\n'.join(['\t'+x for n, x in enumerate(files) if start <= dates[n] <= stop]))
 print('----------------------------------------------------------\n\n\n')
+plot_created = False
 for n, f in enumerate(files):
-    if n == 0:
-        fig, ax, m, cmap = create_plot(rc=rc, lat_0=lat_0, lon_0=lon_0)
     #only plot data for the correct year (for now)
     if start <= dates[n] <= stop:
         print('\nPlotting date %s' % dates[n])
         lons, lats, SIF, lon_0, lat_0 = read_netcdf(f, null_val = -999999.0)
+        if not plot_created:
+            fig, ax, m, cmap = create_plot(rc=rc, lat_0=lat_0, lon_0=lon_0)
+            plot_created = True
         plot_data(ax=ax, cmap=cmap, lats=lats, lons=lons, data=SIF)
 
 #show the plot
