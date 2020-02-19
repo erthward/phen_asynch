@@ -10,6 +10,7 @@
 
 import re
 import os
+import time
 import datetime
 import numpy as np
 from netCDF4 import Dataset
@@ -37,8 +38,8 @@ plt_x_bnds = (-74.619141,-73.168945)
 plt_y_bnds = (9.579084,10.336536)
 
 # Manu National Park
-#plt_x_bnds = (-72.8167,-70.8175)
-#plt_y_bnds = (-12.1913,-10.6963)
+plt_x_bnds = (-72.8167,-70.8175)
+plt_y_bnds = (-12.1913,-10.6963)
 
 # D.R. transect
 #plt_x_bnds = (-71.065063,-70.101013)
@@ -150,8 +151,8 @@ def create_plot(rc, lat_0, lon_0):
     cmap = create_cmap()
 
     # Add Grid Lines
-    m.drawparallels(np.arange(-90, 90, 10.), labels=[1, 0, 0, 0], fontsize=8)
-    merids = m.drawmeridians(np.arange(-180, 190, 10.), labels=[0, 0, 0, 1],
+    m.drawparallels(np.arange(-90, 90, 1), labels=[1, 0, 0, 0], fontsize=8)
+    merids = m.drawmeridians(np.arange(-180, 190, 1), labels=[0, 0, 0, 1],
                              fontsize=8)
 
     # Add Coastlines, States, and Country Boundaries
@@ -178,10 +179,40 @@ def collect_regional_avg_data(sif, times):
     return data_dict
 
 
+def plot_all_data_1cell(lat, lon):
+    data_dict = {}
+    # loop over monthly gridded files and pull out data
+    for f in get_netcdf_files():
+        fh = Dataset(f, mode='r')
+        lons = fh.variables['lon'][:]
+        lats = fh.variables['lat'][:]
+        time = fh.variables['time'][:]
+        sif = fh.variables['dcSIF'][:]
+        time = [convert_netcdf_time(t) for t in time]
+        # get the cell closest to the requested lat and lon 
+        lat_idx = np.where(np.abs(lats - lat) == np.abs(lats - lat).min())
+        lon_idx = np.where(np.abs(lons - lon) == np.abs(lons - lon).min())
+        # add data to data_dict
+        data_dict.update({time[n]: float(val) for n, val in enumerate(sif[:,
+                                                                    lat_idx,
+                                                                    lon_idx])})
+    sorted_times = sorted([*data_dict.keys()])
+    sorted_data = [data_dict[t] for t in sorted_times]
+    plt.scatter(sorted_times, sorted_data, color='green')
+    plt.show()
+    return sorted_times, sorted_data
+
+lat, lon = -8.553145, -64.705749
+fig = plt.figure()
+times, data = plot_all_data_1cell(lat, lon)
+
+
+
 ##################
 # PROCESS THE DATA
 ##################
 
+'''
 # get all the files
 files = get_netcdf_files()
 print(files)
@@ -205,7 +236,7 @@ plt.xlabel('date')
 plt.ylabel('SIF ($mW/m^2/sr/nm$)')
 plt.plot(xs, ys)
 plt.show()
-
+'''
 
 '''
 
