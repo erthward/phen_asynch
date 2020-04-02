@@ -15,14 +15,16 @@ from mpl_toolkits.basemap import Basemap
 from shapely.geometry import Polygon, MultiPolygon, Point
 
 
-
 ######
 # TODO
 ######
 
-    #1 use square polygons instead of points for the grid cells
+    #1 decide whether I should be using 757nm or 771nm original SIF
 
-    #2 decide whether I should be using 757nm or 771nm original SIF
+    #2 instead of using all the polygons, just make a grid of lower-left grid
+    #  corners, then subtract some amount from the centroid of each footprint
+    #  and round to the closest cell in the grid, to find grid cells that are
+    #  some effective buffer distance from any orbital track
 
 
 
@@ -128,18 +130,77 @@ def read_netcdf(f, filetype='orig'):
     return(lons, lats, sif)#, lon_0, lat_0)
 
 
-# get list of grid cells that have coverage within original OCO-2 orbital bands
-def get_data_coverage(orig_lons, orig_lats, grid_lons, grid_lats):
-    mp = MultiPolygon([Polygon(zip(lon, lat)) for lon, lat in zip(orig_lons,
-                                                                  orig_lats)])
-    covered_lons = []
-    covered_lats = []
-    for lon, lat in zip(grid_lons, grid_lats):
-        if mp.contains(Point(lat, lon)):
-            covered_lons.append(lon)
-            covered_lats.append(lat)
+def make_grid_cell_polygon(center_x, center_y, cell_size):
+    diff = cell_size / 2
+    xs = [center_x - diff, center_x + diff, center_x + diff, center_x - diff]
+    ys = [center_y - diff] * 2 + [center_y + diff] * 2
+    p = Polygon(zip(xs, ys))
+    return p
 
-    return covered_lons, covered_lats
+
+# get the nearest value in an array either to the left ('down') or right ('up')
+# of a certain value
+def round_to_array(array, val, direction):
+    if direction == 'down':
+        comparison = idx = np.where(array < val)[0]
+        if len(comparison) == 0:
+            idx = 0
+        else:
+            idx = comparison.max()
+    elif direction == 'up':
+        comparison = idx = np.where(array > val)[0]
+        if len(comparison) == 0:
+            idx = array.size - 1
+        else:
+            idx = comparison.min()
+
+    return idx
+
+
+# get list of grid cells that have coverage within original OCO-2 orbital bands
+#def get_data_coverage(orig_lons, orig_lats, grid_cells):
+#    polys = [Polygon(zip(lon, lat)) for lon, lat in zip(orig_lons,
+#                                                                  orig_lats)]
+#    for p in polys:
+#        if np.any(np.array([*p.exterior.coords.xy]) == -999999):
+#            print('CONTAINS NULL:', p.exterior.coords.xy)
+#        if not p.is_valid:
+#            print('NOT VALID:', p.exterior.coords.xy)
+#    mp = MultiPolygon([Polygon(zip(lon, lat)) for lon, lat in zip(orig_lons,
+#                                                                  orig_lats)])
+#    covered_cells = []
+#    for n, cell in enumerate(grid_cells):
+#        if mp.intersects(cell):
+#            covered_cells.append(n)
+#
+#    return covered_cells
+
+
+
+# get list of grid cells that have coverage within original OCO-2 orbital bands
+def get_data_coverage(orig_lons, orig_lats,
+                      grid_x_mins, grid_x_maxs,
+                      grid_y_mins, grid_y_maxs,
+                      coverage_array):
+    #NOTE: max distance between parallelogram verices in either lat or lon
+    #that I have observed is 0.11398697, so I'll buffer each parallelogram's
+    #centroid by 0.15 degrees to be 'safe'
+    buff_dist = 0.15
+    # get an array of the parallelogram centroids
+    centroids = np.vstack((np.mean(orig_lons, axis=1),
+                           np.mean(orig_lats, axis=1))).T
+    # for each centroid, get the max and min lon and lat indexes (in the
+    # coverage array) that are overlapped by the coarse buffer added around the
+    # pixel parallelogram, then use those indices to plop 1s into the coverage
+    # array
+    for cent_x, cent_y in centroids:
+        print(cent_x, cent_y)
+        min_x_idx = round_to_array(grid_x_mins, cent_x-buff_dist, 'down')
+        max_x_idx = round_to_array(grid_x_maxs, cent_x+buff_dist, 'up')
+        min_y_idx = round_to_array(grid_y_mins, cent_y-buff_dist, 'down')
+        max_y_idx = round_to_array(grid_y_maxs, cent_y+buff_dist, 'up')
+        print(min_x_idx, max_x_idx, min_y_idx, max_y_idx)
+        coverage_array[min_y_idx:max_y_idx, min_x_idx:max_x_idx] = 1
 
 
 
@@ -166,10 +227,21 @@ grid_files, grid_dates = get_netcdf_files(grid_dir, filetype='grid')
 
 # get the cell-centers from gridded ANN data
 grid_lons, grid_lats, grid_sif_0 = read_netcdf(grid_files[0], filetype='grid')
+grid_lon_mins = grid_lons - 0.025
+grid_lon_maxs = grid_lons + 0.025
+grid_lat_mins = grid_lats - 0.025
+grid_lat_maxs = grid_lats + 0.025
 
-# create empty lists to fill up with all lon, lat coords for which there is
-# original OCO-2 data
-covered_lons = convered_lats = set()
+#grid_lons_xi, grid_lats_yi = np.meshgrid(grid_lons, grid_lats)
+#grid_cells = [make_grid_cell_polygon(lon,
+#                                     lat, 0.05) for lon, lat in zip(
+#                                grid_lons_xi.ravel(), grid_lats_yi.ravel())]
+
+# create empty lists to fill up with all
+#lon, lat coords for which there is original OCO-2 data
+#covered_cells = set()
+
+coverage_array = np.zeros((grid_lats.size, grid_lons.size))
 
 #############################################################
 # LOOP OVER AND READ IN FILES, COLLECTING GAP SITES FROM EACH
@@ -178,94 +250,41 @@ covered_lons = convered_lats = set()
 # now loop through all original OCO-2 files and determine which of those cells
 # have no coverage, i.e. which cells are within the orbital gaps
 for n, f in enumerate(orig_files):
-    if n < 2:
-        print('\nNow processing file number %i:\n\t%s\n\n' % (n, f))
-        orig_lons, orig_lats, orig_sif = read_netcdf(f)
-        out_lons, out_lats = get_data_coverage(orig_lons, orig_lats,
-                                               grid_lons, grid_lats)
-        covered_lons = covered_lons.union(set(out_lons))
-        covered_lats = covered_lats.union(set(out_lats))
-        print(len(covered_lons))
-        print(len(covered_lats))
-        print('---------------------')
+    print('\nNow processing file number %i:\n\t%s\n\n' % (n, f))
+    orig_lons, orig_lats, orig_sif = read_netcdf(f)
+    print(len(orig_lons), len(orig_lats))
+    # drop of footprints that seem to have missing vertex lat or lon vals
+    # NOTE: not sure why this would be, but some parallelograms have
+    # -999999 for some of their vertex values ...?!
+    lons_null_rows = np.where(orig_lons == -999999)[0]
+    lats_null_rows = np.where(orig_lons == -999999)[0]
+    null_rows = [*set([*lons_null_rows] + [*lats_null_rows])]
+    nonnull_rows = [row for row in range(
+                            orig_lons.shape[0]) if row not in null_rows]
+    orig_lons = orig_lons[nonnull_rows, :]
+    orig_lats = orig_lats[nonnull_rows, :]
+    print(len(orig_lons), len(orig_lats))
+
+    get_data_coverage(orig_lons, orig_lats,
+                      grid_lon_mins, grid_lon_maxs,
+                      grid_lat_mins, grid_lat_maxs,
+                      coverage_array)
+
+    #out_cells = get_data_coverage(orig_lons, orig_lats, grid_cells)
+    #covered_cells = covered_cells.union(set(out_cells))
+    #print('Total number of covered cells:', len(covered_cells))
+    print('Total number of covered cells:', np.sum(coverage_array == 1))
+    print('---------------------')
 
 
+# NEXT STEPS:
 
+    #1. invert the coverage grid
 
+    #2. use it and the grid_londs and grid_lats to select sample sites
 
+    #3. extract both gridded and TROPOMI time series at those sample sites
 
+    #4. figure out some way to reconcile times of those time series
 
-
-
-
-
-def rc():
-    '''creates custom mapping settings, use mpl.rcdefaults() to default'''
-    # can find out what is default by pprint(mpl.rcParams)
-    mpl.rc('lines', linewidth=1.0, antialiased=True)  # didn't change
-    mpl.rc('patch', linewidth=0.5, facecolor='348ABD', edgecolor='eeeeee',
-           antialiased=True)
-    mpl.rc('font', family='monospace', size=10.0)  # , weight="bold")
-    mpl.rc('axes', facecolor='f4f4f4', edgecolor='black', linewidth=2,
-           grid=False, titlesize='x-large', labelsize='x-large',
-           labelcolor='black', axisbelow=True)
-    # color_cycle='348ABD, 7A68A6, A60628, 467821, CF4457, 188487, E24A33')
-    mpl.rc('xtick', color='black')
-    mpl.rc('xtick.major', size=4, pad=6)
-    mpl.rc('xtick.minor', size=2, pad=6)
-    mpl.rc('ytick', color='black')
-    mpl.rc('ytick.major', size=4, pad=6)
-    mpl.rc('ytick.minor', size=2, pad=6)
-    mpl.rc('legend', fancybox=True, fontsize=10.0)
-    mpl.rc('figure', figsize='12, 7.5', dpi=88,
-           facecolor='white')
-    mpl.rc('figure.subplot', hspace=0.5,
-           left=0.07, right=0.95, bottom=0.1,
-           top=0.95)
-
-
-def create_cmap():
-    # make a red-to-green colormap
-    colors = ['#980909', '#5C9809']
-    cmap = LinearSegmentedColormap.from_list('my_map', colors, N=50)
-    return(cmap)
-
-
-def create_plot(rc, lat_0, lon_0):
-    # create a figure
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-
-    # use custom matplotlib mappings defined above
-    rc()
-
-    # create a Basemap
-    # m = Basemap(resolution='l',projection='cea',
-    m = Basemap(resolution='l', projection='cyl',
-                lat_ts=0, lat_0=lat_0, lon_0=lon_0, ax=ax)
-
-    # create cmap
-    cmap = create_cmap()
-
-    # Add Grid Lines
-    m.drawparallels(np.arange(-90, 90, 10.), labels=[1, 0, 0, 0], fontsize=8)
-    merids = m.drawmeridians(np.arange(-180, 190, 10.), labels=[0, 0, 0, 1],
-                             fontsize=8)
-
-    # Add Coastlines, States, and Country Boundaries
-    m.drawcoastlines()
-    m.drawstates()
-    m.drawcountries()
-
-    # Add Title
-    plt.title('SIF (OCO-2 data)')
-
-    # Rotate the x labels
-    for merid in merids.keys():
-        try:
-            merids[merid][1][0].set_rotation(45)
-        except Exception:
-            pass
-
-    return(fig, ax, m, cmap)
-
+    #5. run correlations and check strength
