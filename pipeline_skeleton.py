@@ -146,17 +146,35 @@ def get_point_val(point_x, point_y, rast):
 #############################################################
 ########  NEIGHBOR EXTRACTION                        ########
 #############################################################
-
+    # TODO: devise some algorithm for finding all cells within the max
+    # distance
 def get_neighbors(point_x, point_y, rast, max_dist):
     # get something like a list of all neighbors,
     # expressed as tuples of (neigh_x, neigh_y, neigh_dist)
     neighs = [(), (), (), ...]
-
-    # TODO: devise some algorithm for finding all cells within the max
-    # distance
-    return
-
-
+    
+    # take all the cells within a certain radius of the raster point of radius size x
+	rast_coord = make_array(point_x, point_y)
+    rast_neighs =  st_buffer(rast_coord, dist, nQuadSegs)
+    
+    #filter out certain neighbors
+    def sort_neighs(x)
+        if x = rast_neighs_water:
+            # filter out bodies of water
+	        return #get x and y coordinate and raster 
+        else x = rast_neighs_ag:
+            # filter out certain agricultural lands
+	        return #get x and y coordinate and raster 
+   
+    # Extract list of all neighbors that make the cut
+    sorted_neighs = sort_neighs(x)
+    
+    #Extract the distance of all neighbors from ‘neigh_coord’ that make the cut
+    neigh_dist = st_distance(rast_coord, sorted_neighs) # Takes raster layer coordinate and neighbor coordinate 
+    
+    neighs = append(neigh_coord, neigh_dist)
+    
+    return neighs
 
 
 
