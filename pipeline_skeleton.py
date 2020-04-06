@@ -158,7 +158,7 @@ def get_neighbors(point_x, point_y, rast, max_dist):
 	rast_neighs =  st_buffer(rast_coord, dist, nQuadSegs)
     
     #filter out certain neighbors
-    def sort_neighs(x)
+	def sort_neighs(x)
 		if x = rast_neighs_water:
             # filter out bodies of water
 			return # get x and y coordinate and raster 
@@ -172,10 +172,10 @@ def get_neighbors(point_x, point_y, rast, max_dist):
     #Extract the distance of all neighbors from ‘neigh_coord’ that make the cut
 	neigh_dist = st_distance(rast_coord, sorted_neighs) 
 		# Takes raster layer coordinate and neighbor coordinate 
+	
+	neighs = append(neigh_coord, neigh_dist)
     
-    neighs = append(neigh_coord, neigh_dist)
-    
-    return neighs
+	return neighs
 
 
 
