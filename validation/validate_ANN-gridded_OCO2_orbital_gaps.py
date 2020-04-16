@@ -533,8 +533,3 @@ def make_sample_point_map():
 
 #call that function
 make_sample_point_map()
-
-
-
-    
-    
