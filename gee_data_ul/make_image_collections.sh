@@ -1,0 +1,2 @@
+earthengine create collection users/drewhart/seasonality_data/EarthEnv_MODIS_cloud
+earthengine create collection users/drewhart/seasonality_data/OCO2_SIF_ANN
