@@ -2,12 +2,14 @@
 # imports
 #--------
 
-import numpy as np
 import matplotlib.pyplot as plt
+from pprint import pprint
+import numpy as np
 import tensorflow as tf
 import glob
+import json
 import os
-from pprint import pprint
+
 
 #-----------
 # set params
@@ -18,7 +20,8 @@ MAX_DIST = 300000  # meters
 DATA_DIR = ('/home/drew/Desktop/stuff/berk/research/projects/seasonality/'
               'GEE_output')
 
-BANDS = ['constant', 'beta_sin1', 'beta_cos1', 'beta_sin2', 'beta_cos2']
+BANDS = ['beta_sin1', 'beta_cos1', 'beta_sin2', 'beta_cos2']
+#BANDS = ['constant', 'beta_sin1', 'beta_cos1', 'beta_sin2', 'beta_cos2']
 
 
 #-----------------
@@ -32,9 +35,10 @@ def calc_time_series(i, j, bands, harmonic_terms):
 
     Returns the time series as a list.
     """
-    constant, beta_sin1, beta_cos1, beta_sin2, beta_cos2 = bands
+    beta_sin1, beta_cos1, beta_sin2, beta_cos2 = bands
     sin1, cos1, sin2, cos2 = harmonic_terms
-    ts = (constant[i, j] +
+    ts = (
+    #ts = (constant[i, j] +
           beta_sin1[i, j] * sin1 +
           beta_cos1[i, j] * cos1 +
           beta_sin2[i, j] * sin2 +
@@ -73,28 +77,6 @@ def find_neighborhood_pixels(lat, lon, max_dist=MAX_DIST):
     pass
 
 
-# data-parsing stuff from:
-#        https://colab.research.google.com/github/google/
-#        earthengine-api/blob/master/python/examples/ipynb/
-#        TF_demo1_keras.ipynb#scrollTo=x2Q0g3fBj2kD)
-def parse_tfrecord(example_proto):
-    """
-    The parsing function.
-    
-    Read a serialized example into the structure defined by featuresDict.
-
-    Args:
-        example_proto: a serialized Example.
-
-    Returns:
-        A tuple of the predictors dictionary and the label, cast to an `int32`.
-    """
-    parsed_features = tf.io.parse_single_example(example_proto, features_dict)
-    pprint(parsed_features)
-    labels = parsed_features.pop(LABEL)
-    return parsed_features, tf.cast(labels, tf.int32)
-
-
 def write_data(rast, filepath):
     """
     Writes the output raster to disk using the given filepath.
@@ -107,28 +89,70 @@ def write_data(rast, filepath):
 #------------------
 
 # handle filepaths
-infilepath = os.path.join(DATA_DIR, 'testRegCoeffExport-00000.tfrecord')
-outfilepath = infilepath.split('.')[0]+'OUT.tfrecord'
+mixerfilepaths = glob.glob(os.path.join(DATA_DIR, '*mixer.json'))
+assert len(mixerfilepaths) == 1, "MORE THAN 1 MIXER FILE FOUND!"
+mixerfilepath = mixerfilepaths[0]
 
-# data-parsing stuff from:
+infilepaths = glob.glob(os.path.join(DATA_DIR, '*.tfrecord'))
+
+outfilepaths = [fp.split('.')[0]+'OUT.tfrecord' for fp in infilepaths]
+
+
+# the following data-parsing stuff is with help from:
 #        https://colab.research.google.com/github/google/
 #        earthengine-api/blob/master/python/examples/ipynb/
 #        TF_demo1_keras.ipynb#scrollTo=x2Q0g3fBj2kD)
-# Create a dataset from the TFRecord file in Cloud Storage.
-dataset = tf.data.TFRecordDataset(infilepath)
+# and:
+#        https://www.tensorflow.org/tutorials/load_data/tfrecord
 
-# Get a list of fixed-length features, all of which are float32
-columns = [
-      tf.io.FixedLenFeature(shape=[1], dtype=tf.float32) for k in BANDS
+# read the mixer file
+mixer = json.load(open(mixerfilepath, 'r'))
+
+# Get relevant info from the JSON mixer file
+# NOTE: add 100 to account for the kernel size,
+# which isn't reflected in the mixer file
+patch_width = mixer['patchDimensions'][0] + 100
+patch_height = mixer['patchDimensions'][1] + 100
+patches = mixer['totalPatches']
+patch_dimensions_flat = [patch_width * patch_height, 1]
+#patch_dimensions_flat = [1]
+
+# build the feature-description, for parsing
+# NOTE: the tensors are in the shape of a patch, one patch for each band
+image_columns = [
+      tf.io.FixedLenFeature(shape=[],
+                            dtype=tf.float32,
+                            default_value=-9999.0)
+#                            dtype=tf.float32)
+        for k in BANDS
 ]
-features_dict = dict(zip(BANDS, columns))
-pprint(features_dict)
+bands_dict = dict(zip(BANDS, image_columns))
 
-# Map the data-parsing function over the dataset.
-parsed_dataset = dataset.map(parse_tfrecord, num_parallel_calls=5)
+# Note that you can make one dataset from many files by specifying a list
+dataset = tf.data.TFRecordDataset(infilepaths, compression_type='')
 
-# Print the first parsed record to check.
-pprint(iter(parsed_dataset).next())
+# data-parsing function from:
+def parse_image(example_proto):
+      return tf.io.parse_single_example(tf.io.parse_tensor(example_proto,
+                                                           'float32')[0],
+                                        bands_dict)
+
+# Parse the data into tensors, one long tensor per patch
+dataset = dataset.map(parse_image, num_parallel_calls=5)
+
+# Break your long tensors into many little ones
+dataset = dataset.flat_map(
+      lambda features: tf.data.Dataset.from_tensor_slices(features)
+)
+
+# Turn the dictionary in each record into a tuple without a label
+dataset = dataset.map(
+      lambda data_dict: (tf.transpose(list(data_dict.values())), )
+)
+
+# Turn each patch into a batch
+dataset = dataset.batch(patch_width * patch_height)
+
 
 assert True == False
 
