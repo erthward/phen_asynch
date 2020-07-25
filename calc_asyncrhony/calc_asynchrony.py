@@ -114,22 +114,23 @@ mixer = json.load(open(mixerfilepath, 'r'))
 patch_width = mixer['patchDimensions'][0] + 100
 patch_height = mixer['patchDimensions'][1] + 100
 patches = mixer['totalPatches']
+patch_dimensions = [patch_width, patch_height]
 patch_dimensions_flat = [patch_width * patch_height, 1]
 #patch_dimensions_flat = [1]
 
 # build the feature-description, for parsing
 # NOTE: the tensors are in the shape of a patch, one patch for each band
 image_columns = [
-      tf.io.FixedLenFeature(shape=[],
-                            dtype=tf.float32,
-                            default_value=-9999.0)
-#                            dtype=tf.float32)
+      tf.io.FixedLenFeature(shape=patch_dimensions,
+#                            dtype=tf.float32,
+#                            default_value=-9999.0)
+                            dtype=tf.float32)
         for k in BANDS
 ]
 bands_dict = dict(zip(BANDS, image_columns))
 
 # Note that you can make one dataset from many files by specifying a list
-dataset = tf.data.TFRecordDataset(infilepaths, compression_type='')
+dataset = tf.data.TFRecordDataset(infilepath, compression_type='')
 
 # data-parsing function from:
 def parse_image(example_proto):
@@ -153,8 +154,6 @@ dataset = dataset.map(
 # Turn each patch into a batch
 dataset = dataset.batch(patch_width * patch_height)
 
-
-assert True == False
 
 # NOTE: assuming all data, regardless of file format or dataset,
 #       have 5 bands (1 constant term (i.e. intercept),
