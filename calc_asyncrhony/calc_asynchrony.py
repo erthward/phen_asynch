@@ -9,6 +9,7 @@ import tensorflow as tf
 import glob
 import json
 import os
+from sklearn.linear_model import LinearRegression
 
 
 #-----------
@@ -52,7 +53,11 @@ def linear_regression(y, x):
 
     Returns the regression as a model object.
     """
-    pass
+    # Reshape the y variable
+    reshape_y = np.array(y).reshape(-1,1)
+    # Make a model
+    model = LinearRegression().fit(reshape_y, x)
+    return model 
 
 
 def calc_distance(lon1, lat1, lon2, lat2):
