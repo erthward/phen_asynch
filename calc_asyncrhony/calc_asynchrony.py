@@ -15,7 +15,7 @@ NOTES:
         and reading in as 'float_lists' composed of numerous 'value: #######'
         pairs, where ##### is the actual numerical value in a cell).
 
-        In other words:
+        In other words, the TFRecord format looks like:
 
             file_n.tfrecords:
 
@@ -57,13 +57,12 @@ NOTES:
 """
 
 # TODO:
-    # 0. figure out how to scale up premutation tests on GEE
+    # 0. figure out how to scale up permutation tests on GEE
     # 0.5 chat with Ian about asynch, R2s, ns, and scaling limitations
     # 1. figure out what to do about negative R2 values
     # 2. figure out how to write out the TFRecord files
     # 3. begin planning how to parallelize on XSEDE/Savio
-    # 4. try to scale up the number of permutation tests on GEE
-    # 5  figure out how to export the coeff patches globally, to Google Drive,
+    # 4  figure out how to export the coeff patches globally, to Google Drive,
     #    then copy over to XSEDE/Savio from there
 
 #--------
@@ -75,6 +74,8 @@ from geopy.distance import geodesic
 from shapely.geometry import Point
 from scipy.spatial import cKDTree
 import matplotlib.pyplot as plt
+import multiprocessing as mp
+import pathos.multiprocessing as pomp
 from pprint import pprint
 import geopandas as gpd
 import tensorflow as tf
@@ -93,8 +94,11 @@ import os
 DATA_DIR = ('/home/drew/Desktop/stuff/berk/research/projects/seasonality/'
               'GEE_output')
 
+# pattern that occurs just before the file number in each input file's name
+PATT_B4_FILENUM = 'Amer-'
+
 # kernel size used by GEE to output the TFRecord files
-KERNEL_SIZE = 100
+KERNEL_SIZE = 60
 
 # names of the bands saved into the TFRecord files
 INBANDS = ['constant', 'sin_1', 'cos_1', 'sin_2', 'cos_2']
@@ -120,7 +124,10 @@ def get_infile_outfile_paths(data_dir):
     """
     # set up IO paths
     infilepaths = glob.glob(os.path.join(data_dir, '*.tfrecord'))
-    outfilepaths = [fp.split('.')[0]+'OUT.tfrecord' for fp in infilepaths]
+    # order the infilepaths
+    infilepaths = sorted(infilepaths)
+    # get the corresponding outfilepaths
+    outfilepaths = [fp.split('.')[0]+'_OUT.tfrecord' for fp in infilepaths]
     return infilepaths, outfilepaths
 
 
@@ -230,7 +237,7 @@ def write_tfrecord_file(patches, filepath, bands):
             working-with-tfrecords-and-tf-train-example-36d111b3ff4d
     """
     with tf.io.TFRecordWriter(filepath) as writer:
-        for patch, label in zip(patches, labels):
+        for patch in patches:
             # serialize to bytes
             patch_bytes = tf.io.serialize_tensor(patch)
             # grab the shape
@@ -358,7 +365,9 @@ def get_neighbors_info(i, j, ys, xs, yres, xres, patch_dims,
     Finds all pixel-center coordinates within neigh_dist (in meters) of
     the input lat,long coordinates.
 
-    To do this, first it uses the minimum distance in meters of a degree
+    To do this, if a cKDTree is provided to the 'tree' argument
+    then the tree is queried to find valid neighbors.
+    Otherwise, first the function uses the minimum distance (meters) of a degree
     longitude within our dataset (based on the maximum absolute value of a
     latitudinal point included in the dataset; here set to 67 degrees
     latitude (a bit of an overshoot),
@@ -369,8 +378,6 @@ def get_neighbors_info(i, j, ys, xs, yres, xres, patch_dims,
     pixels in the corners of the resulting box, which will be far outside
     the neighborhood radius. That said, it is a first-pass method for grabbing
     a set that contains all necessary pixels. 
-    I SHOULD CONSIDER FINDING A MAX DECIMAL-DEGREE DISTANCE WITHIN WHICH TO
-    GRAB PIXELS, THEN USING A kdTree INSTEAD!)
 
     Then it uses geopy's geodesic distance function to calculate the distance,
     in meters, of each pixel's centerpoint from the focal pixel's centerpoint.
@@ -487,7 +494,7 @@ def calc_asynch_one_pixel(i, j, patch, patch_n, ys, xs, yres, xres, dims,
         start = time.time()
 
     if verbose:
-        print('\nPROCESSING PATCH %i: PIXEL (%i, %i)...\n' % (patch_n, i, j))
+        print('\nPROCESSING PATCH %i: PIXEL (%i, %i)...' % (patch_n, i, j))
        
     # create lists of R2 and dist values
     R2s = []
@@ -541,23 +548,39 @@ def calc_asynch_one_pixel(i, j, patch, patch_n, ys, xs, yres, xres, dims,
     return asynch, asynch_R2, asynch_n
 
 
-def calc_asynch(infilepath, outfilepath, inbands, outbands, dims,
-                xmin, ymin, xres, yres, row_i, col_j, patch_n,
-                verbose=True, timeit=True):
-    """
-    Read the patches from the input file, calculate and store
-    the asynch metrics for each patch, then write the results
-    to the output file.
-    """
+def get_inpatches_outpatches(infilepath, inbands, dims):
     # read the file's data in as a set of examples (i.e. patches)
-    patches = read_tfrecord_file(infilepath, dims, inbands)
-
+    inpatches = read_tfrecord_file(infilepath, dims, inbands)
     # create a data container for all the asynch patches
     outpatches = []
+    for patch in inpatches:
+        # create the output arrays, to be filled in (start as all NaNs)
+        # (array to hold asynch vals)
+        # (array to hold the R2s of the asynch-calc regressions)
+        # (array to hold the sample sizes for each of the asynch regressions)
+        asynch = np.nan * patch[0,:,:]
+        asynch_R2s = np.nan * patch[0,:,:]
+        asynch_ns = np.nan * patch[0, :, :]
+        outpatch = np.stack((asynch, asynch_R2s, asynch_ns))
+        outpatches.append(outpatch)
+    # read the file's data again, to be able to return a fresh generator
+    inpatches = read_tfrecord_file(infilepath, dims, inbands)
+    return (inpatches, outpatches)
 
-    # loop over the patches within the current file
+
+def calc_asynch(inpatches, outpatches, row_is, col_js, patch_ns,
+                dims, xmin, ymin, xres, yres, design_mat, indices,
+                verbose=True, timeit=True):
+    """
+    Read the patches from the input file, and calculate and store
+    the asynch metrics for each input patch (inpatches)
+    in the corresponding output patch (outpatches)
+    """
+    # loop over the patches from the current file
     # NOTE: each patch is of shape (n_bands, lat, lon)
-    for patch in patches:
+    for inpatch, outpatch, row_i, col_j, patch_n in zip(inpatches, outpatches,
+                                                        row_is, col_js,
+                                                        patch_ns):
 
         # get the lons and lats of the current example's patch
         xs, ys = get_patch_lons_lats(xmin, ymin, xres, yres, dims, col_j, row_i)
@@ -565,123 +588,253 @@ def calc_asynch(infilepath, outfilepath, inbands, outbands, dims,
         # get the cKDTree for these lons and lats
         tree = make_cKDTree_and_indices(xs, ys)
 
-        # create the output asynch array, to be filled in (starts as all NaNs)
-        # (and also an array to hold the R2s of the asynch-calc regressions)
-        # (and also an array to hold the sample sizes for each of the asynch
-        # regressions)
-        asynch = np.nan * patch[0,:,:]
-        asynch_R2s = np.nan * patch[0,:,:]
-        asynch_ns = np.nan * patch[0, :, :]
-        
         #----------------
         # run calculation
         #----------------
 
         # loop over pixels
-        for i in range(patch.shape[1]):
-            for j in range(patch.shape[2]):
+        for i in range(inpatch.shape[1]):
+            for j in range(inpatch.shape[2]):
  
                 # leave the asynch output val as a NaN if the coeffs for this
                 # pixel contain NaNs
-                if np.any(np.isnan(patch[:, i, j])):
+                if np.any(np.isnan(inpatch[:, i, j])):
                     if verbose:
-                        print(('\nPROCESSING PATCH %i: PIXEL (%i, %i)...'
-                               '\n\n') % (patch_n, i, j))
-                        print('\truntime: N/A')
+                        print(('\nPROCESSING PATCH %i: PIXEL (%i, %i)'
+                               '...') % (patch_n, i, j))
+                        print('\truntime: ---')
                 else:
                     (asynch_val,
                      asynch_R2_val,
-                     asynch_n_val) = calc_asynch_one_pixel(i, j, patch, patch_n,
-                                                           ys, xs, yres, xres,
+                     asynch_n_val) = calc_asynch_one_pixel(i, j, inpatch,
+                                                           patch_n, ys, xs,
+                                                           yres, xres,
                                                            dims, design_mat,
                                                            tree, indices,
                                                            verbose=verbose,
                                                            timeit=timeit)
-                    asynch[i, j] = asynch_val
-                    asynch_R2s[i, j] = asynch_R2_val
-                    asynch_ns[i, j] = asynch_n_val
+                    outpatch[:, i, j] = [asynch_val, asynch_R2_val,
+                                         asynch_n_val]
+        
+
+   
+
+def get_row_col_patch_ns_allfiles(data_dir, patt_b4_filenum):
+    """
+    Return an output dict containing the row, column, and patch numbers,
+    and outfile paths (as dict values, organized as subdicts)
+    for all files (keys).
+    """
+    # set the starting row, column, and patch counters
+    row_i = 0
+    col_j = 0
+    patch_n = 0
+
+    # get the mixer file info
+    mix = read_mixer_file(DATA_DIR)
+    (dims, crs, xmin, ymin, xres, yres,
+     patches_per_row, tot_patches) = get_mixer_info(mix)
     
-        # store this patch's asynch raster
-        outpatch = np.stack((asynch, asynch_R2s, asynch_ns))
-        outpatches.append(outpatch)
+    # get all the input and output file paths
+    infilepaths, outfilepaths = get_infile_outfile_paths(DATA_DIR)
 
-        #increment counters
-        patch_n += 1
-        if col_j == patches_per_row - 1:
-            row_i += 1
-            col_j = 0
-        else:
-            col_j += 1
+    # assert that both lists are sorted in ascending numerical order
+    # NOTE: if this is not true then my method for tracking the row, col, and
+    # patch numbers will break!
+    for filepaths in [infilepaths, outfilepaths]:
+        filenums = np.array([int(f.split(patt_b4_filenum)[1].split(
+                                         '_OUT')[0].split(
+                                         '.tfrec')[0]) for f in filepaths])
+        filenums_plus1 = np.array(range(1, len(filepaths)+1))
+        assert np.all((filenums_plus1 - filenums) == 1), ("Filepaths do not "
+                                                         "appear to be in "
+                                                         "numerical order. "
+                                                         "\n\t%s") % str(
+                                                                    filepaths)
 
-        # TODO: DELETE ME
-        #------------
-        # data output
-        #------------
-        fig = plt.figure()
-        ax1 = fig.add_subplot(221)
-        ax1.set_title('asynch')
-        ax1.imshow(asynch, cmap='magma')
-        try:
-            ax1.colorbar()
-        except Exception:
-            pass
-        ax2 = fig.add_subplot(222)
-        ax2.set_title('asynch_R2s')
-        ax2.imshow(asynch_R2s, cmap='viridis')
-        try:
-            ax2.colorbar()
-        except Exception:
-            pass
-        ax3 = fig.add_subplot(223)
-        ax3.set_title('asynch_ns')
-        ax3.imshow(asynch_ns, cmap='cividis')
-        try:
-            ax3.colorbar()
-        except Exception:
-            pass
-        fig.show()
+    # make the output dict
+    files_dict = {}
+
+    # loop over the input files, get the requisite info (row, col, and patch
+    # ns; output file paths), and store in the dict
+    for infile_i, infile in enumerate(infilepaths):
+        # create the subdict 
+        file_dict = {}
+        # stash the outfile path
+        file_dict['outfilepath'] = outfilepaths[infile_i]
+        file_dict['row_is'] = []
+        file_dict['col_js'] = []
+        file_dict['patch_ns'] = []
+
+        # read the file into a TFRecordDataset
+        dataset = tf.data.TFRecordDataset(infile)
+
+        # loop over the patches in the infile, store the row, col, and patch
+        # numbers, then correctly increment them
+        # NOTE: an example (TFRecord jargon) is the same as a patch (GEE jargon)
+        for example in dataset:
+
+            # store nums
+            file_dict['row_is'].append(row_i)
+            file_dict['col_js'].append(col_j)
+            file_dict['patch_ns'].append(patch_n)
+
+            #increment counters
+            patch_n += 1
+            if col_j == patches_per_row - 1:
+                row_i += 1
+                col_j = 0
+            else:
+                col_j += 1
+
+        # add this file's file_dict to the files_dict
+        files_dict[infile] = file_dict
+
+    return files_dict
+
+
+def plot_results(outpatches, patch_idx):
+    """
+    Plot the asynch, its R2s, and its sample sizes.
+    """
+    # grab the right patch
+    patch = outpatches[patch_idx]
+
+    # make fig
+    fig = plt.figure()
+    # plot asynch
+    ax1 = fig.add_subplot(221)
+    ax1.set_title('asynch')
+    ax1.imshow(patch[0,:,:], cmap='magma')
+    try:
+        ax1.colorbar()
+    except Exception:
+        pass
+    ax2 = fig.add_subplot(222)
+    ax2.set_title('asynch_R2s')
+    ax2.imshow(patch[1,:,:], cmap='viridis')
+    try:
+        ax2.colorbar()
+    except Exception:
+        pass
+    ax3 = fig.add_subplot(223)
+    ax3.set_title('asynch_ns')
+    ax3.imshow(patch[2,:,:], cmap='cividis')
+    try:
+        ax3.colorbar()
+    except Exception:
+        pass
+    fig.show()
+    return fig
  
     
-    # write out the asynch data
-    write_tfrecord_file(outpatches, outfilepath, outbands)
-
 #------------------------------------------------------------------------------
 # calculate asynchrony
 #---------------------
+if __name__ == '__main__':
 
-#---------------------
-# set up IO paths, etc
-#---------------------
+    #----------------------
+    # get the design matrix
+    #----------------------
+    
+    DESIGN_MAT = make_design_matrix()
+    
+    #---------------
+    # get mixer info
+    #---------------
+    
+    mix = read_mixer_file(DATA_DIR)
+    (DIMS, CRS, XMIN, YMIN, XRES, YRES, patches_per_row,
+                                        tot_patches) = get_mixer_info(mix)
+    # get the nx2 array of pixel index-pairs (which will be subsetted by cKDTree
+    # neighbor-query output
+    INDICES = make_indices_array(DIMS)
+    
+    #------------------------------------
+    # get files' row, col, and patch info
+    #------------------------------------
+    
+    files_dict = get_row_col_patch_ns_allfiles(DATA_DIR, PATT_B4_FILENUM)
+   
+    #-----------------------------
+    # define function to be mapped
+    #-----------------------------
+    def main_fn(file_info):
+        """
+        Main function to be mapped over a Pool instance
 
-infilepaths, outfilepaths = get_infile_outfile_paths(DATA_DIR)
+        Takes the file_info for an input file, calculates
+        asynchrony for that file, writes it to file, returns None.
 
-#----------------------
-# get the design matrix
-#----------------------
+        The argument 'file_info' must be a dict item object of the form:
+          (infilepath, 
+            {'outfilepath': outfilepath,
+             'row_is' = [row_i_1, row_i_2, ..., row_i_I],
+             'col_js' = [col_j_1, col_j_2, ..., col_j_J],
+             'patch_ns' = [patch_n_1, patch_n_2, ..., patch_n_N]
+             }
+          )
+        """
 
-design_mat = make_design_matrix()
+        infilepath = [*file_info][0]
+        if VERBOSE:
+            print(('\nstarting job for file "%s" '
+                   'in process number %s') % (os.path.split(infilepath)[1],
+                                              str(os.getpid())))
+        file_dict = [*file_info][1]
+        outfilepath = file_dict['outfilepath']
+        row_is = file_dict['row_is']
+        col_js = file_dict['col_js']
+        patch_ns = file_dict['patch_ns']
 
-#---------------
-# get mixer info
-#---------------
+        # read the data in, and set up the output patches' data structure
+        # NOTE: by setting this up outside the calc_asynch function, 
+        #       I make it so that I can run the script for a short amount of
+        #       time, then retain the partial result
+        #       for interactive introspection
+        inpatches, outpatches = get_inpatches_outpatches(infilepath, INBANDS,
+                                                         DIMS)
 
-mix = read_mixer_file(DATA_DIR)
-(dims, crs, xmin, ymin, xres, yres, patches_per_row,
-                                    tot_patches) = get_mixer_info(mix)
-# get the nx2 array of pixel index-pairs (which will be subsetted by cKDTree
-# neighbor-query output
-indices = make_indices_array(dims)
+        if VERBOSE:
+            print(('RUNNING ASYNCH CALC FOR FILE: '
+                   '"%s"') % os.path.split(infilepath)[1])
+            for row_i, col_j, patch_n in zip(row_is, col_js, patch_ns):
+                print('\tPATCH: %i (row %i, col %i)' % (patch_n, row_i, col_j))
 
-#--------------
-# load the data
-#--------------
+        # run the asynchrony calculation
+        calc_asynch(inpatches, outpatches, row_is, col_js, patch_ns,
+                    DIMS, XMIN, YMIN, XRES, YRES, DESIGN_MAT, INDICES,
+                    VERBOSE, TIMEIT)
 
-# loop over the Tfrecord files, keeping track of the patch number and its
-# corresponding row and column indices in the overall patch mosaic
-patch_n = 0
-row_i = 0
-col_j = 0
-for infilepath, outfilepath in zip(infilepaths, outfilepaths):
-    calc_asynch(infilepath, outfilepath, INBANDS, OUTBANDS,
-                dims, xmin, ymin, xres, yres, row_i, col_j, patch_n, 
-                VERBOSE, TIMEIT)
+        # write out the asynch data
+        write_tfrecord_file(outpatches, outfilepath, OUTBANDS)
+
+    #-----------------------
+    # set up parallelization
+    #-----------------------
+    
+    # how many CPUs?
+    ncpu = mp.cpu_count()
+    print('\n\nTHIS COMPUTATION WILL BE COMPLETED USING %i CPUS\n\n' % ncpu)
+
+    # set the start method to 'spawn' instead of 'fork, to avoid deadlock
+    # (see: https://pythonspeed.com/articles/python-multiprocessing/)
+    mp.set_start_method('spawn')
+
+    # make the Pool
+    #pool = pomp.ProcessingPool(ncpu)
+    pool = mp.Pool(ncpu)
+    
+    # map the input files dict into the CPUs in our pool
+    print("BEGIN ASSIGNING JOBS...\n")
+    #pool.amap(main_fn, files_dict.items())
+    #jobs = []
+    #for item in files_dict.items():
+    #    job = pool.apply_async(main_fn, args=[item])
+    #    jobs.append(job)
+    pool.map_async(main_fn, files_dict.items())
+    
+    # close and join the Pool
+    pool.close()
+    pool.join()
+    
