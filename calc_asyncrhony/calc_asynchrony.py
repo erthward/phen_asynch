@@ -24,6 +24,7 @@ if __name__ == '__main__':
 
     # how many CPUs?
     ncpu = mp.cpu_count()
+    ncpu = min(ncpu, len(af.FILES_DICT))
     print('\n\nTHIS COMPUTATION WILL BE COMPLETED USING %i CPUS\n\n' % ncpu)
 
     # set the start method to 'spawn' instead of 'fork, to avoid deadlock

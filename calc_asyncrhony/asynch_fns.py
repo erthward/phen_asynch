@@ -82,7 +82,7 @@ import os
 # directory where the data and mixerfile live
 DATA_DIR = ('/home/drew/Desktop/stuff/berk/research/projects/seasonality/'
               'GEE_output')
-
+DATA_DIR = '/global/home/users/drewhart/seasonality/GEE_output'
 # pattern that occurs just before the file number in each input file's name
 PATT_B4_FILENUM = 'Amer-'
 
@@ -115,6 +115,8 @@ def get_infile_outfile_paths(data_dir):
     infilepaths = glob.glob(os.path.join(data_dir, '*.tfrecord'))
     # order the infilepaths
     infilepaths = sorted(infilepaths)
+    #make sure that no previously output files are included
+    infilepaths = [f for f in infilepaths if not '_OUT' in f]
     # get the corresponding outfilepaths
     outfilepaths = [fp.split('.')[0]+'_OUT.tfrecord' for fp in infilepaths]
     return infilepaths, outfilepaths
