@@ -80,14 +80,20 @@ import os
 #-----------
 
 # directory where the data and mixerfile live
-DATA_DIR = ('/home/drew/Desktop/stuff/berk/research/projects/seasonality/'
-              'GEE_output')
-DATA_DIR = '/global/home/users/drewhart/seasonality/GEE_output'
+if os.path.abspath('.').split('/')[1] == 'home':
+    DATA_DIR = ('/home/drew/Desktop/stuff/berk/research/projects/seasonality/'
+                'GEE_output')
+else:
+    DATA_DIR = '/global/home/users/drewhart/seasonality/GEE_output'
+
 # pattern that occurs just before the file number in each input file's name
 PATT_B4_FILENUM = 'Amer-'
 
 # kernel size used by GEE to output the TFRecord files
 KERNEL_SIZE = 60
+
+# default missing-data val
+DEFAULT_VAL = -9999.0
 
 # names of the bands saved into the TFRecord files
 INBANDS = ['constant', 'sin_1', 'cos_1', 'sin_2', 'cos_2']
@@ -98,8 +104,8 @@ OUTBANDS = ['asynch', 'asynch_R2', 'asynch_n']
 NEIGH_RAD = 150_000
 
 # stdout options
-VERBOSE = True
-TIMEIT = True
+VERBOSE = False
+TIMEIT = False
 
 
 #-----------------
@@ -184,7 +190,7 @@ def calc_patch_dimensions(mixer_content, kernel_size):
     return patch_dimensions
 
 
-def parse_tfexample_to_numpy(ex, dims, bands, default_val=-9999.0):
+def parse_tfexample_to_numpy(ex, dims, bands, default_val=DEFAULT_VAL):
     """
     Parse a TFRecordDataset's Example to a 3D lon x lat x n_bands array,
     then return it.
@@ -227,6 +233,9 @@ def write_tfrecord_file(patches, filepath, bands):
         https://towardsdatascience.com/
             working-with-tfrecords-and-tf-train-example-36d111b3ff4d
     """
+    #set all NaNs back to the missing-data default val
+    for patch in patches:
+        patch[np.isnan(patch)] = DEFAULT_VAL
     with tf.io.TFRecordWriter(filepath) as writer:
         for patch in patches:
             # serialize to bytes
@@ -763,9 +772,8 @@ def main_fn(file_info):
     """
 
     infilepath = [*file_info][0]
-    if VERBOSE:
-        print(('\nstarting job for file "%s" '
-               'in process number %s') % (os.path.split(infilepath)[1],
+    print(('\nstarting job for file "%s" '
+           'in process number %s') % (os.path.split(infilepath)[1],
                                           str(os.getpid())))
     file_dict = [*file_info][1]
     outfilepath = file_dict['outfilepath']
@@ -781,11 +789,10 @@ def main_fn(file_info):
     inpatches, outpatches = get_inpatches_outpatches(infilepath, INBANDS,
                                                      DIMS)
 
-    if VERBOSE:
-        print(('RUNNING ASYNCH CALC FOR FILE: '
-               '"%s"') % os.path.split(infilepath)[1])
-        for row_i, col_j, patch_n in zip(row_is, col_js, patch_ns):
-            print('\tPATCH: %i (row %i, col %i)' % (patch_n, row_i, col_j))
+    print(('RUNNING ASYNCH CALC FOR FILE: '
+           '"%s"') % os.path.split(infilepath)[1])
+    for row_i, col_j, patch_n in zip(row_is, col_js, patch_ns):
+        print('\tPATCH: %i (row %i, col %i)' % (patch_n, row_i, col_j))
 
     # run the asynchrony calculation
     calc_asynch(inpatches, outpatches, row_is, col_js, patch_ns,
