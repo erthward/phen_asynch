@@ -238,12 +238,8 @@ def write_tfrecord_file(patches, filepath, bands):
         patch[np.isnan(patch)] = DEFAULT_VAL
     with tf.io.TFRecordWriter(filepath) as writer:
         for patch in patches:
-            # serialize to bytes
-            patch_bytes = tf.io.serialize_tensor(patch)
-            # grab the shape
-            patch_shape = patch.shape
             # serialize to a TF example
-            example = serialize_tfrecord_example(patch_bytes, bands)
+            example = serialize_tfrecord_example(patch, bands)
             # write to disk
             writer.write(example)
 
@@ -259,7 +255,7 @@ def serialize_tfrecord_example(patch, bands):
     # make the feature dict, with one item for each band label
     # (just like the 'sin_1', 'cos_1', ... bands in the input files)
     feature = {band: tf.train.Feature(float_list=tf.train.FloatList(
-               patch[i, :, :].flatten())) for i, band in enumerate(bands)}
+               value=patch[i, :, :].flatten())) for i, band in enumerate(bands)}
     #  create a Features message (i.e. protocol buffer) using tf.train.Example
     example_prot = tf.train.Example(features=tf.train.Features(feature=feature))
     return example_prot.SerializeToString()
