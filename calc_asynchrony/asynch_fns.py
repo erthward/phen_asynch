@@ -48,7 +48,7 @@ NOTES:
                 ...
 
                 example last:
-                    
+
                     feature {
                         ...
                         }
@@ -92,20 +92,23 @@ PATT_B4_FILENUM = 'Amer-'
 # kernel size used by GEE to output the TFRecord files
 KERNEL_SIZE = 60
 
+# whether or not to trim the half-kernel-width margin before output
+TRIM_MARGIN = True
+
 # default missing-data val
 DEFAULT_VAL = -9999.0
 
 # names of the bands saved into the TFRecord files
 INBANDS = ['constant', 'sin_1', 'cos_1', 'sin_2', 'cos_2']
-OUTBANDS = ['asynch', 'asynch_R2', 'asynch_n']
+OUTBANDS = ['asynch', 'asynch_R2', 'asynch_euc', 'asynch_euc_R2', 'asynch_n']
 
 # max distance out to which to find and include neighbors in
 # each pixel's asynchrony calculation (in meters)
 NEIGH_RAD = 150_000
 
 # stdout options
-VERBOSE = False
-TIMEIT = False
+VERBOSE = True
+TIMEIT = True
 
 
 #-----------------
@@ -196,10 +199,10 @@ def parse_tfexample_to_numpy(ex, dims, bands, default_val=DEFAULT_VAL):
     then return it.
     """
     arrays = []
-    # parse each feature into an identically shaped numpy array
+    # get example from TFRecord string
+    parsed = tf.train.Example.FromString(ex)
+    # coerce each feature into an identically shaped numpy array
     for beta in bands:
-        # get example from TFRecord string
-        parsed = tf.train.Example.FromString(ex)
         # pull the feature corresponding to this beta
         feature = parsed.features.feature[beta]
         floats = feature.float_list.value
@@ -285,7 +288,7 @@ def get_patch_lons_lats(xmin, ymin, xres, yres, dims, col_j, row_i):
 def make_design_matrix():
     """
     Makes and returns the regression's design matrix, a 365 x 5 numpy array
-    in which the columns contain, in order: 
+    in which the columns contain, in order:
         - 1s (for the constant);
         - sin and cos of annual-harmonic days of the year
           (i.e. days are expressed in radians from 0 to 2pi);
@@ -337,20 +340,29 @@ def run_linear_regression(y, x, fit_intercept=True):
     model = LinearRegression(fit_intercept=fit_intercept).fit(reshaped_x, y)
     # get the R2 and coeff values
     R2 = model.score(reshaped_x, y)
-    slope = model.coef_ 
+    slope = model.coef_
     intercept = model.intercept_
     return {'slope': slope, 'intercept': intercept, 'R2': R2}
 
 
-def calc_distance(lon1, lat1, lon2, lat2):
+def calc_euc_dist(a1, a2):
     """
-    Calculates the real-world distance (in meters)
-    between the two points at lon1,lat1 and lon2,lat2.
+    Calculates the Euclidean distance between two 1d, length-n numpy arrays.
 
     Returns the distance as a float.
     """
+    dist = np.sqrt(np.sum((a1 - a2)**2))
+    return dist
 
-    pass
+
+def standardize(a1):
+    """
+    Standardizes a 1d numpy array.
+
+    Returns the standardized array of identical shape.
+    """
+    standardized = (a1-np.mean(a1))/np.std(a1)
+    return standardized
 
 
 def get_neighbors_info(i, j, ys, xs, yres, xres, patch_dims,
@@ -373,7 +385,7 @@ def get_neighbors_info(i, j, ys, xs, yres, xres, patch_dims,
     (This actually gets way more pixels than necessary, because of all the
     pixels in the corners of the resulting box, which will be far outside
     the neighborhood radius. That said, it is a first-pass method for grabbing
-    a set that contains all necessary pixels. 
+    a set that contains all necessary pixels.
 
     Then it uses geopy's geodesic distance function to calculate the distance,
     in meters, of each pixel's centerpoint from the focal pixel's centerpoint.
@@ -412,7 +424,7 @@ def get_neighbors_info(i, j, ys, xs, yres, xres, patch_dims,
                       j-neigh_rad_x:j+neigh_rad_x+1].flatten()
         assert (valid_y_inds.size == valid_x_inds.size == valid_xs.size), ('Number '
                    'of coord-indices not equal to number of coords!')
- 
+
     else:
         # NOTE: buffer the max distance in degrees just a bit, so
         # that all points within the neighborhood distance in meters
@@ -435,7 +447,7 @@ def get_neighbors_info(i, j, ys, xs, yres, xres, patch_dims,
                                                        ' returned!')
         assert (valid_y_inds.size == valid_x_inds.size == valid_xs.size), ('Number '
                'of coord-indices not equal to number of coords!')
-   
+
     # save the focal pixel's centerpoints, and lists of the other
     # centerpoints and their indices
     foc = (ys[i,j], xs[i,j])
@@ -491,14 +503,16 @@ def calc_asynch_one_pixel(i, j, patch, patch_n, ys, xs, yres, xres, dims,
 
     if verbose:
         print('\nPROCESSING PATCH %i: PIXEL (%i, %i)...' % (patch_n, i, j))
-       
+
     # create lists of R2 and dist values
     R2s = []
-    dists = []
+    ts_dists = []
+    geo_dists = []
 
-    # calculate the focal pixel's time series
+    # calculate the focal pixel's time series (and its standardized time series)
     ts_foc = calc_time_series(patch, i, j, design_mat)
- 
+    stand_ts_foc = standardize(ts_foc)
+
     # get the coords, dists, and array-indices
     # of all of the focal pixel's neighbors
     coords_dists_inds = get_neighbors_info(i, j, ys, xs, yres,
@@ -510,30 +524,44 @@ def calc_asynch_one_pixel(i, j, patch, patch_n, ys, xs, yres, xres, dims,
         # unpack the neighbor info
         neigh_dist, neigh_inds = neigh_info
         ni, nj = neigh_inds
-    
+
         # get the neighbor's time series
         ts_neigh = calc_time_series(patch, ni, nj, design_mat)
+        stand_ts_neigh = standardize(ts_neigh)
 
         # drop this pixel if it returns NAs
         if np.any(np.isnan(ts_neigh)):
             pass
         else:
             # append the distance
-            dists.append(neigh_dist)
+            geo_dists.append(neigh_dist)
 
             # calculate and append the R2
             R2 = run_linear_regression(ts_foc, ts_neigh)['R2']
             R2s.append(R2)
-                   
-    # get the slope of the overall regression
+
+            # calculate and append the Euclidean distance
+            # between standardized time series
+            ts_dist = calc_euc_dist(stand_ts_foc, stand_ts_neigh)
+            ts_dists.append(ts_dist)
+
+    # get the slope of the overall regression of R2s on geo dist
     # NOTE: setting fit_intercept to False and subtracting 1
     #       from the array of R2s effectively
     #       fixes the intercept at R2=1
     res = run_linear_regression(np.array(R2s) - 1,
-                                    dists, fit_intercept=False)
+                                geo_dists, fit_intercept=False)
+    # get the slope of the overall regression of Euclidean ts dists on geo dist
+    # NOTE: just setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
+    res_euc = run_linear_regression(np.array(ts_dists),
+                                    geo_dists, fit_intercept=False)
+    # extract both results into vars
     asynch = np.abs(res['slope'])
     asynch_R2 = res['R2']
-    asynch_n = len(dists)
+    asynch_euc = res_euc['slope']
+    asynch_euc_R2 = res_euc['R2']
+    assert len(geo_dists) == len(ts_dists) == len(R2s)
+    asynch_n = len(geo_dists)
 
     if verbose and timeit:
         # get finish time
@@ -541,7 +569,7 @@ def calc_asynch_one_pixel(i, j, patch, patch_n, ys, xs, yres, xres, dims,
         diff = stop-start
         print('\truntime: %0.4f' % diff)
 
-    return asynch, asynch_R2, asynch_n
+    return asynch, asynch_R2, asynch_euc, asynch_euc_R2, asynch_n
 
 
 def get_inpatches_outpatches(infilepath, inbands, dims):
@@ -556,8 +584,12 @@ def get_inpatches_outpatches(infilepath, inbands, dims):
         # (array to hold the sample sizes for each of the asynch regressions)
         asynch = np.nan * patch[0,:,:]
         asynch_R2s = np.nan * patch[0,:,:]
+        asynch_euc = np.nan * patch[0,:,:]
+        asynch_euc_R2s = np.nan * patch[0,:,:]
         asynch_ns = np.nan * patch[0, :, :]
-        outpatch = np.stack((asynch, asynch_R2s, asynch_ns))
+        outpatch = np.stack((asynch, asynch_R2s,
+                             asynch_euc, asynch_euc_R2s,
+                             asynch_ns))
         outpatches.append(outpatch)
     # read the file's data again, to be able to return a fresh generator
     inpatches = read_tfrecord_file(infilepath, dims, inbands)
@@ -566,7 +598,7 @@ def get_inpatches_outpatches(infilepath, inbands, dims):
 
 def calc_asynch(inpatches, outpatches, row_is, col_js, patch_ns,
                 dims, xmin, ymin, xres, yres, design_mat, indices,
-                verbose=True, timeit=True):
+                kernel_size, trim_margin=False, verbose=True, timeit=True):
     """
     Read the patches from the input file, and calculate and store
     the asynch metrics for each input patch (inpatches)
@@ -578,6 +610,9 @@ def calc_asynch(inpatches, outpatches, row_is, col_js, patch_ns,
                                                         row_is, col_js,
                                                         patch_ns):
 
+        # calculate half kernel width
+        hkw = int(kernel_size/2)
+
         # get the lons and lats of the current example's patch
         xs, ys = get_patch_lons_lats(xmin, ymin, xres, yres, dims, col_j, row_i)
 
@@ -588,10 +623,11 @@ def calc_asynch(inpatches, outpatches, row_is, col_js, patch_ns,
         # run calculation
         #----------------
 
-        # loop over pixels
-        for i in range(inpatch.shape[1]):
-            for j in range(inpatch.shape[2]):
- 
+        # loop over pixels (excluding those in the kernel's margin,
+        # since there's no use wasting time calculating for those)
+        for i in range(hkw, inpatch.shape[1]-hkw):
+            for j in range(hkw, inpatch.shape[2]-hkw):
+
                 # leave the asynch output val as a NaN if the coeffs for this
                 # pixel contain NaNs
                 if np.any(np.isnan(inpatch[:, i, j])):
@@ -602,6 +638,8 @@ def calc_asynch(inpatches, outpatches, row_is, col_js, patch_ns,
                 else:
                     (asynch_val,
                      asynch_R2_val,
+                     asynch_euc_val,
+                     asynch_euc_R2_val,
                      asynch_n_val) = calc_asynch_one_pixel(i, j, inpatch,
                                                            patch_n, ys, xs,
                                                            yres, xres,
@@ -610,10 +648,18 @@ def calc_asynch(inpatches, outpatches, row_is, col_js, patch_ns,
                                                            verbose=verbose,
                                                            timeit=timeit)
                     outpatch[:, i, j] = [asynch_val, asynch_R2_val,
+                                         asynch_euc_val, asynch_euc_R2_val,
                                          asynch_n_val]
-        
 
-   
+    # trim the half-kernel-width margin, if requested
+    if trim_margin:
+        if verbose:
+            print('\n\nTrimming %i-cell margin around each patch.\n\n' % hkw)
+        # subset
+        outpatches = [op[:, hkw:-hkw, hkw:-hkw] for op in outpatches]
+
+    return outpatches
+
 
 def get_row_col_patch_ns_allfiles(data_dir, patt_b4_filenum):
     """
@@ -630,7 +676,7 @@ def get_row_col_patch_ns_allfiles(data_dir, patt_b4_filenum):
     mix = read_mixer_file(DATA_DIR)
     (dims, crs, xmin, ymin, xres, yres,
      patches_per_row, tot_patches) = get_mixer_info(mix)
-    
+
     # get all the input and output file paths
     infilepaths, outfilepaths = get_infile_outfile_paths(DATA_DIR)
 
@@ -696,33 +742,36 @@ def plot_results(outpatches, patch_idx):
     # grab the right patch
     patch = outpatches[patch_idx]
 
+    # fontdicts
+    title_fd = {'fontsize':20}
+    cbar_fontsize = 16
+    ticksize=2
+    ticklabelsize = 12
+
     # make fig
     fig = plt.figure()
     # plot asynch
-    ax1 = fig.add_subplot(221)
-    ax1.set_title('asynch')
-    ax1.imshow(patch[0,:,:], cmap='magma')
-    try:
-        ax1.colorbar()
-    except Exception:
-        pass
-    ax2 = fig.add_subplot(222)
-    ax2.set_title('asynch_R2s')
-    ax2.imshow(patch[1,:,:], cmap='viridis')
-    try:
-        ax2.colorbar()
-    except Exception:
-        pass
-    ax3 = fig.add_subplot(223)
-    ax3.set_title('asynch_ns')
-    ax3.imshow(patch[2,:,:], cmap='cividis')
-    try:
-        ax3.colorbar()
-    except Exception:
-        pass
+    ax1 = fig.add_subplot(131)
+    ax1.set_title('asynch', fontdict=title_fd)
+    im1 = ax1.imshow(patch[0,:,:], cmap='magma')
+    cbar1 = plt.colorbar(im1)
+    cbar1.ax.tick_params(size=ticksize, labelsize=ticklabelsize)
+    cbar1.set_label('asynch (unitless)', size=cbar_fontsize)
+    ax2 = fig.add_subplot(132)
+    ax2.set_title('asynch_R2s', fontdict=title_fd)
+    im2 = ax2.imshow(patch[1,:,:], vmin=0, vmax=1, cmap='viridis')
+    cbar2 = plt.colorbar(im2)
+    cbar2.ax.tick_params(size=ticksize, labelsize=ticklabelsize)
+    cbar2.set_label('$R^{2}$', size=cbar_fontsize)
+    ax3 = fig.add_subplot(133)
+    ax3.set_title('asynch_ns', fontdict=title_fd)
+    im3 = ax3.imshow(patch[2,:,:], cmap='cividis')
+    cbar3 = plt.colorbar(im3)
+    cbar3.ax.tick_params(size=ticksize, labelsize=ticklabelsize)
+    cbar3.set_label('number of neighborhood cells', size=cbar_fontsize)
     fig.show()
     return fig
- 
+
 
 #----------------------
 # get the design matrix
@@ -746,11 +795,12 @@ INDICES = make_indices_array(DIMS)
 #------------------------------------
 
 FILES_DICT = get_row_col_patch_ns_allfiles(DATA_DIR, PATT_B4_FILENUM)
+FILENAMES = [fn for fn in FILES_DICT]
 
 #----------------------------------------------------------
 # define the main function, to be mapped over a worker pool
 #----------------------------------------------------------
-def main_fn(file_info):
+def main_fn(file_info, verbose=VERBOSE, trim_margin=TRIM_MARGIN):
     """
     Main function to be mapped over a Pool instance
 
@@ -758,7 +808,7 @@ def main_fn(file_info):
     asynchrony for that file, writes it to file, returns None.
 
     The argument 'file_info' must be a dict item object of the form:
-      (infilepath, 
+      (infilepath,
         {'outfilepath': outfilepath,
          'row_is' = [row_i_1, row_i_2, ..., row_i_I],
          'col_js' = [col_j_1, col_j_2, ..., col_j_J],
@@ -791,11 +841,11 @@ def main_fn(file_info):
         print('\tPATCH: %i (row %i, col %i)' % (patch_n, row_i, col_j))
 
     # run the asynchrony calculation
-    calc_asynch(inpatches, outpatches, row_is, col_js, patch_ns,
-                DIMS, XMIN, YMIN, XRES, YRES, DESIGN_MAT, INDICES,
-                VERBOSE, TIMEIT)
+    outpatches = calc_asynch(inpatches, outpatches, row_is, col_js, patch_ns,
+                             DIMS, XMIN, YMIN, XRES, YRES, DESIGN_MAT, INDICES,
+                             KERNEL_SIZE, trim_margin, verbose, TIMEIT)
+    print([p.shape for p in outpatches])
 
     # write out the asynch data
     write_tfrecord_file(outpatches, outfilepath, OUTBANDS)
 
-   
