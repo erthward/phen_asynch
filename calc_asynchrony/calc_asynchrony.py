@@ -36,7 +36,7 @@ if len(sys.argv) > 1:
         try:
             start_filenum_idx = int(sys.argv[1])
             stop_filenum_idx = int(sys.argv[2])
-            stop_filenum_idx = max(stop_filenum_idx, len(af.FILENAMES)-1)
+            stop_filenum_idx = max(stop_filenum_idx, len(af.FILENAMES))
         except Exception as e:
             raise ValueError(('If providing starting and ending '
                               'file-number indices '
