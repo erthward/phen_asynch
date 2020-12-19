@@ -19,38 +19,62 @@ import asynch_fns as af
 
 # import other packages
 import multiprocessing as mp
+import glob
 import sys
+import re
 
 # limit number of files to process in this job, if necessary
 if len(sys.argv) > 1:
-    try:
-        start_filenum_idx = int(sys.argv[1])
-        stop_filenum_idx = int(sys.argv[2])
-        stop_filenum_idx = max(stop_filenum_idx, len(af.FILENAMES)-1)
-    except Exception as e:
-        raise ValueError(('If providing starting and ending file-number indices'
-                          ' then they must be provided as integers as the two '
-                          'arguments immediately following the script\'s '
-                          'filename.'))
+    if len(sys.argv) == 2:
+        try:
+            find_missing = sys.argv[1].lower() == '-fm'
+        except Exception as e:
+            raise ValueError(('If providing only one argument '
+                              'it should be the -fm flag (to find all missing '
+                              'output files that need to be processed).'))
+    else:
+        try:
+            start_filenum_idx = int(sys.argv[1])
+            stop_filenum_idx = int(sys.argv[2])
+            stop_filenum_idx = max(stop_filenum_idx, len(af.FILENAMES)-1)
+        except Exception as e:
+            raise ValueError(('If providing starting and ending '
+                              'file-number indices '
+                              'then they must be provided '
+                              'as integers as the two '
+                              'arguments immediately following the script\'s '
+                              'filename.'))
 else:
+    find_missing = False
     start_filenum_idx = 0
     stop_filenum_idx = len(af.FILENAMES)-1
 
 if __name__ == '__main__':
 
-    # get the files_dict to process for this job
-    # (using starting and ending files' indices)
-    files_dict = {fn: af.FILES_DICT[fn] for fn in af.FILENAMES[
-                                            start_filenum_idx:stop_filenum_idx]}
-    print('\n\nFiles to be processed:\n\n\t - %s\n\n' % ('\n\n\t - '.join(
-                                                    [fn for fn in files_dict])))
+    if find_missing:
+        processed= [re.search('\d{5}(?=_OUT)', s).group(
+                                ) for s in glob.glob(af.DATA_DIR + '/*_OUT*')]
+        files_dict = {k:v for k,v in af.FILES_DICT.items(
+            ) if re.search('\d{5}(?=\.tfrec)', k).group() not in processed}
 
-    print('-'*80, '\n\n')
+    else:
+        # get the files_dict to process for this job
+        # (using starting and ending files' indices)
+        files_dict = {fn: af.FILES_DICT[fn] for fn in af.FILENAMES[
+                                            start_filenum_idx:stop_filenum_idx]}
+    print('\n\n', '-'*80, '\n\n')
+    if find_missing:
+        print(('NOTE: -fm flag provided. only unprocessed files will '
+               'be processed.'))
+    print(('\n\nFile numbers to be processed:\n\n\t - '
+           '%s\n\n') % ('\n\n\t - '.join(
+            [re.search('\d{5}(?=\.tfrec)', fn).group() for fn in files_dict])))
+
     # how many CPUs?
     ncpu = mp.cpu_count()
     print('%i CPUs AVAILABLE IN TOTAL\n\n' % ncpu)
     ncpu = min(ncpu, len(files_dict))
-    print('THIS COMPUTATION WILL BE COMPLETED USING %i CPUS\n\n' % ncpu)
+    print('%i CPUS WILL BE USED\n\n' % ncpu)
     print('-'*80, '\n\n')
 
     # set the start method to 'spawn' instead of 'fork, to avoid deadlock
