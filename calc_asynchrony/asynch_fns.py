@@ -679,7 +679,6 @@ def get_row_col_patch_ns_allfiles(data_dir, patt_b4_filenum):
 
     # get all the input and output file paths
     infilepaths, outfilepaths = get_infile_outfile_paths(DATA_DIR)
-    print(infilepaths)
 
     # assert that both lists are sorted in ascending numerical order
     # NOTE: if this is not true then my method for tracking the row, col, and
