@@ -84,10 +84,10 @@ if os.path.abspath('.').split('/')[1] == 'home':
     DATA_DIR = ('/home/drew/Desktop/stuff/berk/research/projects/seasonality/'
                 'GEE_output')
 else:
-    DATA_DIR = '/global/home/users/drewhart/seasonality/GEE_output'
+    DATA_DIR = '/global/home/users/drewhart/seasonality/GEE_output/SIF/'
 
 # pattern that occurs just before the file number in each input file's name
-PATT_B4_FILENUM = 'Amer-'
+PATT_B4_FILENUM = 'SIF-'
 
 # kernel size used by GEE to output the TFRecord files
 KERNEL_SIZE = 60
@@ -679,6 +679,7 @@ def get_row_col_patch_ns_allfiles(data_dir, patt_b4_filenum):
 
     # get all the input and output file paths
     infilepaths, outfilepaths = get_infile_outfile_paths(DATA_DIR)
+    print(infilepaths)
 
     # assert that both lists are sorted in ascending numerical order
     # NOTE: if this is not true then my method for tracking the row, col, and
