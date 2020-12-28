@@ -1,6 +1,3 @@
-#!/bin/python
-# asynch_fns.py
-
 """
 Reads in the data from all the TFRecord files pertaining to a mixerfile.
 Calculates asynchrony for that data and writes out to a matching set of files.
@@ -56,23 +53,12 @@ NOTES:
 
 """
 
-#--------
-# imports
-#--------
-
-from sklearn.linear_model import LinearRegression
-from geopy.distance import geodesic
-from shapely.geometry import Point
-from scipy.spatial import cKDTree
-import matplotlib.pyplot as plt
-from pprint import pprint
-import geopandas as gpd
-import tensorflow as tf
-import numpy as np
-import glob
-import json
-import time
-import os
+using TFRecord
+using Images
+using Colors
+using Plots
+using JSON
+using Glob
 
 
 #-----------
@@ -80,189 +66,180 @@ import os
 #-----------
 
 # directory where the data and mixerfile live
-if os.path.abspath('.').split('/')[1] == 'home':
-    DATA_DIR = ('/home/drew/Desktop/stuff/berk/research/projects/seasonality/'
-                'GEE_output')
-else:
-    DATA_DIR = '/global/home/users/drewhart/seasonality/GEE_output/SIF/'
+if splitpath(pwd())[2] == "home"
+    const DATA_DIR = "/home/drew/Desktop/stuff/berk/research/projects/seasonality/GEE_output"
+else
+    const DATA_DIR = "/global/home/users/drewhart/seasonality/GEE_output/SIF/"
+end
 
-# pattern that occurs just before the file number in each input file's name
-PATT_B4_FILENUM = 'SIF-'
+# pattern that occurs just before the file number
+const PATT_B4_FILENUM = "SIF-"
 
 # kernel size used by GEE to output the TFRecord files
-KERNEL_SIZE = 60
+const KERNEL_SIZE = 60
 
 # whether or not to trim the half-kernel-width margin before output
-TRIM_MARGIN = True
+const TRIM_MARGIN = true
 
 # default missing-data val
-DEFAULT_VAL = -9999.0
+const DEFAULT_VAL = -9999.0
 
 # names of the bands saved into the TFRecord files
-INBANDS = ['constant', 'sin_1', 'cos_1', 'sin_2', 'cos_2']
-OUTBANDS = ['asynch', 'asynch_R2', 'asynch_euc', 'asynch_euc_R2', 'asynch_n']
+const INBANDS = ["constant", "sin_1", "cos_1", "sin_2", "cos_2"]
+const OUTBANDS = ["asynch", "asynch_R2", "asynch_euc", "asynch_euc_R2", "asynch_n"]
 
 # max distance out to which to find and include neighbors in
 # each pixel's asynchrony calculation (in meters)
-NEIGH_RAD = 150_000
+const NEIGH_RAD = 150_000
 
 # stdout options
-VERBOSE = True
-TIMEIT = True
+const VERBOSE = true
+const TIMEIT = true
 
 
 #-----------------
 # define functions
 #-----------------
 
-def get_infile_outfile_paths(data_dir):
+function get_infile_outfile_paths(data_dir)
     """
-    Uses the data-directory path provided to get and return lists
-    of the input and output files' paths.
+    Uses the data-directory path provided to get and return
+    lists of the input and output files' paths.
     """
     # set up IO paths
-    infilepaths = glob.glob(os.path.join(data_dir, '*.tfrecord'))
+    infilepaths = glob("*tfrecord", data_dir) 
     # order the infilepaths
-    infilepaths = sorted(infilepaths)
-    #make sure that no previously output files are included
-    infilepaths = [f for f in infilepaths if not '_OUT' in f]
+    sort!(infilepaths)
+    # exclude any previously generated output files
+    infilepaths = [fp for fp in infilepaths if !occursin("_OUT", fp)]
     # get the corresponding outfilepaths
-    outfilepaths = [fp.split('.')[0]+'_OUT.tfrecord' for fp in infilepaths]
+    outfilepaths = [replace(fp, r"(?<=\d{5})\.(?=tfrecord)" => "_OUT.") for fp in infilepaths]
     return infilepaths, outfilepaths
+end
 
 
-def read_mixer_file(data_dir):
+function read_mixer_file(data_dir)
     """
-    Gets the info out of the mixerfile located at data_dir.
+    Gets the info out of the mixerfile located in the data_dir.
     """
-    mixerfilepaths = glob.glob(os.path.join(data_dir, '*mixer.json'))
-    assert len(mixerfilepaths) == 1, "MORE THAN 1 MIXER FILE FOUND!"
-    mixerfilepath = mixerfilepaths[0]
-
-    # read the mixer file
-    mixer = json.load(open(mixerfilepath, 'r'))
+    # get possible mixer filepaths
+    mixerfilepaths = glob("*mixer.json", data_dir)
+    # make sure there's only 1
+    @assert length(mixerfilepaths) == 1
+    # grab the correct filepath
+    mixerfilepath = mixerfilepaths[1]
+    # load it into a Dict
+    mixer = JSON.Parser.parsefile(mixerfilepath)
     return mixer
+end
 
 
-def get_mixer_info(mixer_content):
+function get_mixer_info(mixer_content)
     """
-    Parses the needed information out of a dict of mixerfile contents,
+    Parses the needed information out of a Dict of mixerfile contents,
     altering it as necessary.
     """
-    # get patch dimensions, adding the kernel size to correct for error
-    # in the GEE TFRecord output
+    # get patch dimensions, adding the kernel size to correct for
+    # the error in the GEE TFRecord output
     dims = calc_patch_dimensions(mixer_content, KERNEL_SIZE)
     # get the SRS and its affine projection matrix
-    srs = mixer_content['projection']
-    crs = srs['crs']
-    affine = srs['affine']['doubleMatrix']
+    srs = mixer_content["projection"]
+    crs = srs["crs"]
+    affine = srs["affine"]["doubleMatrix"]
     # get the x and y resolutions
-    xres, yres = affine[0], affine[4]
+    xres, yres = affine[1], affine[5]
     # get the x and y min values (i.e. the center coordinates of
     # the top-left pix)
-    # NOTE: need to subtract 50 pixels' worth of res, to account for
+    # NOTE: need to subtract half-kernel-size pixels' worth of res, to account for
     #       fact that mixer file doesn't include the size of the kernel
     #       used to create neighbor-patch overlap
     # NOTE: need to add half pixel's worth of res, to account for
     #       fact that the xmin and ymin are expressed
     #       as upper-left pixel corner, whereas I want to operate
     #       on basis of pixel centers
-    xmin = affine[2] - (((KERNEL_SIZE/2) + 0.5)* xres)
-    ymin = affine[5] - (((KERNEL_SIZE/2) + 0.5)* yres)
-    xmax = xmin + (dims[0] * xres)
-    ymax = ymin + (dims[1] * yres)
+    xmin = affine[3] - (((KERNEL_SIZE/2) + 0.5)* xres)
+    ymin = affine[6] - (((KERNEL_SIZE/2) + 0.5)* yres)
+    xmax = xmin + (dims[1] * xres)
+    ymax = ymin + (dims[2] * yres)
     # get the number of patches per row and the total number of rows
     # NOTE: FOR NOW, ASSUMING THAT THE MIXER IS SET UP SUCH THAT THE MOSAIC SHOULD
     # BE FILLED ROW BY ROW, LEFT TO RIGHT
-    patches_per_row = mixer_content['patchesPerRow']
-    tot_patches = mixer_content['totalPatches']
+    patches_per_row = mixer_content["patchesPerRow"]
+    tot_patches = mixer_content["totalPatches"]
     return dims, crs, xmin, ymin, xres, yres, patches_per_row, tot_patches
+end
 
 
-def calc_patch_dimensions(mixer_content, kernel_size):
+function calc_patch_dimensions(mixer_content, kernel_size)
     """
-    Calculates and returns the patch dimensions using the input mixerfile info
-    and kernel size.
+    Calculates and returns the patch dimensions,
+    using the input mixerfile info and the kernel size.
     """
     # Get relevant info from the JSON mixer file
     # NOTE: adding overlap to account for the kernel size,
     # which isn't reflected in the mixer file
-    patch_width = mixer_content['patchDimensions'][0] + kernel_size
-    patch_height = mixer_content['patchDimensions'][1] + kernel_size
+    patch_width = mixer_content["patchDimensions"][1] + kernel_size
+    patch_height = mixer_content["patchDimensions"][2] + kernel_size
     patch_dimensions = (patch_width, patch_height)
     return patch_dimensions
+end
 
 
-def parse_tfexample_to_numpy(ex, dims, bands, default_val=DEFAULT_VAL):
-    """
-    Parse a TFRecordDataset's Example to a 3D lon x lat x n_bands array,
-    then return it.
-    """
-    arrays = []
-    # get example from TFRecord string
-    parsed = tf.train.Example.FromString(ex)
-    # coerce each feature into an identically shaped numpy array
-    for beta in bands:
-        # pull the feature corresponding to this beta
-        feature = parsed.features.feature[beta]
-        floats = feature.float_list.value
-        arr = np.array(floats).reshape(dims)
-        arr[arr == default_val] = np.nan
-        arrays.append(arr)
-    out = np.stack(arrays)
-    return out
-
-
-def read_tfrecord_file(infilepath, dims, bands):
+function read_tfrecord_file(infilepath::String, dims, bands, default_val=DEFAULT_VAL)
     """
     Combines all the patches contained in the file located at infilepath
     into a TFRecordDataset. Returns a generator that yields each next example
-    i.e. patch) in that dataset, parsed into an
-    n_bands x lon x lat numpy array.
+    i.e. patch) in that dataset, parsed into an n_bands x lon x lat numpy array.
     """
-    # create a TFRecordDataset from the files
-    raw_dataset = tf.data.TFRecordDataset(infilepath)
-    # turn the dataset into a list of arrays
-    for example in raw_dataset.as_numpy_iterator():
-        yield parse_tfexample_to_numpy(example, dims, bands)
+    # empty Dict to hold the arrays
+    arrays = Dict()
+    # read the TFRecord file
+    reader = TFRecordReader(infilepath)
+    # beginning of example printout:
+    # Example(Features(Dict{AbstractString,Feature}("constant" => Feature(#undef, FloatList(Float32[
+    # loop over the examples
+    for (ex_n, example) in enumerate(reader)
+        # create an empty Array to hold the data
+        arr = Array{Float32}(undef, 5, dims[1], dims[2])
+        for (i, band) in enumerate(bands)
+            band_vals = example.features.feature[band].float_list.value[1:prod(dims)]
+            band_arr = reshape(band_vals, dims) |> transpose
+            # replace the default missing-data val
+            replace!(band_arr, default_val=>NaN)
+            arr[i,:,:] = band_arr
+        end
+        arrays[ex_n] = arr 
+    end
+    # sort the dict by key (to avoid write files out with patches in diff order)
+    return sort(arrays)
+end
 
 
-def write_tfrecord_file(patches, filepath, bands):
+function write_tfrecord_file(patches, filepath, bands)
     """
     Writes the output patches (i.e. rasters) to disk as a TFRecord file,
     using the given filepath.
-
-    Taken from:
-        https://towardsdatascience.com/
-            working-with-tfrecords-and-tf-train-example-36d111b3ff4d
     """
-    #set all NaNs back to the missing-data default val
-    for patch in patches:
-        patch[np.isnan(patch)] = DEFAULT_VAL
-    with tf.io.TFRecordWriter(filepath) as writer:
-        for patch in patches:
-            # serialize to a TF example
-            example = serialize_tfrecord_example(patch, bands)
-            # write to disk
-            writer.write(example)
+    # instantiate the TFRecord writer
+    writer = TFRecordWriter(filepath)
+    for (patch_i, patch) in patches
+        # create a Dict of the outbands and their arrays
+        outdict = Dict()
+        for (band_i, band) in enumerate(bands)
+            # transpose, set all missing back to the missing-data default val,
+            # then recast as Float32 and cast as a vector
+            outpatch = vec(Float32.(replace(transpose(patch[band_i, :, :]),
+                                            NaN=>DEFAULT_VAL)))
+            outdict[band] = outpatch
+        end
+        # serialize to a TF example
+        write(writer, outdict)
+    end
+    close(writer)
+end
 
 
-def serialize_tfrecord_example(patch, bands):
-    """
-    Serialize a patch (i.e. raster), for writing into a TFRecord file.
-
-    Taken from:
-        https://towardsdatascience.com/
-            working-with-tfrecords-and-tf-train-example-36d111b3ff4d
-    """
-    # make the feature dict, with one item for each band label
-    # (just like the 'sin_1', 'cos_1', ... bands in the input files)
-    feature = {band: tf.train.Feature(float_list=tf.train.FloatList(
-               value=patch[i, :, :].flatten())) for i, band in enumerate(bands)}
-    #  create a Features message (i.e. protocol buffer) using tf.train.Example
-    example_prot = tf.train.Example(features=tf.train.Features(feature=feature))
-    return example_prot.SerializeToString()
-
+#=
 
 def get_patch_lons_lats(xmin, ymin, xres, yres, dims, col_j, row_i):
     """
@@ -848,4 +825,13 @@ def main_fn(file_info, verbose=VERBOSE, trim_margin=TRIM_MARGIN):
 
     # write out the asynch data
     write_tfrecord_file(outpatches, outfilepath, OUTBANDS)
+
+=#
+
+
+fp = "../../GEE_output/TEST_coeff_output_SIF_C_S_Amer-00001.tfrecord"
+dims = (316, 316)
+out = read_tfrecord_file(fp, dims, INBANDS)
+plot(Gray.(replace(out[1][1,:,:], NaN=>-9999.0)))
+
 
