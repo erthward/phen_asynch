@@ -87,7 +87,8 @@ else:
     DATA_DIR = '/global/home/users/drewhart/seasonality/GEE_output/SIF/'
 
 # pattern that occurs just before the file number in each input file's name
-PATT_B4_FILENUM = 'SIF-'
+#PATT_B4_FILENUM = 'SIF-'
+PATT_B4_FILENUM = 'Amer-'
 
 # kernel size used by GEE to output the TFRecord files
 KERNEL_SIZE = 60
@@ -276,8 +277,10 @@ def get_patch_lons_lats(xmin, ymin, xres, yres, dims, col_j, row_i):
     patch_ymin = ymin + (row_i * dims[1] * yres)
 
     # get lists of xs and ys of all the current patch's pixels
-    xs = np.linspace(patch_xmin, xres, dims[0])
-    ys = np.linspace(patch_ymin, yres, dims[1])
+    #xs = np.linspace(patch_xmin, xres, dims[0])
+    xs = np.linspace(patch_xmin, patch_xmin + xres * dims[0], dims[0]+1)
+    #ys = np.linspace(patch_ymin, yres, dims[1])
+    ys = np.linspace(patch_ymin, patch_ymin + yres * dims[1], dims[1]+1)
 
     # get the meshgrid of those coordinates
     #gridx, gridy band [coords.flatten() for coords in np.meshgrid(xs, ys)]
