@@ -54,7 +54,10 @@ NOTES:
 """
 
 using NearestNeighbors
+using Distributed
+using Statistics
 using Distances
+using GeoArrays
 using TFRecord
 using Images
 using Colors
@@ -103,6 +106,11 @@ const PATT_B4_FILENUM = "Amer-"
 kernel size used by GEE to output the TFRecord files
 """
 const KERNEL_SIZE = 60
+
+"""
+half the kernel width (to use in margin-trimming)
+"""
+const HKW = floor(Int, KERNEL_SIZE/2)
 
 """
 whether or not to trim the half-kernel-width margin before output
@@ -483,8 +491,6 @@ function get_neighbors_info(i, j, vec_is, vec_js,
     # combine into a dict
     out = Dict(zip(zip(neigh_xs, neigh_ys),
                    zip(neigh_dists, zip(neigh_is, neigh_js))))
-    # TODO: DELETE ME: then filter for only pixels within the nhood radius
-    # TODO: DELTE ME: filter!(kv -> kv[2][1] < NEIGH_RAD, out)
     return out
 end
 
@@ -518,191 +524,6 @@ function get_inpatches_outpatches(infilepath, inbands, dims)
         outpatches[i] = similar(patch) * NaN
     end
     return (inpatches, sort(outpatches))
-end
-
-
-"""
-Calculates and returns the asynchrony value for a single pixel
-located at position i,j in the patch.
-"""
-function calc_asynch_one_pixel(i, j, vec_is, vec_js,
-                               foc_y, foc_x, vec_ys, vec_xs,
-                               patch, outpatch, patch_n,
-                               yres, xres, dims, design_mat, tree;
-                               timeit=true, verbose=true)
-    if verbose && timeit
-        # get start time
-        start = now()
-    end
-
-    if verbose
-        println("\nPROCESSING PATCH $patch_n: PIXEL ($i, $j)...")
-        println("\tLAT: $foc_y; LON: $foc_x")
-    end
-
-    # create lists of R2 and dist values
-    R2s::Array{Float64,1} = []
-    ts_dists::Array{Float64,1} = []
-    geo_dists::Array{Float64,1} = []
-
-    # calculate the focal pixel's time series (and its standardized time series)
-    ts_foc = calc_time_series(patch, i, j, design_mat)
-    stand_ts_foc = standardize(ts_foc)
-
-    # make the Haversine instance and function for this cell
-    # TODO: FIX THIS LINE
-    hav_inst = Haversine(EARTH_RAD)
-    hav_fn = function(coord_pair)
-        return hav_inst((foc_x, foc_y), coord_pair)
-    end
-
-    # get the coords, dists, and array-indices
-    # of all of the focal pixel's neighbors
-    coords_dists_inds = get_neighbors_info(i, j, vec_is, vec_js,
-                                           foc_y, foc_x, vec_ys, vec_xs,
-                                           yres, xres, dims, hav_fn,
-                                           tree)
-
-    # loop over neighbors
-    for (neigh_coords, neigh_info) in coords_dists_inds
-        # unpack the neighbor info
-        neigh_dist, neigh_inds = neigh_info
-        ni, nj = neigh_inds
-
-        # get the neighbor's time series
-        ts_neigh = calc_time_series(patch, ni, nj, design_mat)
-        stand_ts_neigh = standardize(ts_neigh)
-
-        # drop this pixel if it returns NAs
-        if any(isnan.(ts_neigh))
-           # do nothing 
-        else
-            # append the distance
-            append!(geo_dists, neigh_dist)
-
-            # calculate and append the R2
-            R2 = run_linear_regression(ts_foc, ts_neigh)["R2"]
-            append!(R2s, R2)
-
-            # calculate and append the Euclidean distance
-            # between standardized time series
-            ts_dist = euclidean(stand_ts_foc, stand_ts_neigh)
-            append!(ts_dists, ts_dist)
-        end
-    end
-
-    # get the slope of the overall regression of R2s on geo dist
-    # NOTE: setting fit_intercept to false and subtracting 1
-    #       from the array of R2s effectively
-    #       fixes the intercept at R2=1
-    res = run_linear_regression(geo_dists, R2s .- 1, fit_intercept=false)
-    # get the slope of the overall regression of Euclidean ts dists on geo dist
-    # NOTE: just setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
-    res_euc = run_linear_regression(geo_dists, ts_dists, fit_intercept=false)
-    # extract both results into vars
-    asynch = abs(res["slope"])
-    asynch_R2 = res["R2"]
-    asynch_euc = res_euc["slope"]
-    asynch_euc_R2 = res_euc["R2"]
-    # extract sample size (i.e. number of neighbors) for this focal pixel,
-    # checking that there was no issue with uneven numbers of results
-    @assert(length(geo_dists) == length(ts_dists) == length(R2s), ("Lengths of " *
-                                                                   "geo_dists, " *
-                                                                   "ts_dists, " *
-                                                                   "and R2s are " *
-                                                                   "not equal!"))
-    asynch_n = length(geo_dists)
-
-    # update the output patch with the new values
-    outpatch[:, i, j] = [asynch, asynch_R2, asynch_euc, asynch_euc_R2, asynch_n]
-
-    if verbose && timeit
-        # get finish time, print out total time
-        stop = now()
-        diff = stop-start
-        println("\n\truntime: $diff")
-        println("==================================")
-    end
-end
-
-
-"""
-Read the patches from the input file, and calculate and store
-the asynch metrics for each input patch (inpatches)
-in the corresponding output patch (outpatches)
-"""
-function calc_asynch(inpatches, outpatches,
-                     patch_is, patch_js, patch_ns, vec_is, vec_js,
-                     xmin, ymin, xres, yres, dims, design_mat, kernel_size;
-                     trim_margin=false, verbose=true, timeit=true)
-    # loop over the patches from the current file
-    # NOTE: each patch is of shape (n_bands, lat, lon)
-    for (patch_idx, inpatch) in inpatches
-        # grab important variables
-        outpatch = outpatches[patch_idx]
-        patch_i = patch_is[patch_idx]
-        patch_j = patch_js[patch_idx]
-        patch_n = patch_ns[patch_idx]
-
-        # calculate half kernel width
-        hkw = floor(Int, kernel_size/2)
-
-        # get the lons and lats of the pixels in the current example's patch
-        # as well as an array containing columns for each of the coord pairs of the pixels
-        xs, ys = get_patch_lons_lats(xmin, ymin, xres, yres, dims, patch_j, patch_i)
-        vec_ys = vec(ys)
-        vec_xs = vec(xs)
-
-        # get the BallTree for these lons and lats
-        # make a KDTree out of all the coordinates in a patch,
-        # to be used in neighbor-searching
-        # TODO: DELETE ME: tree = KDTree([vec_xs vec_ys]')
-        # TODO: DELETE ME: tree = BallTree([vec_xs vec_ys]')
-        tree = BallTree([vec_xs vec_ys]', Haversine(EARTH_RAD))
-
-        #----------------
-        # run calculation
-        #----------------
-
-        # loop over pixels (excluding those in the kernel's margin,
-        # since there's no use wasting time calculating for those)
-        for i in (hkw + 1):(size(inpatch)[2]-hkw)
-            for j in (hkw + 1):(size(inpatch)[3]-hkw)
-
-                # leave the asynch output val as a NaN if the coeffs for this
-                # pixel contain NaNs
-                if any(isnan.(inpatch[:, i, j]))
-                    if verbose
-                        println("\nPROCESSING PATCH $patch_n: PIXEL ($i, $j)...")
-                        lat = vec_ys[i]
-                        lon = vec_xs[j]
-                        println("\tLAT: $lat; LON: $lon")
-                        println("\n\truntime: ---")
-                        println("==================================")
-                    end
-                else
-                    foc_y, foc_x = (ys[i,j], xs[i,j])
-                    calc_asynch_one_pixel(i, j, vec_is, vec_js,
-                                          foc_y, foc_x, vec_ys, vec_xs,
-                                          inpatch, outpatch, patch_n,
-                                          yres, xres, dims, design_mat, tree,
-                                          verbose=verbose, timeit=timeit)
-                end
-            end
-        end
-    end
-
-    # trim the half-kernel-width margin, if requested
-    if trim_margin
-        if verbose
-            println("\n\nTrimming $hkw-cell margin around each patch.\n\n")
-        end
-        # subset
-        trimmed_outpatches = [op[:, hkw+1:-hkw, hkw+1:-hkw] for op in outpatches]
-        return trimmed_outpatches
-    else
-        return outpatches
-    end
 end
 
 
@@ -785,6 +606,191 @@ function get_row_col_patch_ns_allfiles(data_dir, patt_b4_filenum)
 end
 
 
+"""
+Calculates and returns the asynchrony value for a single pixel
+located at position i,j in the patch.
+"""
+function calc_asynch_one_pixel(i, j, vec_is, vec_js,
+                               foc_y, foc_x, vec_ys, vec_xs,
+                               patch, outpatch, patch_n,
+                               yres, xres, dims, design_mat, tree;
+                               timeit=true, verbose=true)
+    if verbose && timeit
+        # get start time
+        start = now()
+    end
+
+    if verbose
+        println("\nPROCESSING PATCH $patch_n: PIXEL ($i, $j)...")
+        println("\tLAT: $foc_y; LON: $foc_x")
+    end
+
+    # create lists of R2 and dist values
+    R2s::Array{Float64,1} = []
+    ts_dists::Array{Float64,1} = []
+    geo_dists::Array{Float64,1} = []
+
+    # calculate the focal pixel's time series (and its standardized time series)
+    ts_foc = calc_time_series(patch, i, j, design_mat)
+    stand_ts_foc = standardize(ts_foc)
+
+    # make the Haversine instance and function for this cell
+    # TODO: FIX THIS LINE
+    hav_inst = Haversine(EARTH_RAD)
+    hav_fn = function(coord_pair)
+        return hav_inst((foc_x, foc_y), coord_pair)
+    end
+
+    # get the coords, dists, and array-indices
+    # of all of the focal pixel's neighbors
+    coords_dists_inds = get_neighbors_info(i, j, vec_is, vec_js,
+                                           foc_y, foc_x, vec_ys, vec_xs,
+                                           yres, xres, dims, hav_fn,
+                                           tree)
+
+    # loop over neighbors
+    for (neigh_coords, neigh_info) in coords_dists_inds
+        # unpack the neighbor info
+        neigh_dist, neigh_inds = neigh_info
+        ni, nj = neigh_inds
+
+        # get the neighbor's time series
+        ts_neigh = calc_time_series(patch, ni, nj, design_mat)
+        stand_ts_neigh = standardize(ts_neigh)
+
+        # drop this pixel if it returns NAs
+        if any(isnan.(ts_neigh))
+           # do nothing 
+           continue
+        else
+            # append the distance
+            append!(geo_dists, neigh_dist)
+
+            # calculate and append the R2
+            R2 = run_linear_regression(ts_foc, ts_neigh)["R2"]
+            append!(R2s, R2)
+
+            # calculate and append the Euclidean distance
+            # between standardized time series
+            ts_dist = euclidean(stand_ts_foc, stand_ts_neigh)
+            append!(ts_dists, ts_dist)
+        end
+    end
+
+    # get the slope of the overall regression of R2s on geo dist
+    # NOTE: setting fit_intercept to false and subtracting 1
+    #       from the array of R2s effectively
+    #       fixes the intercept at R2=1
+    res = run_linear_regression(geo_dists, R2s .- 1, fit_intercept=false)
+    # get the slope of the overall regression of Euclidean ts dists on geo dist
+    # NOTE: just setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
+    res_euc = run_linear_regression(geo_dists, ts_dists, fit_intercept=false)
+    # extract both results into vars
+    asynch = abs(res["slope"])
+    asynch_R2 = res["R2"]
+    asynch_euc = res_euc["slope"]
+    asynch_euc_R2 = res_euc["R2"]
+    # extract sample size (i.e. number of neighbors) for this focal pixel,
+    # checking that there was no issue with uneven numbers of results
+    @assert(length(geo_dists) == length(ts_dists) == length(R2s), ("Lengths of " *
+                                                                   "geo_dists, " *
+                                                                   "ts_dists, " *
+                                                                   "and R2s are " *
+                                                                   "not equal!"))
+    asynch_n = length(geo_dists)
+
+    # update the output patch with the new values
+    outpatch[:, i, j] = [asynch, asynch_R2, asynch_euc, asynch_euc_R2, asynch_n]
+
+    if verbose && timeit
+        # get finish time, print out total time
+        stop = now()
+        diff = stop-start
+        println("\n\truntime: $diff")
+        println("==================================")
+    end
+end
+
+
+"""
+Read the patches from the input file, and calculate and store
+the asynch metrics for each input patch (inpatches)
+in the corresponding output patch (outpatches)
+"""
+function calc_asynch(inpatches, outpatches,
+                     patch_is, patch_js, patch_ns, vec_is, vec_js, cart_inds,
+                     xmin, ymin, xres, yres, dims, design_mat, kernel_size, hkw;
+                     trim_margin=false, verbose=true, timeit=true)
+    # loop over the patches from the current file
+    # NOTE: each patch is of shape (n_bands, lat, lon)
+    for (patch_idx, inpatch) in inpatches
+        # grab important variables
+        outpatch = outpatches[patch_idx]
+        patch_i = patch_is[patch_idx]
+        patch_j = patch_js[patch_idx]
+        patch_n = patch_ns[patch_idx]
+
+                # get the lons and lats of the pixels in the current example's patch
+        # as well as an array containing columns for each of the coord pairs of the pixels
+        xs, ys = get_patch_lons_lats(xmin, ymin, xres, yres, dims, patch_j, patch_i)
+        vec_ys = vec(ys)
+        vec_xs = vec(xs)
+
+        # get the BallTree for these lons and lats
+        # make a KDTree out of all the coordinates in a patch,
+        # to be used in neighbor-searching
+        tree = BallTree([vec_xs vec_ys]', Haversine(EARTH_RAD))
+
+        #----------------
+        # run calculation
+        #----------------
+
+        # loop over pixels (excluding those in the kernel's margin,
+        # since there's no use wasting time calculating for those)
+        for ind in eachindex(inpatch[1,:,:])
+            i,j  = Tuple(cart_inds[ind])
+            if (hkw < i <= size(inpatch)[2]-hkw) && (hkw < j <= size(inpatch)[3]-hkw)
+
+                # leave the asynch output val as a NaN if the coeffs for this
+                # pixel contain NaNs
+                if any(isnan.(inpatch[:, i, j]))
+                    if verbose
+                        println("\nPROCESSING PATCH $patch_n: PIXEL ($i, $j)...")
+                        lat = vec_ys[i]
+                        lon = vec_xs[j]
+                        println("\tLAT: $lat; LON: $lon")
+                        println("\n\truntime: ---")
+                        println("==================================")
+                    end
+                else
+                    foc_y, foc_x = (ys[i,j], xs[i,j])
+                    calc_asynch_one_pixel(i, j, vec_is, vec_js,
+                                          foc_y, foc_x, vec_ys, vec_xs,
+                                          inpatch, outpatch, patch_n,
+                                          yres, xres, dims, design_mat, tree,
+                                          verbose=verbose, timeit=timeit)
+                end
+            end
+        end
+    end
+
+    # trim the half-kernel-width margin, if requested
+    if trim_margin
+        if verbose
+            println("\n\nTrimming $hkw-cell margin around each patch.\n\n")
+        end
+        # subset
+        trimmed_outpatches = Dict()
+        for (i, op) in outpatches
+            trimmed_outpatches[i] = op[:, hkw+1:end-hkw, hkw+1:end-hkw]
+        end
+        return trimmed_outpatches
+    else
+        return outpatches
+    end
+end
+
+
 #----------------------
 # get the design matrix
 #----------------------
@@ -813,6 +819,16 @@ vectors of pixel indices in the i and j array dims
 """
 const VEC_IS, VEC_JS = get_is_js(DIMS)
 
+"""
+a CartesianIndices object to be used for iteration over
+a patch's pixels in calc_asynchrony();
+treid this approach while reading about Julia Array types,
+to help learn better how they are put together and work,
+and while it appears to only offer a very slight speed-up,
+it surely can't hurt
+"""
+const CI = CartesianIndices(DIMS)
+
 #------------------------------------
 # get files' row, col, and patch info
 #------------------------------------
@@ -831,68 +847,73 @@ Array containing the input filenames
 const FILENAMES = [fn for fn in FILES_DICT]
 
 
-#= 
-#----------------------------------------------------------
-# define the main function, to be mapped over a worker pool
-#----------------------------------------------------------
-def main_fn(file_info, verbose=VERBOSE, trim_margin=TRIM_MARGIN):
-    """
-    Main function to be mapped over a Pool instance
+#----------------------------------------------------
+# define the main function, to be mapped over workers
+#----------------------------------------------------
 
-    Takes the file_info for an input file, calculates
-    asynchrony for that file, writes it to file, returns None.
+"""
+Main function, to be mapped over multiple workers.
 
-    The argument 'file_info' must be a dict item object of the form:
-      (infilepath,
-        {'outfilepath': outfilepath,
-         'patch_is' = [patch_i_1, patch_i_2, ..., patch_i_I],
-         'patch_js' = [patch_j_1, patch_j_2, ..., patch_j_J],
-         'patch_ns' = [patch_n_1, patch_n_2, ..., patch_n_N]
-         }
+Takes the file_info for an input file, calculates
+asynchrony for that file, writes it to an output TFRecord file,
+returns nothing.
+
+The argument 'file_info' must be a Dict item object of the form:
+  Dict(infilepath =>
+        {"outfilepath": outfilepath,
+         "patch_is" => [patch_i_1, patch_i_2, ..., patch_i_I],
+         "patch_js" => [patch_j_1, patch_j_2, ..., patch_j_J],
+         "patch_ns" => [patch_n_1, patch_n_2, ..., patch_n_N]
+        }
       )
-    """
-
-    infilepath = [*file_info][0]
-    print(('\nstarting job for file "%s" '
-           'in process number %s') % (os.path.split(infilepath)[1],
-                                          str(os.getpid())))
-    file_dict = [*file_info][1]
-    outfilepath = file_dict['outfilepath']
-    patch_is = file_dict['patch_is']
-    patch_js = file_dict['patch_js']
-    patch_ns = file_dict['patch_ns']
+"""
+function main_fn(file_info; verbose=VERBOSE, timeit=TIMEIT, trim_margin=TRIM_MARGIN)
+    # split input info into variables
+    infilepath, file_dict = file_info
+    infilename = splitpath(infilepath)[end]
+    outfilepath = file_dict["outfilepath"]
+    patch_is = file_dict["patch_is"]
+    patch_js = file_dict["patch_js"]
+    patch_ns = file_dict["patch_ns"]
+    if verbose
+        println("\nStarting job for file $infilename in process number XXXXXX")
+    end
 
     # read the data in, and set up the output patches' data structure
     # NOTE: by setting this up outside the calc_asynch function, 
     #       I make it so that I can run the script for a short amount of
     #       time, then retain the partial result
     #       for interactive introspection
-    inpatches, outpatches = get_inpatches_outpatches(infilepath, INBANDS,
-                                                     DIMS)
+    inpatches, outpatches = get_inpatches_outpatches(infilepath, INBANDS, DIMS)
 
-    print(('RUNNING ASYNCH CALC FOR FILE: '
-           '"%s"') % os.path.split(infilepath)[1])
-    for patch_i, patch_j, patch_n in zip(patch_is, patch_js, patch_ns):
-        print('\tPATCH: %i (patch row %i, patch col %i)' % (patch_n, patch_i, patch_j))
-
+    if verbose
+        println("RUNNING ASYNCH CALC FOR FILE: $infilename")
+        for (patch_i, patch_j, patch_n) in zip(patch_is, patch_js, patch_ns)
+            println("\tPATCH: $patch_n (patch row: $patch_i, patch col: $patch_j)")
+        end
+    end
 
     # run the asynchrony calculation
-    outpatches = calc_asynch(inpatches, outpatches, patch_is, patch_js, patch_ns,
-                             DIMS, XMIN, YMIN, XRES, YRES, DESIGN_MAT, INDICES,
-                             KERNEL_SIZE, trim_margin, verbose, TIMEIT)
-    print([p.shape for p in outpatches])
+    outpatches = calc_asynch(inpatches, outpatches,
+                             patch_is, patch_js, patch_ns, VEC_IS, VEC_JS, CI,
+                             XMIN, YMIN, XRES, YRES, DIMS, DESIGN_MAT, KERNEL_SIZE, HKW;
+                             trim_margin=trim_margin, verbose=verbose, timeit=timeit)
 
     # write out the asynch data
     write_tfrecord_file(outpatches, outfilepath, OUTBANDS)
+end
 
-=#
+
+#------------------------
+# define helper functions
+#------------------------
 
 """
 Make a GeoArray (multilayer raster object) of the patch provided.
 Pull the necessary georeferencing info from dims and the mixer_info provided.
 NOTE: dims fed in separately because dims indicated in GEE's mixer file are incorrect.
 """
-function make_geoarray(patch, dims, mixer_info)
+function make_geoarray(patch; dims=DIMS, mixer_info=mix)
     # make a GeoArray
     # NOTE: not sure why I need to transpose the patch...
     ga = GeoArray(transpose(patch))
@@ -920,19 +941,10 @@ Plot the asynch, its R2s, and its sample sizes.
 """
 function plot_results(outpatch)
     # plot asynch
-    p1 = plot(make_geoarray(outpatch[1]), title="asynch (corr)")
-    p2 = plot(make_geoarray(outpatch[2]), title="asynch (corr): R2s")
-    p3 = plot(make_geoarray(outpatch[3]), title="asynch (euc)")
-    p4 = plot(make_geoarray(outpatch[4]), title="asynch (euc): R2s")
-    p5 = plot(make_geoarray(outpatch[5]), title="n")
-    plot(p1, p2, p3, p4, p5, layout=(3,2))
+    p1 = Plots.plot(make_geoarray(outpatch[1, :, :]), title="asynch (corr)")
+    p2 = Plots.plot(make_geoarray(outpatch[2, :, :]), title="asynch (corr): R2s")
+    p3 = Plots.plot(make_geoarray(outpatch[3, :, :]), title="asynch (euc)")
+    p4 = Plots.plot(make_geoarray(outpatch[4, :, :]), title="asynch (euc): R2s")
+    p5 = Plots.plot(make_geoarray(outpatch[5, :, :]), title="n")
+    Plots.plot(p1, p2, p3, p4, p5, layout=5)
 end
-
-
-###########################################
-
-fp = "../../GEE_output/TEST_coeff_output_SIF_C_S_Amer-00000.tfrecord"
-dims = (316, 316)
-out = read_tfrecord_file(fp, dims, INBANDS)
-
-
