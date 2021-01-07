@@ -754,24 +754,42 @@ def plot_results(outpatches, patch_idx):
     # make fig
     fig = plt.figure()
     # plot asynch
-    ax1 = fig.add_subplot(131)
-    ax1.set_title('asynch', fontdict=title_fd)
+    ax1 = fig.add_subplot(231)
+    ax1.set_title('asynch ($R^2$)', fontdict=title_fd)
     im1 = ax1.imshow(patch[0,:,:], cmap='magma')
     cbar1 = plt.colorbar(im1)
     cbar1.ax.tick_params(size=ticksize, labelsize=ticklabelsize)
     cbar1.set_label('asynch (unitless)', size=cbar_fontsize)
-    ax2 = fig.add_subplot(132)
-    ax2.set_title('asynch_R2s', fontdict=title_fd)
+
+    ax2 = fig.add_subplot(232)
+    ax2.set_title('asynch ($R^2$) $R^2$s', fontdict=title_fd)
     im2 = ax2.imshow(patch[1,:,:], vmin=0, vmax=1, cmap='viridis')
     cbar2 = plt.colorbar(im2)
     cbar2.ax.tick_params(size=ticksize, labelsize=ticklabelsize)
     cbar2.set_label('$R^{2}$', size=cbar_fontsize)
-    ax3 = fig.add_subplot(133)
-    ax3.set_title('asynch_ns', fontdict=title_fd)
-    im3 = ax3.imshow(patch[2,:,:], cmap='cividis')
+
+    ax3 = fig.add_subplot(233)
+    ax3.set_title('asynch ($Euclidean$)', fontdict=title_fd)
+    im3 = ax1.imshow(patch[2,:,:], cmap='magma')
     cbar3 = plt.colorbar(im3)
     cbar3.ax.tick_params(size=ticksize, labelsize=ticklabelsize)
-    cbar3.set_label('number of neighborhood cells', size=cbar_fontsize)
+    cbar3.set_label('asynch (unitless)', size=cbar_fontsize)
+
+    ax4 = fig.add_subplot(234)
+    ax4.set_title('asynch ($Euclidean$) $R^2$s', fontdict=title_fd)
+    im4 = ax4.imshow(patch[3,:,:], vmin=0, vmax=1, cmap='viridis')
+    cbar4 = plt.colorbar(im4)
+    cbar4.ax.tick_params(size=ticksize, labelsize=ticklabelsize)
+    cbar4.set_label('$R^{2}$', size=cbar_fontsize)
+
+
+    ax5 = fig.add_subplot(235)
+    ax5.set_title('sample sizes', fontdict=title_fd)
+    im5 = ax5.imshow(patch[4,:,:], cmap='cividis')
+    cbar5 = plt.colorbar(im5)
+    cbar5.ax.tick_params(size=ticksize, labelsize=ticklabelsize)
+    cbar5.set_label('number of valid neighborhood cells', size=cbar_fontsize)
+
     fig.show()
     return fig
 
