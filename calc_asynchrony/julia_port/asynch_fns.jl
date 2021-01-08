@@ -182,6 +182,12 @@ NOTE: 6371008 m is a good approximation of any of the three common methods for
 """
 const EARTH_RAD = 6_371_008
 
+"""
+minimum number of neighbors needed for a pixel's asynchrony to be calculated
+and for its result to be included in the output dataset
+"""
+const MIN_NUM_NEIGHS = 30
+
 
 #-----------------
 # define functions
@@ -305,7 +311,7 @@ function read_tfrecord_file(infilepath::String,
         end
         arrays[ex_n] = arr 
     end
-    # sort the dict by key (to avoid write files out with patches in diff order)
+    # sort the dict by key (to avoid writing files out with patches in diff order)
     return sort(arrays)
 end
 
@@ -319,14 +325,14 @@ function write_tfrecord_file(patches::OrderedDict{Int64, Array{Float32,3}},
                              bands::Array{String, 1})::Nothing
     # instantiate the TFRecord writer
     writer = TFRecordWriter(filepath)
-    for (patch_i, patch) in patches
+    # NOTE: sort the patches once more, to ensure they're in the right order
+    for (patch_i, patch) in sort(patches)
         # create a Dict of the outbands and their arrays
         outdict = Dict()
         for (band_i, band) in enumerate(bands)
             # transpose, set all missing back to the missing-data default val,
             # then recast as Float32 and cast as a vector
-            outpatch = vec(Float32.(replace(transpose(patch[:, :, band_i]),
-                                            NaN=>DEFAULT_VAL)))
+            outpatch = vec(Float32.(replace(patch[:, :, band_i], NaN=>DEFAULT_VAL)))
             outdict[band] = outpatch
         end
         # serialize to a TF example
@@ -445,6 +451,7 @@ function run_linear_regression(x::Array{Float64,1}, y::Array{Float64,1};
         output = Dict("slope" => slope,
                       "intercept" => int,
                       "R2" => R2)
+        return output
     catch error
         R2 = NaN
         int = NaN
@@ -453,8 +460,8 @@ function run_linear_regression(x::Array{Float64,1}, y::Array{Float64,1};
                       "intercept" => int,
                       "R2" => R2)
         println("ERROR THROWN!")
+        return output
     end
-    return output
 end
 
 
@@ -711,10 +718,12 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
                 # calculate the R2
                 R2 = run_linear_regression(ts_foc, ts_neigh)["R2"]
 
-                # calculate the Euclidean distance between the 2 standardized time series
+                # calculate the Euclidean distance
+                # between the 2 standardized time series
                 ts_dist = euclidean(stand_ts_foc, stand_ts_neigh)
          
-                # append the metrics, if the neighbor-distance calculation was successful
+                # append the metrics, if the neighbor-distance
+                # calculation was successful
                 append!(geo_dists, neigh_dist)
                 append!(R2s, R2)
                 append!(ts_dists, ts_dist)
@@ -725,34 +734,43 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
         end
     end
 
-    # get the slope of the overall regression of R2s on geo dist
-    # NOTE: setting fit_intercept to false and subtracting 1
-    #       from the array of R2s effectively
-    #       fixes the intercept at R2=1
-    res = run_linear_regression(geo_dists, R2s .- 1, fit_intercept=false)
-    # get the slope of the overall regression of Euclidean ts dists on geo dist
-    # NOTE: just setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
-    res_euc = run_linear_regression(geo_dists, ts_dists, fit_intercept=false)
-    # extract both results into vars
-    println("R^2 RES: ", res)
-    println("EUC RES: ", res_euc)
-    asynch = abs(res["slope"])
-    asynch_R2 = res["R2"]
-    asynch_euc = res_euc["slope"]
-    asynch_euc_R2 = res_euc["R2"]
-    # extract sample size (i.e. number of neighbors) for this focal pixel,
-    # checking that there was no issue with uneven numbers of results
-    @assert(length(geo_dists) == length(ts_dists) == length(R2s), ("Lengths of " *
-                                                                   "geo_dists, " *
-                                                                   "ts_dists, " *
-                                                                   "and R2s are " *
-                                                                   "not equal!"))
-    asynch_n = length(geo_dists)
+    # calc asynchrony for the cell, but only if we have enough valid neighbors
+    num_neighs = length(geo_dists)
+    println("$num_neighs NEIGHBORS")
+    if num_neighs ≥ MIN_NUM_NEIGHS
+        # get the slope of the overall regression of R2s on geo dist
+        # NOTE: setting fit_intercept to false and subtracting 1
+        #       from the array of R2s effectively
+        #       fixes the intercept at R2=1
+        res = run_linear_regression(geo_dists, R2s .- 1, fit_intercept=false)
+        # get the slope of the overall regression of Euclidean ts dists on geo dist
+        # NOTE: just setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
+        res_euc = run_linear_regression(geo_dists, ts_dists, fit_intercept=false)
+        # extract both results into vars
+        asynch = abs(res["slope"])
+        asynch_R2 = res["R2"]
+        asynch_euc = res_euc["slope"]
+        asynch_euc_R2 = res_euc["R2"]
+        # extract sample size (i.e. number of neighbors) for this focal pixel,
+        # checking that there was no issue with uneven numbers of results
+        @assert(length(geo_dists) == length(ts_dists) == length(R2s), ("Lengths of " *
+                                                                       "geo_dists, " *
+                                                                       "ts_dists, " *
+                                                                       "and R2s are " *
+                                                                       "not equal!"))
+        asynch_n = length(geo_dists)
 
-    # update the output patch with the new values
-    println("LOADING: ", [asynch, asynch_R2, asynch_euc, asynch_euc_R2, asynch_n])
-    outpatch[i, j, :] = [asynch, asynch_R2, asynch_euc, asynch_euc_R2, asynch_n]
+        # update the output patch with the new values
+        outpatch[i, j, :] = [asynch, asynch_R2, asynch_euc, asynch_euc_R2, asynch_n]
 
+    # if we don't have at least the minimum number of neighbors
+    # then just add NaNs to the outpatch, except for the neighbor count
+    else
+        print("TOO FEW NEIGHBORS!")
+        outpatch[i, j, :] = [NaN, NaN, NaN, NaN, convert(Float32, num_neighs)]
+    end
+
+    # calculate runtime and print, if necessary
     if verbose && timeit
         # get finish time, print out total time
         stop = now()
@@ -813,8 +831,8 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
                 if any(isnan.(inpatch[i, j, :]))
                     if verbose
                         println("\nPROCESSING PATCH $patch_n: PIXEL ($i, $j)...")
-                        lat = vec_ys[i]
-                        lon = vec_xs[j]
+                        lat = ys[i, j]
+                        lon = xs[i, j]
                         println("\tLAT: $lat; LON: $lon")
                         println("\n\truntime: ---")
                         println("==================================")
@@ -1181,6 +1199,6 @@ function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=
 
     plot(p_r2, p_euc, p_rast, layout=lo)
     
-end
+end;
 
 
