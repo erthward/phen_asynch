@@ -334,7 +334,7 @@ function write_tfrecord_file(patches::OrderedDict{Int64, Array{Float32,3}},
         # create a Dict of the outbands and their arrays
         outdict = Dict()
         for (band_i, band) in enumerate(bands)
-            # transpose, set all missing back to the missing-data default val,
+            # set all missing back to the missing-data default val,
             # then recast as Float32 and cast as a vector
             outpatch = vec(Float32.(replace(patch[:, :, band_i], NaN=>DEFAULT_VAL)))
             outdict[band] = outpatch
