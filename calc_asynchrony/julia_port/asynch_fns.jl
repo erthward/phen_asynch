@@ -102,20 +102,24 @@ gr()
 # so get the relative path to the data_dir instead
 if splitpath(pwd())[2] == "home"
     const ABS_DATA_DIR = "/home/drew/Desktop/stuff/berk/research/projects/seasonality/GEE_output"
+
+    """
+    pattern that occurs just before the file number
+    """
+    const PATT_B4_FILENUM = "Amer-"
 else
-    const ABS_DATA_DIR = "/global/home/users/drewhart/seasonality/GEE_output/SIF/"
+    const ABS_DATA_DIR = "/global/home/users/drewhart/seasonality/GEE_output/julia_test/"
+
+    """
+    pattern that occurs just before the file number
+    """
+    const PATT_B4_FILENUM = "SIF-"
 end
 
 """
 directory where the TFRecord data and mixerfile live
 """
 const DATA_DIR = relpath(ABS_DATA_DIR)
-
-"""
-pattern that occurs just before the file number
-"""
-const PATT_B4_FILENUM = "Amer-"
-#const PATT_B4_FILENUM = "SIF-"
 
 """
 kernel size used by GEE to output the TFRecord files
@@ -599,7 +603,7 @@ function get_row_col_patch_ns_allfiles(data_dir::String,
     for filepaths in [infilepaths, outfilepaths]
         filenums = map(x -> parse(Int32, match(patt, splitdir(x)[2]).match),
                        filepaths)
-        filenums_plus1 = [1:length(filepaths);]
+        filenums_plus1 = filenums .+ 1
         diffs = filenums_plus1 .- filenums
         @assert(all(diffs .== 1), ("Filepaths do not appear to be " * 
                                    "in numerical order. \n\t"))
@@ -1199,6 +1203,6 @@ function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=
 
     plot(p_r2, p_euc, p_rast, layout=lo)
     
-end;
+end
 
 
