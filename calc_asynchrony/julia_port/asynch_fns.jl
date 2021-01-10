@@ -207,9 +207,9 @@ function get_infile_outfile_paths(data_dir::String)::Tuple{Array{String,1}, Arra
     # order the infilepaths
     sort!(infilepaths)
     # exclude any previously generated output files
-    infilepaths = [fp for fp in infilepaths if !occursin("_OUT", fp)]
+    infilepaths = [fp for fp in infilepaths if !occursin("-OUT-", fp)]
     # get the corresponding outfilepaths
-    outfilepaths = [replace(fp, r"(?<=\d{5})\.(?=tfrecord)" => "_OUT.") for fp in infilepaths]
+    outfilepaths = [replace(fp, r"-(?=\d{5})" => "-OUT-") for fp in infilepaths]
     return infilepaths, outfilepaths
 end
 
