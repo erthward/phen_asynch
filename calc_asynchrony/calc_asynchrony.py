@@ -84,7 +84,7 @@ if __name__ == '__main__':
     # make the Pool
     pool = mp.Pool(ncpu)
 
-        # map the input files dict into the CPUs in our pool
+    # map the input files dict into the CPUs in our pool
     print("BEGIN ASSIGNING JOBS...\n")
     pool.map_async(af.main_fn, files_dict.items())
 
