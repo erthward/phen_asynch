@@ -108,7 +108,7 @@ if splitpath(pwd())[2] == "home"
     """
     const PATT_B4_FILENUM = "Amer-"
 else
-    const ABS_DATA_DIR = "/global/home/users/drewhart/seasonality/GEE_output/julia_test/"
+    const ABS_DATA_DIR = "/global/home/users/drewhart/seasonality/GEE_output/NIRvP/"
 
     """
     pattern that occurs just before the file number
@@ -209,9 +209,9 @@ function get_infile_outfile_paths(data_dir::String)::Tuple{Array{String,1}, Arra
     # order the infilepaths
     sort!(infilepaths)
     # exclude any previously generated output files
-    infilepaths = [fp for fp in infilepaths if !occursin("-OUT-", fp)]
+    infilepaths = [fp for fp in infilepaths if !occursin("OUT", fp)]
     # get the corresponding outfilepaths
-    outfilepaths = [replace(fp, r"-(?=\d{5})" => "-OUT-") for fp in infilepaths]
+    outfilepaths = [replace(fp, r"-(?=\d{5})" => "-OUT.") for fp in infilepaths]
     return infilepaths, outfilepaths
 end
 
@@ -329,6 +329,7 @@ using the given filepath.
 function write_tfrecord_file(patches::OrderedDict{Int64, Array{Float32,3}},
                              filepath::String,
                              bands::Array{String, 1})::Nothing
+    println("RUNNING write_tfrecord_file FOR FILE $filepath")
     # instantiate the TFRecord writer
     writer = TFRecordWriter(filepath)
     # NOTE: sort the patches once more, to ensure they're in the right order
@@ -345,6 +346,7 @@ function write_tfrecord_file(patches::OrderedDict{Int64, Array{Float32,3}},
         write(writer, outdict)
     end
     close(writer)
+    println("FINISHD write_tfrecord_file FOR FILE $filepath")
 end
 
 
@@ -465,7 +467,7 @@ function run_linear_regression(x::Array{Float64,1}, y::Array{Float64,1};
         output = Dict("slope" => slope,
                       "intercept" => int,
                       "R2" => R2)
-        println("ERROR THROWN!")
+        @warn "ERROR THROWN!"
         return output
     end
 end
@@ -603,6 +605,7 @@ function get_row_col_patch_ns_allfiles(data_dir::String,
     # NOTE: if this is not true then my method for tracking the row, col, and
     # patch numbers will break!
     for filepaths in [infilepaths, outfilepaths]
+	println(filepaths)
         filenums = map(x -> parse(Int32, match(patt, splitdir(x)[2]).match),
                        filepaths)
         filenums_plus1 = filenums .+ 1
@@ -734,8 +737,8 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
                 append!(R2s, R2)
                 append!(ts_dists, ts_dist)
             catch error
-                println(("ERROR THROWN WHILE CALCULATING NEIGHBOR-DISTANCE METRICS:" *
-                         "\n\tpixel: $i, $j\n\tneighbor: $ni, $nj\n"))
+                @warn ("ERROR THROWN WHILE CALCULATING NEIGHBOR-DISTANCE METRICS:" *
+                         "\n\tpixel: $i, $j\n\tneighbor: $ni, $nj\n")
             end
         end
     end
@@ -958,7 +961,7 @@ function main_fn(file_info::Tuple{String,Dict{String,Any}};
     patch_js::Array{Int64,1} = file_dict["patch_js"]
     patch_ns::Array{Int64,1} = file_dict["patch_ns"]
     if verbose
-        println("\nWorker $(myid()) processing file $infilename\n")
+        @info "\nWorker $(myid()) processing file $infilename\n"
     end
 
     # read the data in, and set up the output patches' data structure
@@ -1123,8 +1126,8 @@ function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=
                 append!(R2s, R2)
                 append!(ts_dists, ts_dist)
             catch error
-                println(("ERROR THROWN WHILE CALCULATING NEIGHBOR-DISTANCE METRICS:" *
-                         "\n\tpixel: $i, $j\n\tneighbor: $ni, $nj\n"))
+                @warn ("ERROR THROWN WHILE CALCULATING NEIGHBOR-DISTANCE METRICS:" *
+                         "\n\tpixel: $i, $j\n\tneighbor: $ni, $nj\n")
             end
         end
     end

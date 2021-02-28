@@ -12,13 +12,14 @@ using Distributed
 using ArgParse
 
 # include the asynch functions
-@everywhere include("./asynch_fns.jl")
+@everywhere include("/global/home/users/drewhart/seasonality/seasonal_asynchrony/" *
+		     "calc_asynchrony/julia_port/asynch_fns.jl")
 
 # parse the command-line args
-function parse_args()
+function parse_cmdline_args()
     s = ArgParseSettings()
 
-    @add_arg_table s begin
+    @add_arg_table! s begin
         "--which"
             help = """which files to process
 
@@ -43,32 +44,32 @@ end
 function main()
 
     # parse the args
-    parsed_args = parse_args()
+    parsed_args = parse_cmdline_args()
 
     # use args to determine behavior
     if parsed_args["which"] == "all"
         files_dict = deepcopy(FILES_DICT)
-    else if parsed_args["which"] == "unprocessed"
+    elseif parsed_args["which"] == "unprocessed"
         files_dict = Dict()
         for (k, v) in FILES_DICT
-            outfile_name = replace(k, r"-(?=\d{5})" => "-OUT-")
-            if !isfile(outfile_name) or filesize(outfile_name) == 0
+            outfile_name = replace(k, r"(?<=\d{5})." => "_OUT.")
+            if !isfile(outfile_name) || filesize(outfile_name) == 0
                 files_dict[k] = v
             end
         end
     end
-    println("\nFILES TO BE PROCESSED:\n----------------------\n")
-    for (k,v) in files_dict
+    @info "\n$(length(files_dict)) FILES TO BE PROCESSED:\n----------------------\n"
+    for (k,v) in sort(files_dict)
         println("\t$k")
     end
 
     # display CPU and parallelization info
-    println("CPU INFO:\n--------")
+    @info "CPU SUMMARY:\n--------" 
     println(Sys.cpu_info())
     println("\n\n")
     np = nprocs()
     nw = nworkers()
-    println("USING $np PROCESSES, WITH $nw WORKERS")
+    @info "USING $np PROCESS$(np > 1 ? "ES" : ""), WITH $nw WORKER$(nw > 1 ? "S" : "")"
 
     pmap(main_fn, zip(keys(files_dict), values(files_dict)))
 end
