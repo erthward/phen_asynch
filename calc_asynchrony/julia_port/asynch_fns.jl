@@ -113,7 +113,8 @@ else
     """
     pattern that occurs just before the file number
     """
-    const PATT_B4_FILENUM = "SIF-"
+    #const PATT_B4_FILENUM = "SIF-"
+    const PATT_B4_FILENUM = "NIRvP-"
 end
 
 """
@@ -124,7 +125,8 @@ const DATA_DIR = relpath(ABS_DATA_DIR)
 """
 kernel size used by GEE to output the TFRecord files
 """
-const KERNEL_SIZE = 60
+#const KERNEL_SIZE = 60
+const KERNEL_SIZE = 712
 
 """
 half the kernel width (to use in margin-trimming)
