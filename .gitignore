@@ -1,4 +1,4 @@
 ./calc_asynchrony/__pycache__
 *.tif
 ./asynch_analysis/*.tif
-./asynch_analysis/hotspots/*
+./asynch_analysis/hotspots/

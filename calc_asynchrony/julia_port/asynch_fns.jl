@@ -106,7 +106,7 @@ if splitpath(pwd())[2] == "home"
     """
     pattern that occurs just before the file number
     """
-    const PATT_B4_FILENUM = "Amer-"
+    const PATT_AFT_FILENUM = "\\.tfrecord\$"
 else
     const ABS_DATA_DIR = "/global/home/users/drewhart/seasonality/GEE_output/NIRvP/"
 
@@ -114,7 +114,8 @@ else
     pattern that occurs just before the file number
     """
     #const PATT_B4_FILENUM = "SIF-"
-    const PATT_B4_FILENUM = "NIRvP-"
+    #const PATT_B4_FILENUM = "NIRvP-"
+    const PATT_AFT_FILENUM = "\\.tfrecord\$"
 end
 
 """
@@ -157,7 +158,7 @@ const OUTBANDS = ["asynch", "asynch_R2", "asynch_euc", "asynch_euc_R2", "asynch_
 max distance out to which to find and include neighbors in
 each pixel's asynchrony calculation (in meters)
 """
-const NEIGH_RAD = 150_000
+const NEIGH_RAD = 50_000
 
 """
 minimum distance represented by 1 degree of longitude
@@ -211,7 +212,7 @@ function get_infile_outfile_paths(data_dir::String)::Tuple{Array{String,1}, Arra
     # exclude any previously generated output files
     infilepaths = [fp for fp in infilepaths if !occursin("OUT", fp)]
     # get the corresponding outfilepaths
-    outfilepaths = [replace(fp, r"-(?=\d{5})" => "-OUT.") for fp in infilepaths]
+    outfilepaths = [replace(fp, r"-(?=\d{5})" => "-OUT-") for fp in infilepaths]
     return infilepaths, outfilepaths
 end
 
@@ -599,13 +600,12 @@ function get_row_col_patch_ns_allfiles(data_dir::String,
     infilepaths, outfilepaths = get_infile_outfile_paths(DATA_DIR)
 
     # get the regex pattern
-    patt = Regex("(?<=$PATT_B4_FILENUM)\\d{5}")
+    patt = Regex("\\d{5}?(?=$PATT_AFT_FILENUM)")
 
     # assert that both lists are sorted in ascending numerical order
     # NOTE: if this is not true then my method for tracking the row, col, and
     # patch numbers will break!
     for filepaths in [infilepaths, outfilepaths]
-	println(filepaths)
         filenums = map(x -> parse(Int32, match(patt, splitdir(x)[2]).match),
                        filepaths)
         filenums_plus1 = filenums .+ 1
@@ -923,7 +923,7 @@ numbers as values.
 Needed in order to parallelize the computation across files while still
 calculating lats and lons correctly for each file's pixels
 """
-const FILES_DICT = get_row_col_patch_ns_allfiles(DATA_DIR, PATT_B4_FILENUM)
+const FILES_DICT = get_row_col_patch_ns_allfiles(DATA_DIR, PATT_AFT_FILENUM)
 
 """
 Array containing the input filenames

@@ -1,0 +1,29 @@
+Now that things are up and running for the MODIS data, runtime is going to be a major limitation.
+
+Estimated runtime per pixel as a fn of neigh_size (for CA, so not far north, which are the most time-intensive files):
+(NOTE: THESE ARE TIMES FOR 1500x1500-patch files, i.e. 1500 before including kernel)
+150km: 4.8 sec
+100km: 2 sec
+75km: 1 sec
+50km: 0.6 sec
+
+Estimated total-file runtimes as a fn of patch size (for neigh = 100km):
+1500x: 52 days
+1000x: 23.2 days
+500x:  5.8 days
+
+Estimated total-file runtimes as a fn of patch size (for neigh = 75km):
+1500x: 26.1 days
+1000x: 11.6 days
+500x:  2.9 days
+
+Estimated total-file runtimes as a fn of patch size (for neigh = 50km):
+1500x: 15.6 days
+1000x: 7 days
+500x:  1.75 days
+
+
+NEXT STEPS:
+1.) try producing for all of CA with 75km neighborhood, 500-pix patches
+2.) select a couple very small, particularly complex/interesting regions and reproduce them at the same 150km neighborhood used for the SIF
+3.) consider whether/not to make a global MODIS map (and if so, then determine best patch size and neighborhood for doing this)
