@@ -127,7 +127,7 @@ const DATA_DIR = relpath(ABS_DATA_DIR)
 kernel size used by GEE to output the TFRecord files
 """
 #const KERNEL_SIZE = 60
-const KERNEL_SIZE = 712
+const KERNEL_SIZE = 358
 
 """
 half the kernel width (to use in margin-trimming)
@@ -158,7 +158,7 @@ const OUTBANDS = ["asynch", "asynch_R2", "asynch_euc", "asynch_euc_R2", "asynch_
 max distance out to which to find and include neighbors in
 each pixel's asynchrony calculation (in meters)
 """
-const NEIGH_RAD = 50_000
+const NEIGH_RAD = 150_000
 
 """
 minimum distance represented by 1 degree of longitude

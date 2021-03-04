@@ -88,10 +88,11 @@ else:
 
 # pattern that occurs just before the file number in each input file's name
 #PATT_B4_FILENUM = 'SIF-'
-PATT_B4_FILENUM = 'Amer-'
+#PATT_B4_FILENUM = 'Amer-'
+PATT_B4_FILENUM = 'NIRvP-'
 
 # kernel size used by GEE to output the TFRecord files
-KERNEL_SIZE = 60
+KERNEL_SIZE = 358
 
 # whether or not to trim the half-kernel-width margin before output
 TRIM_MARGIN = True
