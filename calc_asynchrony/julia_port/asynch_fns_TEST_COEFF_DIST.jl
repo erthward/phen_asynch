@@ -1,4 +1,28 @@
 """
+
+
+
+######################
+TODO:
+
+OKAY. CALCULATING DISTANCE DIRECTLY FROM COEFFS APPEARS TO BE ~10x FASTER, REGARDLESS
+OF WHETHER I USE VIEWS ON THE COEFFS-ARRAY ('patch') OR JUST SUBSET THEM DIRECTLY
+
+WORTH RUNNING IT THIS WAY?
+
+OR WORTH TRYING CACHING APPORACH?
+
+OR BOTH?
+
+
+######################
+
+
+
+
+
+
+
 Reads in the data from all the TFRecord files pertaining to a mixerfile.
 Calculates asynchrony for that data and writes out to a matching set of files.
 
@@ -695,8 +719,8 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
     # calculate the focal pixel's time series (and its standardized time series)
     #ts_foc = ts_arr[:, i, j]
     #stand_ts_foc = stand_ts_arr[:, i, j]
-    ts_foc = calc_time_series(patch, i, j, design_mat)
-    stand_ts_foc = standardize(ts_foc)
+    #ts_foc = calc_time_series(patch, i, j, design_mat)
+    #stand_ts_foc = standardize(ts_foc)
 
     # make the Haversine instance and function for this cell
     # TODO: FIX THIS LINE
@@ -721,26 +745,26 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
         # get the neighbor's time series
         #ts_neigh = ts_arr[:, ni, nj]
         #stand_ts_neigh = stand_ts_arr[:, ni, nj]
-        ts_neigh = calc_time_series(patch, ni, nj, design_mat)
-        stand_ts_neigh = standardize(ts_neigh)
+        #ts_neigh = calc_time_series(patch, ni, nj, design_mat)
+        #stand_ts_neigh = standardize(ts_neigh)
 
         # drop this pixel if it returns NAs
-        if any(isnan.(ts_neigh))
+        if any(isnan.(view(patch, ni,nj,:)))
            # do nothing 
            continue
         else
             try
                 # calculate the R2
-                R2 = run_linear_regression(ts_foc, ts_neigh)["R2"]
+                #R2 = run_linear_regression(ts_foc, ts_neigh)["R2"]
 
                 # calculate the Euclidean distance
                 # between the 2 standardized time series
-                ts_dist = euclidean(stand_ts_foc, stand_ts_neigh)
+                ts_dist = euclidean(view(patch,i,j,:), view(patch,ni,nj,:))
          
                 # append the metrics, if the neighbor-distance
                 # calculation was successful
                 append!(geo_dists, neigh_dist)
-                append!(R2s, R2)
+                #append!(R2s, R2)
                 append!(ts_dists, ts_dist)
             catch error
                 @warn ("ERROR THROWN WHILE CALCULATING NEIGHBOR-DISTANCE METRICS:" *
@@ -757,26 +781,26 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
         # NOTE: setting fit_intercept to false and subtracting 1
         #       from the array of R2s effectively
         #       fixes the intercept at R2=1
-        res = run_linear_regression(geo_dists, R2s .- 1, fit_intercept=false)
+        #res = run_linear_regression(geo_dists, R2s .- 1, fit_intercept=false)
         # get the slope of the overall regression of Euclidean ts dists on geo dist
         # NOTE: just setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
         res_euc = run_linear_regression(geo_dists, ts_dists, fit_intercept=false)
         # extract both results into vars
-        asynch = abs(res["slope"])
-        asynch_R2 = res["R2"]
+        #asynch = abs(res["slope"])
+        #asynch_R2 = res["R2"]
         asynch_euc = res_euc["slope"]
         asynch_euc_R2 = res_euc["R2"]
         # extract sample size (i.e. number of neighbors) for this focal pixel,
         # checking that there was no issue with uneven numbers of results
-        @assert(length(geo_dists) == length(ts_dists) == length(R2s), ("Lengths of " *
+        @assert(length(geo_dists) == length(ts_dists)), ("Lengths of " *
                                                                        "geo_dists, " *
                                                                        "ts_dists, " *
                                                                        "and R2s are " *
-                                                                       "not equal!"))
+                                                                       "not equal!")
         asynch_n = length(geo_dists)
 
         # update the output patch with the new values
-        outpatch[i, j, :] = [asynch, asynch_R2, asynch_euc, asynch_euc_R2, asynch_n]
+        outpatch[i, j, :] = [0, 0, asynch_euc, asynch_euc_R2, asynch_n]
 
     # if we don't have at least the minimum number of neighbors
     # then just add NaNs to the outpatch, except for the neighbor count
@@ -831,16 +855,6 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
         # to be used in neighbor-searching
         tree = BallTree([vec_xs vec_ys]', Haversine(EARTH_RAD))
 
-        # get the i x j x 365 cube of fitted time series for the patch
-        #ts_arr = Array{Float64}(undef, 365, dims[1], dims[2])
-        #stand_ts_arr = Array{Float64}(undef, 365, dims[1], dims[2])
-        #for ind in eachindex(inpatch[:, :, 1])
-        #    i,j = Tuple(cart_inds[ind])
-        #    ts = calc_time_series(inpatch, i, j, design_mat)
-        #    ts_arr[:,i,j] = ts
-        #    stand_ts_arr[:,i,j] = standardize(ts)
-        #end
-
         #----------------
         # run calculation
         #----------------
@@ -869,7 +883,6 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
                                           foc_y, foc_x, vec_ys, vec_xs,
                                           inpatch, outpatch, patch_n,
                                           yres, xres, dims,
-                                          #ts_arr, stand_ts_arr,
                                           design_mat, tree,
                                           verbose=verbose, timeit=timeit)
                     ct+=1
