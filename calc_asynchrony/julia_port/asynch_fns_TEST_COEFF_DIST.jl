@@ -99,6 +99,13 @@ using GLM
 # set params
 #-----------
 
+"""
+Which variable to calculate asynchrony for
+"""
+#const VAR = "SIF"
+const VAR = "NIRvP"
+
+
 # stdout options
 """
 Whether to use verbose output
@@ -125,33 +132,43 @@ gr()
 # (SEEMS LIKE A BUG, NO?!),
 # so get the relative path to the data_dir instead
 if splitpath(pwd())[2] == "home"
-    const ABS_DATA_DIR = "/home/drew/Desktop/stuff/berk/research/projects/seasonality/GEE_output"
+    if VAR == "NIRvP"
+        const ABS_DATA_DIR = "/home/deth/Desktop/stuff/berk/research/projects/seasonality/GEE_output/SA/"
+    else
+        const ABS_DATA_DIR = "/home/deth/Desktop/stuff/berk/research/projects/seasonality/GEE_output"
+    end
 
-    """
-    pattern that occurs just before the file number
-    """
-    const PATT_AFT_FILENUM = "\\.tfrecord\$"
 else
-    const ABS_DATA_DIR = "/global/home/users/drewhart/seasonality/GEE_output/NIRvP/"
-
-    """
-    pattern that occurs just before the file number
-    """
-    #const PATT_B4_FILENUM = "SIF-"
-    #const PATT_B4_FILENUM = "NIRvP-"
-    const PATT_AFT_FILENUM = "\\.tfrecord\$"
+    if VAR == "NIRvP"
+        const ABS_DATA_DIR = "/global/home/users/drewhart/seasonality/GEE_output/NIRvP/"
+    else
+        const ABS_DATA_DIR = "/global/home/users/drewhart/seasonality/GEE_output/NIRvP/"
+    end
 end
+
+
+"""
+pattern that occurs just before the file number
+"""
+const PATT_AFT_FILENUM = "\\.tfrecord\$"
 
 """
 directory where the TFRecord data and mixerfile live
 """
 const DATA_DIR = relpath(ABS_DATA_DIR)
 
-"""
-kernel size used by GEE to output the TFRecord files
-"""
-#const KERNEL_SIZE = 60
-const KERNEL_SIZE = 358
+# kernel size
+if VAR == "NIRvP"
+    """
+    kernel size used by GEE to output the TFRecord files
+    """
+    const KERNEL_SIZE = 714
+else
+    """
+    kernel size used by GEE to output the TFRecord files
+    """
+    const KERNEL_SIZE = 60
+end
 
 """
 half the kernel width (to use in margin-trimming)
@@ -185,7 +202,7 @@ each pixel's asynchrony calculation (in meters)
 const NEIGH_RAD = 150_000
 
 """
-minimum distance represented by 1 degree of longitude
+minimum distance per 1 degree of longitude
 i.e. the distance of 1 deg lat at my highest latitude, which is 60 N/S)
 """
 const MIN_DIST_°_LON=111_320
@@ -326,11 +343,11 @@ function read_tfrecord_file(infilepath::String,
     # empty Dict to hold the arrays
     arrays = Dict()
     # read the TFRecord file
-    reader = TFRecordReader(infilepath)
+    #reader = TFRecordReader(infilepath)
     # beginning of example printout:
     # Example(Features(Dict{AbstractString,Feature}("constant" => Feature(#undef, FloatList(Float32[
     # loop over the examples
-    for (ex_n, example) in enumerate(reader)
+    for (ex_n, example) in enumerate(TFRecord.read(infilepath))
         # create an empty Array to hold the data
         arr = Array{Float32}(undef, dims[1], dims[2], 5)
         for (i, band) in enumerate(bands)
@@ -348,30 +365,28 @@ end
 
 
 """
+Preps a single patch for writing into a TFRecord file
+"""
+function prep_single_patch_for_tfrecord_file(patch::Array{Float32,3},
+                                             bands::Array{String, 1})::Dict{String,
+                                                                           Vector{Float32}}
+    patchdict = Dict()
+    for (band_i, band) in enumerate(bands)
+        outpatch = vec(Float32.(replace(patch[:, :, band_i], NaN=>DEFAULT_VAL)))
+        patchdict[band] = outpatch
+    end
+    return patchdict
+end
+
+
+"""
 Writes the output patches (i.e. rasters) to disk as a TFRecord file,
 using the given filepath.
 """
 function write_tfrecord_file(patches::OrderedDict{Int64, Array{Float32,3}},
                              filepath::String,
                              bands::Array{String, 1})::Nothing
-    println("RUNNING write_tfrecord_file FOR FILE $filepath")
-    # instantiate the TFRecord writer
-    writer = TFRecordWriter(filepath)
-    # NOTE: sort the patches once more, to ensure they're in the right order
-    for (patch_i, patch) in sort(patches)
-        # create a Dict of the outbands and their arrays
-        outdict = Dict()
-        for (band_i, band) in enumerate(bands)
-            # set all missing back to the missing-data default val,
-            # then recast as Float32 and cast as a vector
-            outpatch = vec(Float32.(replace(patch[:, :, band_i], NaN=>DEFAULT_VAL)))
-            outdict[band] = outpatch
-        end
-        # serialize to a TF example
-        write(writer, outdict)
-    end
-    close(writer)
-    println("FINISHD write_tfrecord_file FOR FILE $filepath")
+    TFRecord.write(filepath, (prep_single_patch_for_tfrecord_file(patch_item[2], bands) for patch_item in sort(patches)))
 end
 
 
@@ -656,12 +671,13 @@ function get_row_col_patch_ns_allfiles(data_dir::String,
         file_dict["patch_ns"] = patch_ns
 
         # read the file into a TFRecordReader instance
-        dataset = TFRecordReader(infile)
+        #dataset = TFRecordReader(infile)
 
         # loop over the patches in the infile, store the row, col, and patch
         # numbers, then correctly increment them
         # NOTE: an 'example' (TFRecord jargon) is the same as a 'patch' (GEE jargon)
-        for example in dataset
+        #for example in dataset
+        for example in TFRecord.read(infile)
 
             # store nums
             append!(file_dict["patch_is"], patch_i)
@@ -712,15 +728,15 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
     end
 
     # create lists of R2 and dist values
-    R2s::Array{Float64,1} = []
     ts_dists::Array{Float64,1} = []
+    coeff_dists::Array{Float64,1} = []
     geo_dists::Array{Float64,1} = []
 
     # calculate the focal pixel's time series (and its standardized time series)
     #ts_foc = ts_arr[:, i, j]
     #stand_ts_foc = stand_ts_arr[:, i, j]
-    #ts_foc = calc_time_series(patch, i, j, design_mat)
-    #stand_ts_foc = standardize(ts_foc)
+    ts_foc = calc_time_series(patch, i, j, design_mat)
+    stand_ts_foc = standardize(ts_foc)
 
     # make the Haversine instance and function for this cell
     # TODO: FIX THIS LINE
@@ -745,8 +761,8 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
         # get the neighbor's time series
         #ts_neigh = ts_arr[:, ni, nj]
         #stand_ts_neigh = stand_ts_arr[:, ni, nj]
-        #ts_neigh = calc_time_series(patch, ni, nj, design_mat)
-        #stand_ts_neigh = standardize(ts_neigh)
+        ts_neigh = calc_time_series(patch, ni, nj, design_mat)
+        stand_ts_neigh = standardize(ts_neigh)
 
         # drop this pixel if it returns NAs
         if any(isnan.(view(patch, ni,nj,:)))
@@ -755,17 +771,17 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
         else
             try
                 # calculate the R2
-                #R2 = run_linear_regression(ts_foc, ts_neigh)["R2"]
+                ts_dist = euclidean(stand_ts_foc, stand_ts_neigh)
 
                 # calculate the Euclidean distance
                 # between the 2 standardized time series
-                ts_dist = euclidean(view(patch,i,j,:), view(patch,ni,nj,:))
+                coeff_dist = euclidean(view(patch,i,j,:), view(patch,ni,nj,:))
          
                 # append the metrics, if the neighbor-distance
                 # calculation was successful
                 append!(geo_dists, neigh_dist)
-                #append!(R2s, R2)
                 append!(ts_dists, ts_dist)
+                append!(coeff_dists, coeff_dist)
             catch error
                 @warn ("ERROR THROWN WHILE CALCULATING NEIGHBOR-DISTANCE METRICS:" *
                          "\n\tpixel: $i, $j\n\tneighbor: $ni, $nj\n")
@@ -781,15 +797,15 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
         # NOTE: setting fit_intercept to false and subtracting 1
         #       from the array of R2s effectively
         #       fixes the intercept at R2=1
-        #res = run_linear_regression(geo_dists, R2s .- 1, fit_intercept=false)
+        res_ts = run_linear_regression(geo_dists, ts_dists, fit_intercept=true)
         # get the slope of the overall regression of Euclidean ts dists on geo dist
         # NOTE: just setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
-        res_euc = run_linear_regression(geo_dists, ts_dists, fit_intercept=false)
+        res_coeff = run_linear_regression(geo_dists, coeff_dists, fit_intercept=true)
         # extract both results into vars
-        #asynch = abs(res["slope"])
-        #asynch_R2 = res["R2"]
-        asynch_euc = res_euc["slope"]
-        asynch_euc_R2 = res_euc["R2"]
+        asynch_ts = res_ts["slope"]
+        R2_ts = res_ts["R2"]
+        asynch_coeff = res_coeff["slope"]
+        R2_coeff = res_coeff["R2"]
         # extract sample size (i.e. number of neighbors) for this focal pixel,
         # checking that there was no issue with uneven numbers of results
         @assert(length(geo_dists) == length(ts_dists)), ("Lengths of " *
@@ -800,7 +816,7 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
         asynch_n = length(geo_dists)
 
         # update the output patch with the new values
-        outpatch[i, j, :] = [0, 0, asynch_euc, asynch_euc_R2, asynch_n]
+        outpatch[i, j, :] = [asynch_ts, R2_ts, asynch_coeff, R2_coeff, asynch_n]
 
     # if we don't have at least the minimum number of neighbors
     # then just add NaNs to the outpatch, except for the neighbor count
@@ -861,7 +877,6 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
 
         # loop over pixels (excluding those in the kernel's margin,
         # since there's no use wasting time calculating for those)
-        ct = 0
         for ind in eachindex(inpatch[:, :, 1])
             i,j  = Tuple(cart_inds[ind])
             if (hkw < i <= size(inpatch)[1]-hkw) && (hkw < j <= size(inpatch)[2]-hkw)
@@ -885,10 +900,6 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
                                           yres, xres, dims,
                                           design_mat, tree,
                                           verbose=verbose, timeit=timeit)
-                    ct+=1
-                end
-                if ct >= 5
-                    break
                 end
             end
         end
@@ -1025,6 +1036,12 @@ function main_fn(file_info::Tuple{String,Dict{String,Any}};
 end
 
 
+
+
+
+
+
+
 #------------------------
 # define helper functions
 #------------------------
@@ -1118,6 +1135,7 @@ function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=
     R2s::Array{Float64, 1} = []
     ts_dists::Array{Float64, 1} = []
     geo_dists::Array{Float64, 1} = []
+    coeff_dists::Array{Float64, 1} = []
 
     # calculate the focal pixel's time series (and its standardized time series)
     ts_foc = calc_time_series(patch, i, j, DESIGN_MAT)
@@ -1156,11 +1174,15 @@ function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=
 
                 # calculate the Euclidean distance between the 2 standardized time series
                 ts_dist = euclidean(stand_ts_foc, stand_ts_neigh)
+
+                # calculate the Euclidean distance between the coeff vectors
+                coeff_dist = euclidean(view(patch, i, j, :), view(patch, ni, nj, :))
          
                 # append the metrics, if the neighbor-distance calculation was successful
                 append!(geo_dists, neigh_dist)
                 append!(R2s, R2)
                 append!(ts_dists, ts_dist)
+                append!(coeff_dists, coeff_dist)
             catch error
                 @warn ("ERROR THROWN WHILE CALCULATING NEIGHBOR-DISTANCE METRICS:" *
                          "\n\tpixel: $i, $j\n\tneighbor: $ni, $nj\n")
@@ -1175,12 +1197,16 @@ function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=
     res = run_linear_regression(geo_dists, R2s .- 1, fit_intercept=false)
     # get the slope of the overall regression of Euclidean ts dists on geo dist
     # NOTE: just setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
-    res_euc = run_linear_regression(geo_dists, ts_dists, fit_intercept=false)
+    res_euc = run_linear_regression(geo_dists, ts_dists, fit_intercept=true)
+   
+    # get the slope of the coeff_dist, geo_dist regression
+    res_coeff = run_linear_regression(geo_dists, coeff_dists, fit_intercept=true)
 
     # get trendlines for the regressions
     line_xs = [0:1:150_000;]
     r2_ys = @. 1 + res["slope"] * line_xs
     euc_ys = @. 0 + res_euc["slope"] * line_xs
+    coeff_ys = @. 0 + res_coeff["slope"] * line_xs
 
     # set up the layout grid
     lo = @layout [ [ a ; b ] c{0.75w} ]
@@ -1222,6 +1248,24 @@ function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=
                     legend=false)
     plot!(line_xs, euc_ys, color="red")
 
+    p_coeff = scatter(geo_dists, coeff_dists,
+                      xlabel="geographic distance (m)",
+                      ylabel="Euclidean coeff-vector distance",
+                      title=("Coefficient asynchrony\n" *
+                             "(β=$(@sprintf("%e", res_coeff["slope"])), " *
+                             "R²=$(round(res_coeff["R2"],digits=3)))"),
+                      titlefontsize=8,
+                      guidefontsize=7,
+                      tickfontsize=4,
+                      markercolor="black",
+                      markersize=2,
+                      markerstrokecolor=nothing,
+                      alpha=0.6,
+                      #smooth=true,
+                      #linecolor="red",
+                      legend=false)
+    plot!(line_xs, coeff_ys, color="red")
+
     # plot the raster and highlight the location
     hkw::Int64 = KERNEL_SIZE/2
     xmin = minimum(xs[hkw+1:end-hkw]) - 0.5*XRES
@@ -1229,7 +1273,7 @@ function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=
     ymin = maximum(ys[hkw+1:end-hkw]) + 0.5*YRES
     ymax = minimum(ys[hkw+1:end-hkw]) - 0.5*YRES
     println((xmin, ymin), (xmax, ymax))
-    ga = GeoArray(outpatch)
+    ga = GeoArray(outpatch[:,:,1])
     epsg!(ga, 4326)
     bbox!(ga, (min_x=xmin, min_y=ymin, max_x=xmax, max_y=ymax))
     p_rast = plot(ga)
@@ -1242,8 +1286,15 @@ function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=
              markersize=10, tickfontsize=4, titlefontsize=8)
 
 
-    plot(p_r2, p_euc, p_rast, layout=lo)
-    
+    plot(p_r2, p_euc, p_coeff, p_rast)#, layout=lo)
 end
 
 
+function plot_all_patches(fp)
+    ip, op = get_inpatches_outpatches(fp, INBANDS, DIMS)
+    plots = Any[]
+    for (n, p) in ip
+        push!(plots, plot(GeoArray(p[:,:,1])))
+    end
+    plot(plots...)
+end

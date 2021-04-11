@@ -101,7 +101,7 @@ gr()
 # (SEEMS LIKE A BUG, NO?!),
 # so get the relative path to the data_dir instead
 if splitpath(pwd())[2] == "home"
-    const ABS_DATA_DIR = "/home/drew/Desktop/stuff/berk/research/projects/seasonality/GEE_output"
+    const ABS_DATA_DIR = "/home/deth/Desktop/stuff/berk/research/projects/seasonality/GEE_output"
 
     """
     pattern that occurs just before the file number
@@ -847,7 +847,6 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
 
         # loop over pixels (excluding those in the kernel's margin,
         # since there's no use wasting time calculating for those)
-        ct = 0
         for ind in eachindex(inpatch[:, :, 1])
             i,j  = Tuple(cart_inds[ind])
             if (hkw < i <= size(inpatch)[1]-hkw) && (hkw < j <= size(inpatch)[2]-hkw)
@@ -872,10 +871,6 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
                                           #ts_arr, stand_ts_arr,
                                           design_mat, tree,
                                           verbose=verbose, timeit=timeit)
-                    ct+=1
-                end
-                if ct >= 5
-                    break
                 end
             end
         end

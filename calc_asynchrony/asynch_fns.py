@@ -81,7 +81,7 @@ import os
 
 # directory where the data and mixerfile live
 if os.path.abspath('.').split('/')[1] == 'home':
-    DATA_DIR = ('/home/drew/Desktop/stuff/berk/research/projects/seasonality/'
+    DATA_DIR = ('/home/deth/Desktop/stuff/berk/research/projects/seasonality/'
                 'GEE_output')
 else:
     DATA_DIR = '/global/home/users/drewhart/seasonality/GEE_output/SIF/'
@@ -92,7 +92,8 @@ else:
 PATT_B4_FILENUM = 'NIRvP-'
 
 # kernel size used by GEE to output the TFRecord files
-KERNEL_SIZE = 358
+KERNEL_SIZE = 60
+#KERNEL_SIZE = 358
 
 # whether or not to trim the half-kernel-width margin before output
 TRIM_MARGIN = True
@@ -546,7 +547,8 @@ def calc_asynch_one_pixel(i, j, patch, patch_n, ys, xs, yres, xres, dims,
 
             # calculate and append the Euclidean distance
             # between standardized time series
-            ts_dist = calc_euc_dist(stand_ts_foc, stand_ts_neigh)
+            #ts_dist = calc_euc_dist(stand_ts_foc, stand_ts_neigh)
+            ts_dist = calc_euc_dist(patch[:,i,j], patch[:,ni,nj])
             ts_dists.append(ts_dist)
 
     # get the slope of the overall regression of R2s on geo dist
@@ -687,6 +689,7 @@ def get_row_col_patch_ns_allfiles(data_dir, patt_b4_filenum):
     # assert that both lists are sorted in ascending numerical order
     # NOTE: if this is not true then my method for tracking the row, col, and
     # patch numbers will break!
+    """
     for filepaths in [infilepaths, outfilepaths]:
         filenums = np.array([int(f.split(patt_b4_filenum)[1].split(
                                          '_OUT')[0].split(
@@ -697,7 +700,7 @@ def get_row_col_patch_ns_allfiles(data_dir, patt_b4_filenum):
                                                          "numerical order. "
                                                          "\n\t%s") % str(
                                                                     filepaths)
-
+    """
     # make the output dict
     files_dict = {}
 
