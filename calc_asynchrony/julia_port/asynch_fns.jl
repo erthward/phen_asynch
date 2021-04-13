@@ -133,7 +133,7 @@ gr()
 # so get the relative path to the data_dir instead
 if splitpath(pwd())[2] == "home"
     if VAR == "NIRvP"
-        const ABS_DATA_DIR = "/home/deth/Desktop/stuff/berk/research/projects/seasonality/GEE_output/SA/"
+        const ABS_DATA_DIR = "/home/deth/Desktop/stuff/berk/research/projects/seasonality/GEE_output/CA/"
     else
         const ABS_DATA_DIR = "/home/deth/Desktop/stuff/berk/research/projects/seasonality/GEE_output"
     end
@@ -713,7 +713,6 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
                                patch::Array{Float32,3}, outpatch::Array{Float32,3},
                                patch_n::Int64, yres::Float64, xres::Float64,
                                dims::Tuple{Int64, Int64},
-                               #ts_arr::Array{Float64,3}, stand_ts_arr::Array{Float64,3},
                                design_mat::Array{Float64,2},
                                tree::BallTree{SArray{Tuple{2},Float64,1,2},2,Float64,Haversine{Int64}};
                                timeit=true, verbose=true)::Nothing
@@ -727,14 +726,11 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
         println("\tLAT: $foc_y; LON: $foc_x")
     end
 
-    # create lists of R2 and dist values
+    # create lists of ts dist and geo dist values
     ts_dists::Array{Float64,1} = []
-    coeff_dists::Array{Float64,1} = []
     geo_dists::Array{Float64,1} = []
 
     # calculate the focal pixel's time series (and its standardized time series)
-    #ts_foc = ts_arr[:, i, j]
-    #stand_ts_foc = stand_ts_arr[:, i, j]
     ts_foc = calc_time_series(patch, i, j, design_mat)
     stand_ts_foc = standardize(ts_foc)
 
@@ -759,8 +755,6 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
         ni, nj = neigh_inds
 
         # get the neighbor's time series
-        #ts_neigh = ts_arr[:, ni, nj]
-        #stand_ts_neigh = stand_ts_arr[:, ni, nj]
         ts_neigh = calc_time_series(patch, ni, nj, design_mat)
         stand_ts_neigh = standardize(ts_neigh)
 
@@ -770,18 +764,14 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
            continue
         else
             try
-                # calculate the R2
-                ts_dist = euclidean(stand_ts_foc, stand_ts_neigh)
-
                 # calculate the Euclidean distance
                 # between the 2 standardized time series
-                coeff_dist = euclidean(view(patch,i,j,:), view(patch,ni,nj,:))
+                ts_dist = euclidean(stand_ts_foc, stand_ts_neigh)
          
                 # append the metrics, if the neighbor-distance
                 # calculation was successful
                 append!(geo_dists, neigh_dist)
                 append!(ts_dists, ts_dist)
-                append!(coeff_dists, coeff_dist)
             catch error
                 @warn ("ERROR THROWN WHILE CALCULATING NEIGHBOR-DISTANCE METRICS:" *
                          "\n\tpixel: $i, $j\n\tneighbor: $ni, $nj\n")
@@ -793,19 +783,12 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
     num_neighs = length(geo_dists)
     println("$num_neighs NEIGHBORS")
     if num_neighs ≥ MIN_NUM_NEIGHS
-        # get the slope of the overall regression of R2s on geo dist
-        # NOTE: setting fit_intercept to false and subtracting 1
-        #       from the array of R2s effectively
-        #       fixes the intercept at R2=1
-        res_ts = run_linear_regression(geo_dists, ts_dists, fit_intercept=true)
         # get the slope of the overall regression of Euclidean ts dists on geo dist
         # NOTE: just setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
-        res_coeff = run_linear_regression(geo_dists, coeff_dists, fit_intercept=true)
+        res_ts = run_linear_regression(geo_dists, ts_dists, fit_intercept=true)
         # extract both results into vars
         asynch_ts = res_ts["slope"]
         R2_ts = res_ts["R2"]
-        asynch_coeff = res_coeff["slope"]
-        R2_coeff = res_coeff["R2"]
         # extract sample size (i.e. number of neighbors) for this focal pixel,
         # checking that there was no issue with uneven numbers of results
         @assert(length(geo_dists) == length(ts_dists)), ("Lengths of " *
@@ -816,7 +799,7 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
         asynch_n = length(geo_dists)
 
         # update the output patch with the new values
-        outpatch[i, j, :] = [asynch_ts, R2_ts, asynch_coeff, R2_coeff, asynch_n]
+        outpatch[i, j, :] = [NaN, NaN, asynch_ts, R2_ts, asynch_n]
 
     # if we don't have at least the minimum number of neighbors
     # then just add NaNs to the outpatch, except for the neighbor count
