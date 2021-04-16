@@ -677,7 +677,8 @@ function get_row_col_patch_ns_allfiles(data_dir::String,
         # numbers, then correctly increment them
         # NOTE: an 'example' (TFRecord jargon) is the same as a 'patch' (GEE jargon)
         #for example in dataset
-        for example in TFRecord.read(infile)
+        opened_file = TFRecord.read(infile)
+        for example in opened_file
 
             # store nums
             append!(file_dict["patch_is"], patch_i)
@@ -696,6 +697,10 @@ function get_row_col_patch_ns_allfiles(data_dir::String,
 
         # add this file's file_dict to the files_dict
         files_dict[infile] = file_dict
+        # overwrite the example and the opened file object,
+        # to try to get around the OOM error
+        example = Nothing
+        opened_file = Nothing
     end
 
     return files_dict
@@ -953,7 +958,9 @@ numbers as values.
 Needed in order to parallelize the computation across files while still
 calculating lats and lons correctly for each file's pixels
 """
+println("\nBEFORE MAKING FILES_DICT\n")
 const FILES_DICT = get_row_col_patch_ns_allfiles(DATA_DIR, PATT_AFT_FILENUM)
+println("\nAFTER MAKING FILES_DICT\n")
 
 """
 Array containing the input filenames
