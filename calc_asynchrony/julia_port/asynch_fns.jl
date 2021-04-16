@@ -83,7 +83,7 @@ using StaticArrays
 using Distributed
 using Statistics
 using Distances
-using GeoArrays
+#using GeoArrays
 using TFRecord
 using Printf
 using Images
@@ -140,9 +140,9 @@ if splitpath(pwd())[2] == "home"
 
 else
     if VAR == "NIRvP"
-        const ABS_DATA_DIR = "/global/home/users/drewhart/seasonality/GEE_output/NIRvP/"
+        const ABS_DATA_DIR = "/global/scratch/drewhart/seasonality/GEE_output/NIRvP/CA"
     else
-        const ABS_DATA_DIR = "/global/home/users/drewhart/seasonality/GEE_output/NIRvP/"
+        const ABS_DATA_DIR = "/global/scratch/drewhart/seasonality/GEE_output/SIF/"
     end
 end
 
@@ -1034,6 +1034,7 @@ Make a GeoArray (multilayer raster object) of the patch provided.
 Pull the necessary georeferencing info from dims and the mixer_info provided.
 NOTE: dims fed in separately because dims indicated in GEE's mixer file are incorrect.
 """
+"""
 function make_geoarray(patch; dims=DIMS, mixer_info=MIX,
                               xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing)
     # make a GeoArray
@@ -1065,10 +1066,11 @@ function make_geoarray(patch; dims=DIMS, mixer_info=MIX,
                max_y=ymax))
     return ga
 end
-
+"""
 
 """
 Plot a patch as a GeoArray.
+"""
 """
 function plot_patch(patch, bbox_coords; cmap=:inferno)
     mins, maxs = bbox_coords
@@ -1077,10 +1079,11 @@ function plot_patch(patch, bbox_coords; cmap=:inferno)
     ga = make_geoarray(patch, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
     plot(ga, band=1, color=cmap, tickfontsize=4)#, yflip=true)
 end
-
+"""
 
 """
 Plot the asynch, its R2s, and its sample sizes.
+"""
 """
 function plot_results(outpatch)
     # plot asynch
@@ -1092,10 +1095,11 @@ function plot_results(outpatch)
     p5 = plot(ga, band=5, title="n")
     plot(p1, p2, p3, p4, p5, layout=5)
 end
-
+"""
 
 """
 Plot the asynchrony calculation data for the chosen i,j pixel in the chosen patch.
+"""
 """
 function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=true)
 
@@ -1271,10 +1275,11 @@ function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=
 
     plot(p_r2, p_euc, p_coeff, p_rast)#, layout=lo)
 end
-
+"""
 
 """
 Make a quick 'n dirty panel plot of all the patches in a TFRecord file
+"""
 """
 function plot_all_patches(fp)
     ip, op = get_inpatches_outpatches(fp, INBANDS, DIMS)
@@ -1284,3 +1289,4 @@ function plot_all_patches(fp)
     end
     plot(plots...)
 end
+"""
