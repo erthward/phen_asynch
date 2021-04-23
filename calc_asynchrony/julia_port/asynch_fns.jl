@@ -140,7 +140,7 @@ if splitpath(pwd())[2] == "home"
 
 else
     if VAR == "NIRvP"
-        const ABS_DATA_DIR = "/global/scratch/drewhart/seasonality/GEE_output/NIRvP/CA"
+        const ABS_DATA_DIR = "/global/scratch/drewhart/seasonality/GEE_output/NIRvP/CA_agg"
     else
         const ABS_DATA_DIR = "/global/scratch/drewhart/seasonality/GEE_output/SIF/"
     end
@@ -162,7 +162,7 @@ if VAR == "NIRvP"
     """
     kernel size used by GEE to output the TFRecord files
     """
-    const KERNEL_SIZE = 714
+    const KERNEL_SIZE = 60
 else
     """
     kernel size used by GEE to output the TFRecord files
@@ -343,11 +343,11 @@ function read_tfrecord_file(infilepath::String,
     # empty Dict to hold the arrays
     arrays = Dict()
     # read the TFRecord file
-    #reader = TFRecordReader(infilepath)
     # beginning of example printout:
     # Example(Features(Dict{AbstractString,Feature}("constant" => Feature(#undef, FloatList(Float32[
     # loop over the examples
-    for (ex_n, example) in enumerate(TFRecord.read(infilepath))
+    for (ex_n, example) in enumerate(TFRecordReader(infilepath))
+    #for (ex_n, example) in enumerate(TFRecord.read(infilepath))
         # create an empty Array to hold the data
         arr = Array{Float32}(undef, dims[1], dims[2], 5)
         for (i, band) in enumerate(bands)
@@ -361,6 +361,32 @@ function read_tfrecord_file(infilepath::String,
     end
     # sort the dict by key (to avoid writing files out with patches in diff order)
     return sort(arrays)
+end
+
+
+"""
+Writes the output patches (i.e. rasters) to disk as a TFRecord file,
+using the given filepath.
+"""
+function write_tfrecord_file(patches::OrderedDict{Int64, Array{Float32,3}},
+			     filepath::String,
+                             bands::Array{String, 1})::Nothing
+    #instantiate the TFRecordWriter
+    writer = TFRecordWriter(filepath)
+    # NOTE: sort the patches once more, to ensure they're in the right order
+    for (patch_i, patch) in sort(patches)
+        # create a Dict of the outbands and their arrays
+        outdict = Dict()
+        for (band_i, band) in enumerate(bands)
+            # set all missing back to the missing-data default val,
+            # then recast as Float32 and cast as a vector
+            outpatch = vec(Float32.(replace(patch[:, :, band_i], NaN=>DEFAULT_VAL)))
+            outdict[band] = outpatch
+        end
+        # serialize to a TF example
+        write(writer, outdict)
+    end
+    close(writer)
 end
 
 
@@ -383,7 +409,7 @@ end
 Writes the output patches (i.e. rasters) to disk as a TFRecord file,
 using the given filepath.
 """
-function write_tfrecord_file(patches::OrderedDict{Int64, Array{Float32,3}},
+function write_tfrecord_file_new(patches::OrderedDict{Int64, Array{Float32,3}},
                              filepath::String,
                              bands::Array{String, 1})::Nothing
     TFRecord.write(filepath, (prep_single_patch_for_tfrecord_file(patch_item[2], bands) for patch_item in sort(patches)))
@@ -625,6 +651,7 @@ for all files (keys).
 """
 function get_row_col_patch_ns_allfiles(data_dir::String,
                                        patt_b4_filenum::String)::Dict{String,Dict{String,Any}}
+
     # set the starting row, column, and patch counters
     patch_i = 0
     patch_j = 0
@@ -671,14 +698,14 @@ function get_row_col_patch_ns_allfiles(data_dir::String,
         file_dict["patch_ns"] = patch_ns
 
         # read the file into a TFRecordReader instance
-        #dataset = TFRecordReader(infile)
+        dataset = TFRecordReader(infile)
+        #opened_file = TFRecord.read(infile)
 
         # loop over the patches in the infile, store the row, col, and patch
         # numbers, then correctly increment them
         # NOTE: an 'example' (TFRecord jargon) is the same as a 'patch' (GEE jargon)
-        #for example in dataset
-        opened_file = TFRecord.read(infile)
-        for example in opened_file
+        for example in dataset
+        #for example in opened_file
 
             # store nums
             append!(file_dict["patch_is"], patch_i)
@@ -697,10 +724,6 @@ function get_row_col_patch_ns_allfiles(data_dir::String,
 
         # add this file's file_dict to the files_dict
         files_dict[infile] = file_dict
-        # overwrite the example and the opened file object,
-        # to try to get around the OOM error
-        example = Nothing
-        opened_file = Nothing
     end
 
     return files_dict
@@ -958,9 +981,7 @@ numbers as values.
 Needed in order to parallelize the computation across files while still
 calculating lats and lons correctly for each file's pixels
 """
-println("\nBEFORE MAKING FILES_DICT\n")
 const FILES_DICT = get_row_col_patch_ns_allfiles(DATA_DIR, PATT_AFT_FILENUM)
-println("\nAFTER MAKING FILES_DICT\n")
 
 """
 Array containing the input filenames
@@ -1041,7 +1062,6 @@ Make a GeoArray (multilayer raster object) of the patch provided.
 Pull the necessary georeferencing info from dims and the mixer_info provided.
 NOTE: dims fed in separately because dims indicated in GEE's mixer file are incorrect.
 """
-"""
 function make_geoarray(patch; dims=DIMS, mixer_info=MIX,
                               xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing)
     # make a GeoArray
@@ -1073,11 +1093,9 @@ function make_geoarray(patch; dims=DIMS, mixer_info=MIX,
                max_y=ymax))
     return ga
 end
-"""
 
 """
 Plot a patch as a GeoArray.
-"""
 """
 function plot_patch(patch, bbox_coords; cmap=:inferno)
     mins, maxs = bbox_coords
@@ -1086,11 +1104,9 @@ function plot_patch(patch, bbox_coords; cmap=:inferno)
     ga = make_geoarray(patch, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
     plot(ga, band=1, color=cmap, tickfontsize=4)#, yflip=true)
 end
-"""
 
 """
 Plot the asynch, its R2s, and its sample sizes.
-"""
 """
 function plot_results(outpatch)
     # plot asynch
@@ -1102,11 +1118,9 @@ function plot_results(outpatch)
     p5 = plot(ga, band=5, title="n")
     plot(p1, p2, p3, p4, p5, layout=5)
 end
-"""
 
 """
 Plot the asynchrony calculation data for the chosen i,j pixel in the chosen patch.
-"""
 """
 function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=true)
 
@@ -1282,11 +1296,9 @@ function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=
 
     plot(p_r2, p_euc, p_coeff, p_rast)#, layout=lo)
 end
-"""
 
 """
 Make a quick 'n dirty panel plot of all the patches in a TFRecord file
-"""
 """
 function plot_all_patches(fp)
     ip, op = get_inpatches_outpatches(fp, INBANDS, DIMS)
@@ -1296,4 +1308,3 @@ function plot_all_patches(fp)
     end
     plot(plots...)
 end
-"""

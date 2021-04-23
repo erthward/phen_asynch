@@ -1,0 +1,35 @@
+Worker 5 terminated.
+Worker 2 terminated.
+Worker 16 terminated.
+Worker 18 terminated.
+Worker 21 terminated.
+Worker 10 terminated.
+Worker 6 terminated.
+Worker 20 terminated.
+Worker 14 terminated.
+Worker 17 terminated.
+Worker 9 terminated.
+Worker 15 terminated.
+Worker 19 terminated.
+Worker 11 terminated.
+Worker 13 terminated.
+Worker 12 terminated.
+Worker 3 terminated.
+Worker 4 terminated.
+Worker 8 terminated.
+Worker 7 terminated.
+ERROR: LoadError: ProcessExitedException(2)
+
+...and 20 more exception(s).
+
+Stacktrace:
+ [1] sync_end(::Array{Any,1}) at ./task.jl:316
+ [2] macro expansion at ./task.jl:335 [inlined]
+ [3] remotecall_eval(::Module, ::Array{Int64,1}, ::Expr) at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.4/Distributed/src/macros.jl:217
+ [4] top-level scope at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.4/Distributed/src/macros.jl:201
+ [5] top-level scope at /global/home/users/drewhart/seasonality/seasonal_asynchrony/calc_asynchrony/julia_port/calc_asynchrony.jl:16
+ [6] include(::Module, ::String) at ./Base.jl:377
+ [7] exec_options(::Base.JLOptions) at ./client.jl:288
+ [8] _start() at ./client.jl:484
+in expression starting at /global/home/users/drewhart/seasonality/seasonal_asynchrony/calc_asynchrony/julia_port/calc_asynchrony.jl:15
+slurmstepd: error: Detected 6502 oom-kill event(s) in step 8316780.batch cgroup. Some of your processes may have been killed by the cgroup out-of-memory handler.
