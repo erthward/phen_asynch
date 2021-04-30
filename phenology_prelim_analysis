@@ -59,7 +59,29 @@
 
 # Run a regression and extract the summary statistics
     # ------> is this alinear regression? or a robust regression? 
+        # DETH: this would be a Mantel test (or a multi-Mantel test, which would allow us to partial out geographic distance)
+        #       this is a type of multiple-matrix regression, where the eqxn is of the normal form of a regression (Y ~ beta_1*X_1 + ... + beta_n*X_n), 
+        #       but where Y, X_1 ... X_n are matrices of pairwise distances (rather than vectors of IID scalars)
+        
     # ------> run one regression for the fitted seasonality for siteA and another regression for the fitted seasonality for siteB? 
+        # DETH: each species would have a single regression, of the form D_phen ~ beta * D_seas + beta * D_geog, where the Ds are the pairwise distance matrices,
+        # the betas are the fitted coeffs the regression estimates, and each matrix is of the form:
+        #
+        #        1  2  3  ...   4
+        #        10
+        #        2  0
+        #        3   0
+        #        .    
+        #        .
+        #        .
+        #        4              0
+        #
+        # in which each number is a separate sample, the off-diagonals are the pairwise distances (whether phenological, seasonal, or geographic)
+        # between samples, the matrix is thus symmetric, and the diag is necessarily 0
+        
     # ------> is this to determine if our fitted seasonality curves fit the "observed" seasonality at each site from the gBIF data?
+        # DETH: this is to test whether the map of seasonality at the vegetation stand scale, which we estimated
+        #       from remotely sensed data, is a significant predcitor of the phenological sasonality of individual species observed in the field
+
 
 
