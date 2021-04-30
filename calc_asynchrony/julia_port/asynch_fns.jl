@@ -102,8 +102,8 @@ using GLM
 """
 Which variable to calculate asynchrony for
 """
-#const VAR = "SIF"
-const VAR = "NIRvP"
+const VAR = "SIF"
+#const VAR = "NIRvP"
 
 
 # stdout options
@@ -135,7 +135,7 @@ if splitpath(pwd())[2] == "home"
     if VAR == "NIRvP"
         const ABS_DATA_DIR = "/home/deth/Desktop/stuff/berk/research/projects/seasonality/GEE_output/CA/"
     else
-        const ABS_DATA_DIR = "/home/deth/Desktop/stuff/berk/research/projects/seasonality/GEE_output"
+        const ABS_DATA_DIR = "/home/deth/Desktop/stuff/berk/research/projects/seasonality/GEE_output/old/"
     end
 
 else
@@ -162,7 +162,7 @@ if VAR == "NIRvP"
     """
     kernel size used by GEE to output the TFRecord files
     """
-    const KERNEL_SIZE = 714
+    const KERNEL_SIZE = 60
 else
     """
     kernel size used by GEE to output the TFRecord files
@@ -625,6 +625,7 @@ for all files (keys).
 """
 function get_row_col_patch_ns_allfiles(data_dir::String,
                                        patt_b4_filenum::String)::Dict{String,Dict{String,Any}}
+    println("\nBEFORE MAKING FILES_DICT\n")
     # set the starting row, column, and patch counters
     patch_i = 0
     patch_j = 0
@@ -702,7 +703,7 @@ function get_row_col_patch_ns_allfiles(data_dir::String,
         example = Nothing
         opened_file = Nothing
     end
-
+    println("\nAFTER MAKING FILES_DICT\n")
     return files_dict
 end
 
@@ -958,9 +959,7 @@ numbers as values.
 Needed in order to parallelize the computation across files while still
 calculating lats and lons correctly for each file's pixels
 """
-println("\nBEFORE MAKING FILES_DICT\n")
 const FILES_DICT = get_row_col_patch_ns_allfiles(DATA_DIR, PATT_AFT_FILENUM)
-println("\nAFTER MAKING FILES_DICT\n")
 
 """
 Array containing the input filenames
@@ -1041,7 +1040,6 @@ Make a GeoArray (multilayer raster object) of the patch provided.
 Pull the necessary georeferencing info from dims and the mixer_info provided.
 NOTE: dims fed in separately because dims indicated in GEE's mixer file are incorrect.
 """
-"""
 function make_geoarray(patch; dims=DIMS, mixer_info=MIX,
                               xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing)
     # make a GeoArray
@@ -1073,11 +1071,9 @@ function make_geoarray(patch; dims=DIMS, mixer_info=MIX,
                max_y=ymax))
     return ga
 end
-"""
 
 """
 Plot a patch as a GeoArray.
-"""
 """
 function plot_patch(patch, bbox_coords; cmap=:inferno)
     mins, maxs = bbox_coords
@@ -1086,11 +1082,9 @@ function plot_patch(patch, bbox_coords; cmap=:inferno)
     ga = make_geoarray(patch, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
     plot(ga, band=1, color=cmap, tickfontsize=4)#, yflip=true)
 end
-"""
 
 """
 Plot the asynch, its R2s, and its sample sizes.
-"""
 """
 function plot_results(outpatch)
     # plot asynch
@@ -1102,11 +1096,9 @@ function plot_results(outpatch)
     p5 = plot(ga, band=5, title="n")
     plot(p1, p2, p3, p4, p5, layout=5)
 end
-"""
 
 """
 Plot the asynchrony calculation data for the chosen i,j pixel in the chosen patch.
-"""
 """
 function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=true)
 
@@ -1282,18 +1274,15 @@ function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=
 
     plot(p_r2, p_euc, p_coeff, p_rast)#, layout=lo)
 end
-"""
 
 """
 Make a quick 'n dirty panel plot of all the patches in a TFRecord file
 """
-"""
-function plot_all_patches(fp)
-    ip, op = get_inpatches_outpatches(fp, INBANDS, DIMS)
+function plot_all_patches(fp; bands=INBANDS)
+    ip, op = get_inpatches_outpatches(fp, bands, DIMS)
     plots = Any[]
     for (n, p) in ip
         push!(plots, plot(GeoArray(p[:,:,1])))
     end
     plot(plots...)
 end
-"""

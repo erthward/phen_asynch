@@ -139,7 +139,7 @@ def read_mixer_file(data_dir):
     Gets the info out of the mixerfile located at data_dir.
     """
     mixerfilepaths = glob.glob(os.path.join(data_dir, '*mixer.json'))
-    assert len(mixerfilepaths) == 1, "MORE THAN 1 MIXER FILE FOUND!"
+    #assert len(mixerfilepaths) == 1, "MORE THAN 1 MIXER FILE FOUND!"
     mixerfilepath = mixerfilepaths[0]
 
     # read the mixer file
@@ -566,7 +566,7 @@ def calc_asynch_one_pixel(i, j, patch, patch_n, ys, xs, yres, xres, dims,
     asynch_R2 = res['R2']
     asynch_euc = res_euc['slope']
     asynch_euc_R2 = res_euc['R2']
-    assert len(geo_dists) == len(ts_dists) == len(R2s)
+    #assert len(geo_dists) == len(ts_dists) == len(R2s)
     asynch_n = len(geo_dists)
 
     if verbose and timeit:
