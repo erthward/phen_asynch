@@ -36,21 +36,30 @@
 # compare observation from siteA and siteB by taking the chord distance of the day of year (this is the phenological distance of the two species)
   # do this step for all pairs of observations within a species (initial observation, all other observations for that species) 
 
+##### NOTE: THINGS STARTED GETTING SHAKY STARTING HERE 
 
-
-# extract the coefficients from Earth Engine for the site locations of all observations for a single species using the coordinates from above
+# extract the coefficients for the fitted time series from Earth Engine for the site locations of all observations for a single species 
+# using the coordinates from above
     # get the annual frequency coefficients by substituting a vector of days into: (day_vec/365) * 360 * 2*pi
-    # get the biannual frequency....
+    # get the biannual frequency coefficients by substituting a vector of days into: (day_vec/(365*2)) * 360 * 2*pi
 
 
-
-Get coefficients by subing day vector of days /365 * 360 * 2pi = annual frequency 
-Expressed in annual and semi annual signals
-day vector of days /365*2 * 360 * 2pi = twice per year
-First column 1,.... 365 = 365 by 5 model matrix; col for doy, and the frequencies 
-Model by Multiply by coefficients  = seasonal fitted function for ….
-Take euclidian distance between two signal functions  = site a site b in flower and fitted seasonality 
+# create a 365 X 5 model matrix containing a column for day of year and the other four columns contain the sine/cosine frequencies
+    # ------> create two model matrices? one for siteA and another for siteB? 
 
 
-Do this for all pairs; get set of pairwise distances for a single species
-Run a regression, get the summary statistics
+# construnct the fitted seasonal function by multiplying the coeffcients and model matrix together 
+    # Do this for all pairs of observations within a species (initial observation, all other observations for that species)
+    # to get set of pairwise distances for a single species
+
+
+# compute the euclidean distance between the two signal functions for siteA and siteB
+    # Do this for all pairs of observations within a species
+
+
+# Run a regression and extract the summary statistics
+    # ------> is this alinear regression? or a robust regression? 
+    # ------> run one regression for the fitted seasonality for siteA and another regression for the fitted seasonality for siteB? 
+    # ------> is this to determine if our fitted seasonality curves fit the "observed" seasonality at each site from the gBIF data?
+
+
