@@ -140,7 +140,7 @@ if splitpath(pwd())[2] == "home"
 
 else
     if VAR == "NIRvP"
-        const ABS_DATA_DIR = "/global/scratch/drewhart/seasonality/GEE_output/NIRvP/CA"
+        const ABS_DATA_DIR = "/global/scratch/drewhart/seasonality/GEE_output/NIRvP/CA_agg"
     else
         const ABS_DATA_DIR = "/global/scratch/drewhart/seasonality/GEE_output/SIF/"
     end
@@ -343,11 +343,11 @@ function read_tfrecord_file(infilepath::String,
     # empty Dict to hold the arrays
     arrays = Dict()
     # read the TFRecord file
-    #reader = TFRecordReader(infilepath)
     # beginning of example printout:
     # Example(Features(Dict{AbstractString,Feature}("constant" => Feature(#undef, FloatList(Float32[
     # loop over the examples
-    for (ex_n, example) in enumerate(TFRecord.read(infilepath))
+    for (ex_n, example) in enumerate(TFRecordReader(infilepath))
+    #for (ex_n, example) in enumerate(TFRecord.read(infilepath))
         # create an empty Array to hold the data
         arr = Array{Float32}(undef, dims[1], dims[2], 5)
         for (i, band) in enumerate(bands)
@@ -361,6 +361,32 @@ function read_tfrecord_file(infilepath::String,
     end
     # sort the dict by key (to avoid writing files out with patches in diff order)
     return sort(arrays)
+end
+
+
+"""
+Writes the output patches (i.e. rasters) to disk as a TFRecord file,
+using the given filepath.
+"""
+function write_tfrecord_file(patches::OrderedDict{Int64, Array{Float32,3}},
+			     filepath::String,
+                             bands::Array{String, 1})::Nothing
+    #instantiate the TFRecordWriter
+    writer = TFRecordWriter(filepath)
+    # NOTE: sort the patches once more, to ensure they're in the right order
+    for (patch_i, patch) in sort(patches)
+        # create a Dict of the outbands and their arrays
+        outdict = Dict()
+        for (band_i, band) in enumerate(bands)
+            # set all missing back to the missing-data default val,
+            # then recast as Float32 and cast as a vector
+            outpatch = vec(Float32.(replace(patch[:, :, band_i], NaN=>DEFAULT_VAL)))
+            outdict[band] = outpatch
+        end
+        # serialize to a TF example
+        write(writer, outdict)
+    end
+    close(writer)
 end
 
 
@@ -383,7 +409,7 @@ end
 Writes the output patches (i.e. rasters) to disk as a TFRecord file,
 using the given filepath.
 """
-function write_tfrecord_file(patches::OrderedDict{Int64, Array{Float32,3}},
+function write_tfrecord_file_new(patches::OrderedDict{Int64, Array{Float32,3}},
                              filepath::String,
                              bands::Array{String, 1})::Nothing
     TFRecord.write(filepath, (prep_single_patch_for_tfrecord_file(patch_item[2], bands) for patch_item in sort(patches)))
@@ -625,7 +651,6 @@ for all files (keys).
 """
 function get_row_col_patch_ns_allfiles(data_dir::String,
                                        patt_b4_filenum::String)::Dict{String,Dict{String,Any}}
-    println("\nBEFORE MAKING FILES_DICT\n")
     # set the starting row, column, and patch counters
     patch_i = 0
     patch_j = 0
@@ -672,14 +697,14 @@ function get_row_col_patch_ns_allfiles(data_dir::String,
         file_dict["patch_ns"] = patch_ns
 
         # read the file into a TFRecordReader instance
-        #dataset = TFRecordReader(infile)
+        dataset = TFRecordReader(infile)
+        #opened_file = TFRecord.read(infile)
 
         # loop over the patches in the infile, store the row, col, and patch
         # numbers, then correctly increment them
         # NOTE: an 'example' (TFRecord jargon) is the same as a 'patch' (GEE jargon)
-        #for example in dataset
-        opened_file = TFRecord.read(infile)
-        for example in opened_file
+        for example in dataset
+        #for example in opened_file
 
             # store nums
             append!(file_dict["patch_is"], patch_i)
@@ -698,10 +723,6 @@ function get_row_col_patch_ns_allfiles(data_dir::String,
 
         # add this file's file_dict to the files_dict
         files_dict[infile] = file_dict
-        # overwrite the example and the opened file object,
-        # to try to get around the OOM error
-        example = Nothing
-        opened_file = Nothing
     end
     println("\nAFTER MAKING FILES_DICT\n")
     return files_dict
