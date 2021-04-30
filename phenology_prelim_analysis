@@ -1,0 +1,56 @@
+
+
+### SKELETON CODE FOR PHENOLOGY DATA PRELIMINARY ANALYSIS FUNCTION ###
+
+# IMPORTANT NOTE ABOUT gBIF DATA TO KEEP IN MIND: ALL observations have life stage = "Flowering" but this column isn;t included because it is redundant
+
+# extract a single species from filtered gBIF dataset (goal is to do this for all species in dataset) 
+    # using column name `verbatimScientificName` or column `species` or `speciesKey` which assigns a unique 7 digit code to every unique species
+
+
+# extract the longitude and latitude of a single initial observation among all observations for the selected species (siteA)
+    # might want to form a matrix
+    # using column names `decimalLatitude` and `decimalLongitude`
+
+
+# extract the date from initial observation selected above (since we know this observation was life stage = "Flowering") 
+    # column name `eventDate` is formatted as so: "1974-12-27T00:00:00"
+    # columns `day`, `month`, and `year` provide the numeric month day and year in the following form: "27"	"12"	"1974" 
+
+
+# convert extracted date from initial observation into the numeric day on the calendar and then into a value on the unit circle
+
+
+# select another observation from the observations of a selected species (goal is to iterate over all observations for a single species) 
+    # select observation whose `gbifID` is different from that of the initial observation
+    # `gbifID` assigns a unique 10 digit number to all unique observations
+    
+  # extract the longitude and latitude of the selected observation among all observations for the selected species (siteB)
+      # might want to form a matrix
+
+  # extract the date from the selected observation
+  
+  # convert extracted date from selected observation into the numeric day on the calendar and then into a value on the unit circle
+ 
+
+# compare observation from siteA and siteB by taking the chord distance of the day of year (this is the phenological distance of the two species)
+  # do this step for all pairs of observations within a species (initial observation, all other observations for that species) 
+
+
+
+# extract the coefficients from Earth Engine for the site locations of all observations for a single species using the coordinates from above
+    # get the annual frequency coefficients by substituting a vector of days into: (day_vec/365) * 360 * 2*pi
+    # get the biannual frequency....
+
+
+
+Get coefficients by subing day vector of days /365 * 360 * 2pi = annual frequency 
+Expressed in annual and semi annual signals
+day vector of days /365*2 * 360 * 2pi = twice per year
+First column 1,.... 365 = 365 by 5 model matrix; col for doy, and the frequencies 
+Model by Multiply by coefficients  = seasonal fitted function for ….
+Take euclidian distance between two signal functions  = site a site b in flower and fitted seasonality 
+
+
+Do this for all pairs; get set of pairwise distances for a single species
+Run a regression, get the summary statistics
