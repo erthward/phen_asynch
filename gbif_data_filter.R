@@ -1,6 +1,4 @@
 
-
-
 library(magrittr)
 library(dplyr)
 library(ggplot2)
@@ -83,9 +81,100 @@ gbif_plant <- bind_rows(filtered_gbif_data1, filtered_gbif_data2,
 nrow(gbif_plant) # 1,504,411
 length(unique(gbif_plant$scientificName)) # 2,955
 
+## filter out all orchids (Family: Orchidaceae) and ficus (Genus:	Ficus)
+
+# filter out all orchids
+orchid_filter <- gbif_plant$family != 'Orchidaceae'
+# update the gBIF data set 
+gbif_plant <- gbif_plant[orchid_filter, ]
+#nrow(gbif_plant) # 1,472,498
+
+# filter out all ficus
+ficus_filter <- gbif_plant$genus != 'Ficus'
+# update the gBIF data set 
+gbif_plant <- gbif_plant[ficus_filter, ]
+#nrow(gbif_plant) #1,472,498
+
+
+## Export entire data frame
+write.csv(gbif_plant,"~/Downloads/gbif_plant.csv", row.names = FALSE)
+
 ############################
 
-## TEST CODE FOR FUNCTION ## 
+#### MAKE THE GRAPHICS FOR THE DATASET ###
+
+# first: compile a table with the variance of longitude and latitude for each species
+species_sd <- gbif_plant %>% 
+  group_by(scientificName) %>% 
+  summarise(species_sd_lon = sd(decimalLongitude), 
+            species_sd_lat = sd(decimalLatitude)) 
+
+# second: find the mean latitude for each species and add column to the table above 
+# mean latitude intended to be used for color-coding the points on the data visualization
+species_lat_avg <- gbif_plant %>% 
+  group_by(scientificName) %>% 
+  summarise(species_lat_mean = mean(decimalLatitude)) 
+
+species_data <- cbind(species_sd, species_lat_avg[ ,2])
+
+nrow(species_data) #2,955 --> this checks out
+sum(is.na(species_data$species_sd_lon)) # 0 
+sum(is.na(species_data$species_sd_lat)) # 0 
+sum(is.na(species_data$species_lat_mean)) # 0 
+
+# plot the data
+# color-code the species data point in the plot as: red = equator, blue = poles 
+ggplot(species_data, aes(x = species_sd_lon, y = species_sd_lat)) + 
+  geom_point(aes(color = species_lat_mean), alpha = 0.7) +
+  labs(title = "Species Latitudinal Standard Deviation vs Species Longitudinal Standard Deviation") + 
+  xlab(label = "Species Latitudinal Standard Deviation") + 
+  ylab(label = "Species Longitudinal Standard Deviation") + 
+  theme_minimal() +
+  theme(legend.position = "bottom") + 
+  scale_color_gradient2(low = "red", high = "blue", mid = "purple", 
+                        midpoint = 42.25, name = "Mean Species Latitude") 
+
+
+#The plot is intended to examine the geography variability of all observations 
+# Note: low variance = data points are very close to one another.
+
+###############################################################
+### CREATE SUBSET OF gBIF DATASET WITH ONLY 10 SPECIES
+# pick several species with large variance
+
+# get the species by those with low latitudinal variance but high longitudinal variance
+# first get species with large longitudinal variance
+high_species_lon_sd <- sort(species_data$species_sd_lon, decreasing = T, index.return = TRUE)
+high_lon_sd_name_filter <- high_species_lon_sd$ix[1:10]
+high_lon_sd_species <- species_data$scientificName[high_lon_sd_name_filter]
+# make sure these species also don't have large latitudinal sd  
+lat_sd_for_high_lon <- species_data$species_sd_lat[high_lon_sd_name_filter]
+lat_sd_for_high_lon_filter <- lat_sd_for_high_lon < 31
+
+#sort the species by those that have high within species latitudinal variance
+high_lat_species_sd <- sort(species_data$species_sd_lat, decreasing = T, index.return = TRUE)
+# gather the names of the first 5 of these species
+high_lat_sd_name_filter <- high_lat_species_sd$ix[1:5]
+# filter out all species except for the selected 5  
+high_lat_sd_species_names <- species_data$scientificName[high_lat_sd_name_filter]
+# compile the dataframe of all information on these 5 species  
+species_names <- c(high_lon_sd_species[1:6], high_lat_sd_species_names)
+subset_gbif_data <- gbif_plant %>% filter(scientificName == species_names)
+
+# species in THE table: "Tridax procumbens L." ,"Argemone mexicana L.", "Calotropis procera (Aiton) Aiton fil.",
+#"Tribulus terrestris L.", "Reichardia tingitana (L.) Roth", "Mesembryanthemum nodiflorum L.", 
+#"Carpobrotus edulis (L.) N.E.Br.", "Leycesteria formosa Wall.", "Oxalis articulata Savigny", "
+
+#head(subset_species_data [1:5, 10:13])
+#length(unique(subset_species_data$scientificName)) # 5
+
+## Export subset of data frame
+write.csv(subset_gbif_data,"~/Downloads/subset_gbif_data.csv", row.names = FALSE)
+
+
+############################
+
+## TEST CODE FOR FILTERATION FUNCTION ## 
 # create a filter to exclude all observations without coordinate uncertainty estimates 
 coord_filter1 <- !is.na(gbif_dat_subset1$coordinateUncertaintyInMeters)
 # filter out all observations without coordinate uncertainty estimates 
@@ -116,71 +205,4 @@ gbif_dat1 <- gbif_plant[species_filter, ]
 
 nrow(gbif_dat1) # 467103
 length(unique(gbif_dat1$scientificName)) # 9023
-############################
-
-#### MAKE THE GRAPHICS FOR THE DATASET ###
-
-# first: compile a table with the variance of longitude and latitude for each species
-species_sd <- gbif_plant %>% 
-  group_by(scientificName) %>% 
-  summarise(species_sd_lon = sd(decimalLongitude), 
-            species_sd_lat = sd(decimalLatitude)) 
-
-# second: find the mean latitude for each species and add column to the table above 
-  # mean latitude intended to be used for color-coding the points on the data visualization
-species_lat_avg <- gbif_plant %>% 
-  group_by(scientificName) %>% 
-  summarise(species_lat_mean = mean(decimalLatitude)) 
-
-species_data <- cbind(species_sd, species_lat_avg[ ,2])
-
-nrow(species_data) #2,955 --> this checks out
-sum(is.na(species_data$species_sd_lon)) # 0 
-sum(is.na(species_data$species_sd_lat)) # 0 
-sum(is.na(species_data$species_lat_mean)) # 0 
-
-# plot the data
-  # color-code the species data point in the plot as: red = equator, blue = poles 
-ggplot(species_data, aes(x = species_sd_lon, y = species_sd_lat)) + 
-  geom_point(aes(color = species_lat_mean), alpha = 0.7) +
-  labs(title = "Species Latitudinal Standard Deviation vs Species Longitudinal Standard Deviation") + 
-  xlab(label = "Species Latitudinal Standard Deviation") + 
-  ylab(label = "Species Longitudinal Standard Deviation") + 
-  theme_minimal() +
-  theme(legend.position = "bottom") + 
-  scale_color_gradient2(low = "red", high = "blue", mid = "purple", 
-                        midpoint = 42.25, name = "Mean Species Latitude") 
-  
-
-#The plot is intended to examine the geography variability of all observations 
-# Note: low variance = data points are very close to one another.
-
-# pick several species with large variance
-
-# get the species by those with low latitudinal variance but high longitudinal variance
-# first get species with large longitudinal variance
-high_species_lon_sd <- sort(species_data$species_sd_lon, decreasing = T, index.return = TRUE)
-high_lon_sd_name_filter <- high_species_lon_sd$ix[1:10]
-high_lon_sd_species <- species_data$scientificName[high_lon_sd_name_filter]
-# make sure these species also don't have large latitudinal sd  
-lat_sd_for_high_lon <- species_data$species_sd_lat[high_lon_sd_name_filter]
-lat_sd_for_high_lon_filter <- lat_sd_for_high_lon < 31
-
-#sort the species by those that have high within species latitudinal variance
-high_lat_species_sd <- sort(species_data$species_sd_lat, decreasing = T, index.return = TRUE)
-# gather the names of the first 5 of these species
-high_lat_sd_name_filter <- high_lat_species_sd$ix[1:5]
-# filter out all species except for the selected 5  
-high_lat_sd_species_names <- species_data$scientificName[high_lat_sd_name_filter]
-# compile the dataframe of all information on these 5 species  
-species_names <- c(high_lon_sd_species[1:6], high_lat_sd_species_names)
-subset_species_data <- gbif_plant %>% filter(scientificName == species_names)
-
-# species in table: "Tridax procumbens L." ,"Argemone mexicana L.", "Calotropis procera (Aiton) Aiton fil.",
-#"Tribulus terrestris L.", "Reichardia tingitana (L.) Roth", "Mesembryanthemum nodiflorum L.", 
-#"Carpobrotus edulis (L.) N.E.Br.", "Leycesteria formosa Wall.", "Oxalis articulata Savigny", "
-
-
-#head(subset_species_data [1:5, 10:13])
-#length(unique(subset_species_data$scientificName)) # 5
 
