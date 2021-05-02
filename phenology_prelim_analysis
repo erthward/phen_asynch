@@ -16,10 +16,13 @@
 # extract the date from initial observation selected above (since we know this observation was life stage = "Flowering") 
     # column name `eventDate` is formatted as so: "1974-12-27T00:00:00"
     # columns `day`, `month`, and `year` provide the numeric month day and year in the following form: "27"	"12"	"1974" 
-
+   
 
 # convert extracted date from initial observation into the numeric day on the calendar and then into a value on the unit circle
-
+    def get_doy_from_month_day(year, month, day):
+        return (datetime.datetime(year, month, day).timetuple().tm_yday)/365*(2*np.pi)
+    
+    siteA_doy_rad = get_doy_from_month_day(year, month, day)
 
 # select another observation from the observations of a selected species (goal is to iterate over all observations for a single species) 
     # select observation whose `gbifID` is different from that of the initial observation
@@ -31,11 +34,16 @@
   # extract the date from the selected observation
   
   # convert extracted date from selected observation into the numeric day on the calendar and then into a value on the unit circle
- 
+        siteB_doy_rad = get_doy_from_month_day(year, month, day)
 
 # compare observation from siteA and siteB by taking the chord distance of the day of year (this is the phenological distance of the two species)
   # do this step for all pairs of observations within a species (initial observation, all other observations for that species) 
-
+  # where "siteB_doy_rad" is a vector of all radian DOY values for all observations in a particular species not including the inital observation
+    # such that the length is (number_of_species_observations - 1)
+       
+       chord_dist = [np.sin(np.abs(siteA_doy_rad - n)/2) for n in siteB_doy_rad]
+  
+        
 ##### NOTE: THINGS STARTED GETTING SHAKY STARTING HERE 
 
 # extract the coefficients for the fitted time series from Earth Engine for the site locations of all observations for a single species 
