@@ -105,9 +105,7 @@ def calc_euc_dist(a1, a2):
     return dist
 
 
-# functions to help with downstream analyses
-
-def get_seasonal_ts(coeffs_rast_filepath, pts, dists=True):
+def get_seasonality_info_points(coeffs_rast_filepath, pts, dists=True):
     """
     takes a raster of coeffs from the harmonic seasonality regression
     and an nx2 np.array of n points' x and y coordinates,

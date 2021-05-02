@@ -54,16 +54,14 @@ assert DATA_TYPE in ['c', 'a'], ('the third argument must either be "c" '
                                  '"asynchrony").')
 
 # pattern that occurs just before the file number in each file's number
-PATT_B4_FILENUM = '-OUT-'
+if DATA_TYPE == 'c':
+    PATT_B4_FILENUM = '-'
+else:
+    PATT_B4_FILENUM = '-OUT-'
 
 # kernel size used by GEE to output the TFRecord files
 KERNEL_SIZE = 60
 HKW = int(KERNEL_SIZE/2)
-
-# whether or not to trim the half-kernel-width margin before mosaicking
-# NOTE: don't need to, because the margins were trimmed before
-#       the files were written out
-TRIM_MARGIN = True
 
 # default missing-data val
 NODATA_VAL = -9999.0
@@ -89,7 +87,10 @@ def get_filepaths(data_dir):
     # order the infilepaths
     filepaths = sorted(filepaths)
     # make sure all files are output files
-    filepaths = [f for f in filepaths if 'OUT' in f]
+    if DATA_TYPE == 'a':
+        filepaths = [f for f in filepaths if 'OUT' in f]
+    else:
+        filepaths = [f for f in filepaths if 'OUT' not in f]
     return filepaths
 
 
@@ -131,8 +132,6 @@ def get_mixer_info(mixer_content):
     #       on basis of pixel centers
     xmin = affine[2] - (((KERNEL_SIZE/2) + 0.5)* xres)
     ymin = affine[5] - (((KERNEL_SIZE/2) + 0.5)* yres)
-    xmax = xmin + (dims[0] * xres)
-    ymax = ymin + (dims[1] * yres)
     # get the number of patches per row and the total number of rows
     # NOTE: FOR NOW, ASSUMING THAT THE MIXER IS SET UP
     # SUCH THAT THE MOSAIC SHOULD BE FILLED ROW BY ROW, LEFT TO RIGHT
@@ -148,9 +147,11 @@ def calc_patch_dimensions(mixer_content, kernel_size):
     """
     # Get relevant info from the JSON mixer file
     # NOTE: adding overlap to account for the kernel size,
-    # which isn't reflected in the mixer file
-    patch_width = mixer_content['patchDimensions'][0] + kernel_size
-    patch_height = mixer_content['patchDimensions'][1] + kernel_size
+    #       which isn't reflected in the mixer file,
+    #       but only if the files being mosaicked are coefficient files
+    #       rather than asynchrony files
+    patch_width = mixer_content['patchDimensions'][0]
+    patch_height = mixer_content['patchDimensions'][1]
     patch_dimensions = (patch_width, patch_height)
     return patch_dimensions
 
@@ -182,6 +183,9 @@ def read_tfrecord_file(infilepath, dims, bands):
     i.e. patch) in that dataset, parsed into an
     n_bands x lon x lat numpy array.
     """
+    # add the kernel size to the bands, if reading a coeffs file
+    if DATA_TYPE == 'c':
+        dims = tuple([dim+KERNEL_SIZE for dim in dims])
     # create a TFRecordDataset from the files
     raw_dataset = tf.data.TFRecordDataset(infilepath)
     # turn the dataset into a list of arrays
@@ -277,7 +281,7 @@ def get_patch_insert_indices(row_i, col_j, dims):
     return((i_start, i_stop), (j_start, j_stop))
 
 
-def write_geotiff(output_filepath, output_arr):
+def write_geotiff(output_filepath, output_arr, bands):
     # set up raster metadata
     meta = {'driver': 'GTiff',
             # NOTE: I think it makes sense to stick with float32,
@@ -293,18 +297,12 @@ def write_geotiff(output_filepath, output_arr):
             'tiled': False, ## ?
             'interleave': 'band' ## ?
            }
-    # make output file profile
-    #prof = DefaultGTiffProfile(count=len(BANDS))
-    # correct the profile's height and width, nodata val, & number of bands
-    #prof.update(blockxsize = output_arr.shape[1],
-    #            blockysize = output_arr.shape[0],
-    #            nodata = NODATA_VAL,
-    #            count=len(BANDS))
-
     # open the file connection, unpacking the profile
     with rio.open(output_filepath, 'w', **meta) as f:
-        # Write an array as a raster band to a new 8-bit file
+        # Write an array as a raster band to a new file
         f.write(output_arr.astype(rio.float32))
+        # add the band names
+        f.descriptions = tuple(bands)
 
 
 #------------------------------------------------
@@ -329,7 +327,6 @@ FILES_DICT = get_row_col_patch_ns_allfiles(DATA_DIR, PATT_B4_FILENUM)
 
 for filepath, patchinfo in FILES_DICT.items():
     print("INSERTING DATA FOR %s\n" % filepath)
-    #print(patchinfo)
     # grab patch info
     row_is = patchinfo['row_is']
     col_js = patchinfo['col_js']
@@ -346,7 +343,9 @@ for filepath, patchinfo in FILES_DICT.items():
 
         # if these are unprocessed GEE output (i.e. coefficients),
         # then trim the margin
-        patch = patch[HKW:-HKW, HKW:-HKW]
+        if DATA_TYPE == 'c':
+            print('\nTRIMMING MARGIN AROUND COEFFICIENTS PATCHES\n')
+            patch = patch[:, HKW:-HKW, HKW:-HKW]
 
         # insert the data
         OUTPUT[:, i_inds[0]:i_inds[1], j_inds[0]:j_inds[1]] = patch
@@ -357,4 +356,4 @@ for filepath, patchinfo in FILES_DICT.items():
 #--------------------
 
 print('\nWRITING RESULTS TO FILE...\n')
-write_geotiff(OUTPUT_FILEPATH, OUTPUT)
+write_geotiff(OUTPUT_FILEPATH, OUTPUT, BANDS)

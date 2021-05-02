@@ -304,8 +304,6 @@ function get_mixer_info(mixer_content::Dict{String, Any})::Tuple{Tuple{Int64, In
     #       on basis of pixel centers
     xmin = affine[3] - (((KERNEL_SIZE/2) - 0.5)* xres)
     ymin = affine[6] - (((KERNEL_SIZE/2) - 0.5)* yres)
-    xmax = xmin + (dims[1] * xres)
-    ymax = ymin + (dims[2] * yres)
     # get the number of patches per row and the total number of rows
     # NOTE: FOR NOW, ASSUMING THAT THE MIXER IS SET UP SUCH THAT THE MOSAIC SHOULD
     # BE FILLED ROW BY ROW, LEFT TO RIGHT

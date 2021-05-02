@@ -174,8 +174,6 @@ def get_mixer_info(mixer_content):
     #       on basis of pixel centers
     xmin = affine[2] - (((KERNEL_SIZE/2) + 0.5)* xres)
     ymin = affine[5] - (((KERNEL_SIZE/2) + 0.5)* yres)
-    xmax = xmin + (dims[0] * xres)
-    ymax = ymin + (dims[1] * yres)
     # get the number of patches per row and the total number of rows
     # NOTE: FOR NOW, ASSUMING THAT THE MIXER IS SET UP SUCH THAT THE MOSAIC SHOULD
     # BE FILLED ROW BY ROW, LEFT TO RIGHT
