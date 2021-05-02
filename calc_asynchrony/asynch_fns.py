@@ -66,8 +66,10 @@ from shapely.geometry import Point
 from scipy.spatial import cKDTree
 import matplotlib.pyplot as plt
 from pprint import pprint
+import rasterstats as rs
 import geopandas as gpd
 import tensorflow as tf
+import rasterio as rio
 import numpy as np
 import glob
 import json

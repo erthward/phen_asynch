@@ -38,32 +38,41 @@ import os
 #-----------
 
 # get the files directory
-#DATA_DIR = sys.argv[1]
-DATA_DIR = '/home/drew/Desktop/tmp_output'
+DATA_DIR = sys.argv[1]
+#DATA_DIR = ('/home/deth/Desktop/UCB/research/projects'
+#            '/seasonality/GEE_output/NA_agg/')
 
 # output filepath
-OUTPUT_FILEPATH = 'global_asynch_result.tif'
+OUTPUT_FILEPATH = sys.argv[2]
+#OUTPUT_FILEPATH = 'test_mosaic.tif'
+
+# whether this represents unprocessed GEE output (coeff bands)
+# or processed output (asynch metrics)
+DATA_TYPE = sys.argv[3].lower()
+assert DATA_TYPE in ['c', 'a'], ('the third argument must either be "c" '
+                                 '(for coefficients) or "a" (for '
+                                 '"asynchrony").')
 
 # pattern that occurs just before the file number in each file's number
-PATT_B4_FILENUM = 'SIF_OUT-'
+PATT_B4_FILENUM = '-OUT-'
 
 # kernel size used by GEE to output the TFRecord files
-KERNEL_SIZE = 0
+KERNEL_SIZE = 60
+HKW = int(KERNEL_SIZE/2)
 
 # whether or not to trim the half-kernel-width margin before mosaicking
 # NOTE: don't need to, because the margins were trimmed before
 #       the files were written out
-TRIM_MARGIN = False
+TRIM_MARGIN = True
 
 # default missing-data val
 NODATA_VAL = -9999.0
 
 # names of the bands saved into the TFRecord files
-BANDS = ['asynch', 'asynch_R2', 'asynch_euc', 'asynch_euc_R2', 'asynch_n']
-
-# stdout options
-VERBOSE = True
-TIMEIT = True
+if DATA_TYPE == 'a':
+    BANDS = ['asynch', 'asynch_R2', 'asynch_euc', 'asynch_euc_R2', 'asynch_n']
+else:
+    BANDS = ['constant', 'sin_1', 'cos_1', 'sin_2', 'cos_2']
 
 
 #-----------------
@@ -186,6 +195,7 @@ def get_row_col_patch_ns_allfiles(data_dir, patt_b4_filenum):
     and outfile paths (as dict values, organized as subdicts)
     for all files (keys).
     """
+    print('building FILES_DICT\n')
     # set the starting row, column, and patch counters
     row_i = 0
     col_j = 0
@@ -202,7 +212,6 @@ def get_row_col_patch_ns_allfiles(data_dir, patt_b4_filenum):
     # assert that both lists are sorted in ascending numerical order
     # NOTE: if this is not true then my method for tracking the row, col, and
     # patch numbers will break!
-    print(filepaths)
     filenums = np.array([int(f.split(patt_b4_filenum)[1].split(
                                          '.tfrec')[0]) for f in filepaths])
     filenums_plus1 = np.array(range(1, len(filepaths)+1))
@@ -218,6 +227,7 @@ def get_row_col_patch_ns_allfiles(data_dir, patt_b4_filenum):
     # loop over the input files, get the requisite info (row, col, and patch
     # ns; output file paths), and store in the dict
     for file_i, filepath in enumerate(filepaths):
+        print('getting FILES_DICT info for file %s\n' % filepath)
         # create the subdict 
         file_dict = {}
         # stash the outfile path
@@ -319,7 +329,7 @@ FILES_DICT = get_row_col_patch_ns_allfiles(DATA_DIR, PATT_B4_FILENUM)
 
 for filepath, patchinfo in FILES_DICT.items():
     print("INSERTING DATA FOR %s\n" % filepath)
-    print(patchinfo)
+    #print(patchinfo)
     # grab patch info
     row_is = patchinfo['row_is']
     col_js = patchinfo['col_js']
@@ -333,6 +343,11 @@ for filepath, patchinfo in FILES_DICT.items():
         # get the OUTPUT indices for this patch's data
         i_inds, j_inds = get_patch_insert_indices(row_is[patch_n],
                                                   col_js[patch_n], DIMS)
+
+        # if these are unprocessed GEE output (i.e. coefficients),
+        # then trim the margin
+        patch = patch[HKW:-HKW, HKW:-HKW]
+
         # insert the data
         OUTPUT[:, i_inds[0]:i_inds[1], j_inds[0]:j_inds[1]] = patch
 
