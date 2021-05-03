@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[362]:
+# In[379]:
 
 
 import geopandas as gpd
@@ -30,46 +30,53 @@ bio_infilepaths = glob.glob(os.path.join(BIO_DATA_DIR,"*.tif"))
 bio_infilepaths = sorted(bio_infilepaths)
 
 
-# In[371]:
+# In[492]:
 
 
-rangeX = (-180, 180) # longtitude
-rangeY = (-20, 20) # Latitude
-qty = 20  # Enter in the number greater than random points you need
+RANGEX = (-18000, 18000) # longtitude times 100 to get decimal value
+RANGEY = (-9000, 9000) # Latitude times 100 to get decimal value
+QTY = 50  # Enter in the number greater than random points you need
 
 #Generate random x,y coordinates
-randPoints = [] # a list to store coordinates
-while len(randPoints) < qty:
-    x = random.randrange(*rangeX) 
-    y = random.randrange(*rangeY) 
-    randPoints.append((x,y))
+def generate_random_coordinates(rangeX,rangeY, qty):
+    randPoints = [] # a list to store coordinates
+    while len(randPoints) < qty:
+        x = (random.randrange(*rangeX))/100 
+        y = (random.randrange(*rangeY))/100 
+        randPoints.append((x,y))
+    return randPoints
 #Extract value at the coordinate
-a = [] #a list to store bioclimatic variables
-for point in randPoints:
-    a += [point]
-    for path in bio_infilepaths:
-        raster = gdal.Open(path)
-        cols = raster.RasterXSize
-        rows = raster.RasterYSize
-        transform = raster.GetGeoTransform()
-        xOrigin = transform[0]
-        yOrigin = transform[3]
-        pixelWidth = transform[1]
-        pixelHeight = -transform[5]   
-        r = raster.GetRasterBand(1).ReadAsArray(0,0,cols,rows)
-        col = int((point[0] - xOrigin) / pixelWidth)
-        row = int((yOrigin - point[1] ) / pixelHeight)
-        a +=[r[row][col]]
-
-
-# In[372]:
-
-
+def extract_bioclim_variables(randPoints):
+    list_bioclim = [] #a list to store bioclimatic variables
+    for point in randPoints:
+        list_bioclim += [point]
+        for path in bio_infilepaths:
+            raster = gdal.Open(path)
+            cols = raster.RasterXSize
+            rows = raster.RasterYSize
+            transform = raster.GetGeoTransform()
+            xOrigin = transform[0]
+            yOrigin = transform[3]
+            pixelWidth = transform[1]
+            pixelHeight = -transform[5]   
+            r = raster.GetRasterBand(1).ReadAsArray(0,0,cols,rows)
+            r = r.astype('float')
+            n = -3.4e+38 #value over the ocean to filter out
+            na = -3.3999999521443642e+38 #value over the ocean to filter out
+            r[r == z] = 'nan' 
+            r[r == na] = 'nan' 
+            r_mean = np.nanmean(r)
+            r_std = np.nanstd(r)
+            z_rast = (r - r_mean) / r_std
+            col = int((point[0] - xOrigin) / pixelWidth)
+            row = int((yOrigin - point[1] ) / pixelHeight)
+            list_bioclim +=[z_rast[row][col]]
+    return list_bioclim
 # Functions return list of climate Euclidean distance between pairwise pixel
-def filter_out_ocean_pixel(biolist,coords):
+def filter_out_ocean_pixel(biolist,coords, qty):
     z = np.float32(-3.4e+38) #value of ocean region
     bl = np.array_split(biolist, qty)
-    d = np.where(np.all(np.delete(bl,0,1) == np.repeat(z,19),axis=1)) #index of array with pixel over the ocean
+    d = np.where(np.all(np.delete(bl,0,1) == np.repeat('nan',19),axis=1)) #index of array with pixel over the ocean
     index = np.array(d).tolist() #index to delete
     flat_list = [item for sublist in index for item in sublist]
     for i in sorted(flat_list, reverse=True): #delete array with ocean pixel
@@ -87,14 +94,12 @@ def calculate_euc_clim(biolist, coords):
         ed += [dist]
         pw_coords += [(coords[i[0]],coords[i[1]])]
     return ed, pw_coords
-
-
-# In[373]:
-
-
-# Results
-b, p_coords = filter_out_ocean_pixel(a, randPoints)
-ed, pw_coords = calculate_euc_clim(b,p_coords)
+def calculate_euc_clim_at_random_points(rangeX,rangeY, qty): #Main Function
+    points = generate_random_coordinates(rangeX,rangeY, qty)
+    bioclim = extract_bioclim_variables(points)
+    bclim, bclim_coords = filter_out_ocean_pixel(bioclim,points, qty)
+    edbclim, bclim_pw_coords = calculate_euc_clim(bclim, bclim_coords)
+    return edbclim, bclim_pw_coords
 
 
 # In[374]:
@@ -194,21 +199,48 @@ def calc_euc_dist(a1, a2):
     return dist
 
 
-# In[375]:
+# In[397]:
 
 
+#Sample code
 coeffs_rast_filepath = 'C:\\Users\\thaon\\Documents\\Asynchrony\\SIF_coeffs.tif'
 edist = []
-for i in range(0,len(pw_coords)):
+for i in range(0,len(tropicsample_coords)):
     m = get_seasonality_info_points(coeffs_rast_filepath, np.array(pw_coords[i]), dists=True) #how should i store my points?
     edist += [m[0][1]]
 
 
-# In[378]:
+# In[493]:
+
+
+#Main Function to generate a graph. But for some reason, it cannot generate a graph more than 50 sample points. 
+def generate_graph_of_climate_asychrony(rangeX, rangeY, qty,coeffs_rast_filepath):
+    regionsample_bio, regionsample_coords = calculate_euc_clim_at_random_points(rangeX, rangeY, qty)
+    edist = []
+    for i in range(0,len(regionsample_coords)):
+        m = get_seasonality_info_points(coeffs_rast_filepath, np.array(regionsample_coords[i]), dists=True) #how should i store my points?
+        edist += [m[0][1]]
+    plt.scatter(regionsample_bio,edist)
+    plt.xlabel("Climate Euclidean Distance")
+    plt.ylabel("SIF Euclidean Distance")
+
+
+# In[490]:
+
+
+#Tropical Region
+Tropic_RANGEX = (-18000, 18000) # longtitude
+Tropic_RANGEY = (-2000, 2000) # Latitude
+QTY = 30  # Enter in the number greater than random points you need
+#tropicsample_bio, tropicsample_coords = calculate_euc_clim_at_random_points(Tropic_RANGEX,Tropic_RANGEY, QTY)
+generate_graph_of_climate_asychrony(Tropic_RANGEX,Tropic_RANGEY, QTY ,coeffs_rast_filepath)
+
+
+# In[398]:
 
 
 #Sample plot
-plt.scatter(ed,edist)
+plt.scatter(tropicsample_bio,edist)
 plt.xlabel("Climate Euclidean Distance")
 plt.ylabel("SIF Euclidean Distance")
 
