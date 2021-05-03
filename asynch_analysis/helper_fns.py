@@ -108,7 +108,7 @@ def calc_euc_dist(a1, a2):
 def get_seasonality_info_points(coeffs_rast_filepath, pts, dists=True):
     """
     takes a raster of coeffs from the harmonic seasonality regression
-    and an nx2 np.array of n points' x and y coordinates,
+    and an nx2 np.array of n points' x and y (i.e. lon, lat) coordinates,
     returns either the fitted time series at those points
     (if 'dists' == False), or a matrix of pairwise seasonal distances
     at those points (if 'dists' == True; default)
@@ -116,12 +116,9 @@ def get_seasonality_info_points(coeffs_rast_filepath, pts, dists=True):
     # read in the raster file
     f = rio.open(coeffs_rast_filepath)
     rast_coeffs = f.read()
-    print(rast_coeffs.shape)
 
     # get the cells' max lon- and lat-bound values
     cell_max_lons, cell_max_lats = get_cell_lonlat_bounds(f)
-    print('lons', cell_max_lons)
-    print('lats', cell_max_lats)
 
     # get the regression's design matrix
     design_mat = make_design_matrix()
@@ -135,7 +132,6 @@ def get_seasonality_info_points(coeffs_rast_filepath, pts, dists=True):
                                                       lat=pts[row_i,1],
                                                     cell_max_lons=cell_max_lons,
                                                     cell_max_lats=cell_max_lats)
-        print('pt_coeffs', rast_coeffs[:, pt_cell_i, pt_cell_j])
         ts = np.sum(rast_coeffs[:, pt_cell_i, pt_cell_j] * design_mat, axis=1)
         ts_mat[row_i, :] = ts
 
