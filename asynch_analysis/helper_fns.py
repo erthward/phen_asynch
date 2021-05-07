@@ -105,37 +105,56 @@ def calc_euc_dist(a1, a2):
     return dist
 
 
-def get_seasonality_info_points(coeffs_rast_filepath, pts, dists=True):
+def get_raster_info_points(rast_filepath, pts, return_format='vals'):
     """
-    takes a raster of coeffs from the harmonic seasonality regression
+    takes a raster (e.g. coeffs from the harmonic seasonality regression)
     and an nx2 np.array of n points' x and y (i.e. lon, lat) coordinates,
-    returns either the fitted time series at those points
-    (if 'dists' == False), or a matrix of pairwise seasonal distances
-    at those points (if 'dists' == True; default)
+    returns either the values at those points (if return_format == 'vals';
+    default), the fitted time series at those
+    points (if return_format == 'ts'; ONLY VALID FOR COEFF RASTERS!),
+    the pairwise distance matrix (if return_format
+    == 'pdm'), of the pairwise seasonal distance matrix (if
+    return_format=='ts_pdm'; ONLY VALID FOR COEFF RASTERS!)
     """
     # read in the raster file
-    f = rio.open(coeffs_rast_filepath)
-    rast_coeffs = f.read()
+    f = rio.open(rast_filepath)
+    rast = f.read()
 
     # get the cells' max lon- and lat-bound values
-    cell_max_lons, cell_max_lats = get_cell_lonlat_bounds(f)
+    #cell_max_lons, cell_max_lats = get_cell_lonlat_bounds(f)
 
-    # get the regression's design matrix
-    design_mat = make_design_matrix()
+    if 'ts' in return_format:
+        # get the regression's design matrix
+        design_mat = make_design_matrix()
 
-    # matrix-multiply design_mat x coeffs to get fitted time series for all pts
-    ts_mat = np.zeros((pts.shape[0], 365)) * np.nan
+        # matrix-multiply design_mat x coeffs to get
+        # fitted time series for all pts
+        ts_mat = np.zeros((pts.shape[0], 365)) * np.nan
+
+    else:
+        vals_mat = np.zeros((pts.shape[0], f.count)) * np.nan
+
 
     for row_i in range(pts.shape[0]):
         # get the array coords of the cell the point falls in
-        pt_cell_i, pt_cell_j = get_cell_coords_for_pt(lon=pts[row_i,0],
-                                                      lat=pts[row_i,1],
-                                                    cell_max_lons=cell_max_lons,
-                                                    cell_max_lats=cell_max_lats)
-        ts = np.sum(rast_coeffs[:, pt_cell_i, pt_cell_j] * design_mat, axis=1)
-        ts_mat[row_i, :] = ts
+        #pt_cell_i, pt_cell_j = get_cell_coords_for_pt(lon=pts[row_i,0],
+        #                                              lat=pts[row_i,1],
+        #                                            cell_max_lons=cell_max_lons,
+        #                                            cell_max_lats=cell_max_lats)
+        pt_cell_i, pt_cell_j = f.index(pts[row_i,0], pts[row_i,1])
 
-    if dists:
+        # calculate the ts, if needed
+        if 'ts' in return_format:
+            ts = np.sum(rast[:, pt_cell_i, pt_cell_j] * design_mat,
+                        axis=1)
+            ts_mat[row_i, :] = ts
+
+        # otherwise, just extract the raster's values
+        else:
+            vals = rast[:, pt_cell_i, pt_cell_j]
+            vals_mat[row_i, :] = vals
+
+    if 'pdm' in return_format:
         # calculate pairwise Euc dist matrix
         pw_dist_mat = np.zeros((pts.shape[0], pts.shape[0])) * np.nan
         for row_i in range(pw_dist_mat.shape[0]):
@@ -143,12 +162,20 @@ def get_seasonality_info_points(coeffs_rast_filepath, pts, dists=True):
                 if row_i == col_j:
                     dist = 0
                 else:
-                    dist = calc_euc_dist(ts_mat[row_i,:], ts_mat[col_j, :])
+                    if return_format == 'pdm':
+                        dist = calc_euc_dist(vals_mat[row_i,:],
+                                             vals_mat[col_j,:])
+
+                    elif return_format == 'ts_pdm':
+                        dist = calc_euc_dist(ts_mat[row_i,:], ts_mat[col_j, :])
                 pw_dist_mat[row_i, col_j] = dist
         return pw_dist_mat
     else:
         # return the time series matrix, if pairwise distances not requested
-        return ts_mat
+        if return_format == 'ts':
+            return ts_mat
+        else:
+            return vals_mat
 
 
 def get_cell_lonlat_bounds(rio_file):
