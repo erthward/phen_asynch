@@ -83,7 +83,7 @@ using StaticArrays
 using Distributed
 using Statistics
 using Distances
-#using GeoArrays
+using GeoArrays
 using TFRecord
 using Printf
 using Images
@@ -120,10 +120,10 @@ const TIMEIT = true
 
 # choose the plots backend
 # (sticking with the python plotting window that I know well, for now)
-#pyplot()
+pyplot()
 # NOTE: pyplot breaks when trying to plot the Grayscale image,
 # so for now using GR instead
-gr()
+#gr()
 
 
 # the TFRecord package throws a globbing error
@@ -133,9 +133,9 @@ gr()
 # so get the relative path to the data_dir instead
 if splitpath(pwd())[2] == "home"
     if VAR == "NIRvP"
-        const ABS_DATA_DIR = "/home/deth/Desktop/stuff/berk/research/projects/seasonality/GEE_output/CA/"
+        const ABS_DATA_DIR = "/home/deth/Desktop/UCB/research/projects/seasonality/GEE_output/CA/"
     else
-        const ABS_DATA_DIR = "/home/deth/Desktop/stuff/berk/research/projects/seasonality/GEE_output/old/"
+        const ABS_DATA_DIR = "/home/deth/Desktop/UCB/research/projects/seasonality/GEE_output/old/"
     end
 
 else
@@ -145,6 +145,14 @@ else
         const ABS_DATA_DIR = "/global/scratch/drewhart/seasonality/GEE_output/SIF/"
     end
 end
+
+
+"""
+indicator of whether or not TFRecordReader is defined
+"""
+# code to handle differing versions of Julia, and hence of TFRecord,
+# on Savio and on my laptop
+const HAS_TFRECORDREADER = @isdefined TFRecordReader
 
 
 """
@@ -344,18 +352,32 @@ function read_tfrecord_file(infilepath::String,
     # beginning of example printout:
     # Example(Features(Dict{AbstractString,Feature}("constant" => Feature(#undef, FloatList(Float32[
     # loop over the examples
-    for (ex_n, example) in enumerate(TFRecordReader(infilepath))
-    #for (ex_n, example) in enumerate(TFRecord.read(infilepath))
-        # create an empty Array to hold the data
-        arr = Array{Float32}(undef, dims[1], dims[2], 5)
-        for (i, band) in enumerate(bands)
-            band_vals = example.features.feature[band].float_list.value[1:prod(dims)]
-            band_arr = reshape(band_vals, dims) #|> transpose
-            # replace the default missing-data val
-            replace!(band_arr, default_val=>NaN)
-            arr[:,:, i] = band_arr
+    if HAS_TFRECORDREADER
+        for (ex_n, example) in enumerate(TFRecordReader(infilepath))
+            # create an empty Array to hold the data
+            arr = Array{Float32}(undef, dims[1], dims[2], 5)
+            for (i, band) in enumerate(bands)
+                band_vals = example.features.feature[band].float_list.value[1:prod(dims)]
+                band_arr = reshape(band_vals, dims) #|> transpose
+                # replace the default missing-data val
+                replace!(band_arr, default_val=>NaN)
+                arr[:,:, i] = band_arr
+            end
+            arrays[ex_n] = arr 
         end
-        arrays[ex_n] = arr 
+    else
+        for (ex_n, example) in enumerate(TFRecord.read(infilepath))
+            # create an empty Array to hold the data
+            arr = Array{Float32}(undef, dims[1], dims[2], 5)
+            for (i, band) in enumerate(bands)
+                band_vals = example.features.feature[band].float_list.value[1:prod(dims)]
+                band_arr = reshape(band_vals, dims) #|> transpose
+                # replace the default missing-data val
+                replace!(band_arr, default_val=>NaN)
+                arr[:,:, i] = band_arr
+            end
+            arrays[ex_n] = arr 
+        end
     end
     # sort the dict by key (to avoid writing files out with patches in diff order)
     return sort(arrays)
@@ -573,8 +595,8 @@ function get_neighbors_info(i::Int64, j::Int64,
                             neigh_rad=NEIGH_RAD)::Dict{Tuple{Float64, Float64}, Tuple{Float64, Tuple{Int64, Int64}}}
     # get the tree's data-row numbers for all neighbors
     # within the required distance
-    neighs = inrange(tree, [foc_x, foc_y], NEIGH_RAD)
-    #neighs = inrange(tree, [foc_x, foc_y], MAX_DIST_°)
+    neighs = inrange(tree, [foc_y, foc_x], NEIGH_RAD)
+    #neighs = inrange(tree, [foc_y, foc_x], MAX_DIST_°)
     # use the row numbers to subset the pixels' centerpoint coords and
     # their index coordinate pairs
     neigh_xs = vec_xs[neighs]
@@ -695,7 +717,11 @@ function get_row_col_patch_ns_allfiles(data_dir::String,
         file_dict["patch_ns"] = patch_ns
 
         # read the file into a TFRecordReader instance
-        dataset = TFRecordReader(infile)
+        if HAS_TFRECORDREADER
+            dataset = TFRecordReader(infile)
+        else
+            dataset = TFRecord.read(infile)
+        end
         #opened_file = TFRecord.read(infile)
 
         # loop over the patches in the infile, store the row, col, and patch
@@ -722,7 +748,7 @@ function get_row_col_patch_ns_allfiles(data_dir::String,
         # add this file's file_dict to the files_dict
         files_dict[infile] = file_dict
     end
-    println("\nAFTER MAKING FILES_DICT\n")
+    #println("\nAFTER MAKING FILES_DICT\n")
     return files_dict
 end
 
@@ -877,7 +903,19 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
         # get the BallTree for these lons and lats
         # make a KDTree out of all the coordinates in a patch,
         # to be used in neighbor-searching
-        tree = BallTree([vec_xs vec_ys]', Haversine(EARTH_RAD))
+        # NOTE: I THINK I MAY HAVE FOUND THE ISSUE WITH THE SAMPLE-SIZE BUG;
+        #       LOOKS TO HAVE GONE AWAY WHEN I SWITCHED THE ORDER OF THE xs AND ys
+        #       USED TO BUILD THE HAVERSINE BALLTREE;
+        #       MAYBE THEY WERE BEING FED INTO Haversine FN IN LON, LAT ORDER
+        #       INSTEAD OF THE LAT, LON THAT IT WANTS?
+        #       (test results checks out now on a single patch;
+        #        will wait to see what global result looks like;
+        #        what turned me onto this possibility is that the incorrect-looking
+        #        biased pattern flips N and S of the equator,
+        #        indicating that it should really have been a N-S trending gradient
+        #        but instead became an E-W trending broken gradient because of lat-lon
+        #        swapping...)
+        tree = BallTree([vec_ys vec_xs]', Haversine(EARTH_RAD))
 
         #----------------
         # run calculation
@@ -908,6 +946,10 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
                                           yres, xres, dims,
                                           design_mat, tree,
                                           verbose=verbose, timeit=timeit)
+                end
+            else
+                if verbose
+                    println("        skipping $i, $j")
                 end
             end
         end
@@ -1040,7 +1082,11 @@ function main_fn(file_info::Tuple{String,Dict{String,Any}};
                              trim_margin=trim_margin, verbose=verbose, timeit=timeit)
 
     # write out the asynch data
-    write_tfrecord_file(outpatches, outfilepath, OUTBANDS)
+    if HAS_TFRECORDREADER
+        write_tfrecord_file(outpatches, outfilepath, OUTBANDS)
+    else
+        write_tfrecord_file_new(outpatches, outfilepath, OUTBANDS)
+    end
 end
 
 
@@ -1134,7 +1180,7 @@ function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=
     foc_y, foc_x = (ys[i,j], xs[i,j])
 
     # get the BallTree
-    tree = BallTree([vec_xs vec_ys]', Haversine(EARTH_RAD))
+    tree = BallTree([vec_ys vec_xs]', Haversine(EARTH_RAD))
 
     # create lists of R2 and dist values
     R2s::Array{Float64, 1} = []
