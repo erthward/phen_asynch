@@ -232,7 +232,7 @@ for spp in phen.species.unique():
                                 gc.longitude2_degrees = spp_phen.iloc[j,
                                                         :]['decimalLongitude']
                                 gc.calculate()
-                                dist = gc.distance_kilometres/1000
+                                dist = gc.distance_kilometres*1000
                             # add to geog_dist matrix
                             geog_dist[i,j] = dist
                             geog_dist[j,i] = dist

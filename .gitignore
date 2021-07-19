@@ -17,3 +17,7 @@
 ./asynch_analysis/phen_dist/results/**
 ./asynch_analysis/methods_dev_imgs/
 ./asynch_analysis/methods_dev_imgs/**
+./asynch/analysis/data/gen_dist/**
+./asynch/analysis/data/gen_dist/
+./asynch/analysis/data/kling_gendata/**
+./asynch/analysis/data/kling_gendata/
