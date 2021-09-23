@@ -112,13 +112,6 @@ Whether to time the asynchrony calculation
 const TIMEIT = true
 
 
-# choose the plots backend
-# (sticking with the python plotting window that I know well, for now)
-pyplot()
-# NOTE: pyplot breaks when trying to plot the Grayscale image,
-# so for now using GR instead
-#gr()
-
 
 # the TFRecord package throws a globbing error
 # ("ERROR: Glob pattern cannot be empty or start with a / character")
@@ -126,6 +119,12 @@ pyplot()
 # (SEEMS LIKE A BUG, NO?!),
 # so get the relative path to the data_dir instead
 if splitpath(pwd())[2] == "home"
+    # choose the plots backend
+    # (sticking with the python plotting window that I know well, for now)
+    pyplot()
+    # NOTE: pyplot breaks when trying to plot the Grayscale image,
+    # so for now using GR instead
+    #gr()
     if VAR == "NIRvP"
         const ABS_DATA_DIR = "/home/deth/Desktop/UCB/research/projects/seasonality/GEE_output/CA/"
     else
@@ -134,9 +133,9 @@ if splitpath(pwd())[2] == "home"
 
 else
     if VAR == "NIRvP"
-        const ABS_DATA_DIR = "/global/scratch/drewhart/seasonality/GEE_output/NIRvP/CA_agg"
+        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/NIRvP/CA_agg"
     else
-        const ABS_DATA_DIR = "/global/scratch/drewhart/seasonality/GEE_output/SIF/"
+        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/SIF/"
     end
 end
 
