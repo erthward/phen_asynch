@@ -1,18 +1,12 @@
 """
 
 
-
 ######################
 TODO:
 
-OKAY. CALCULATING DISTANCE DIRECTLY FROM COEFFS APPEARS TO BE ~10x FASTER, REGARDLESS
-OF WHETHER I USE VIEWS ON THE COEFFS-ARRAY ('patch') OR JUST SUBSET THEM DIRECTLY
-
-WORTH RUNNING IT THIS WAY?
-
-OR WORTH TRYING CACHING APPORACH?
-
-OR BOTH?
+- figure out why neigh-num rast is correct but is incorrect in output files
+- decide if I should just write files out to rasters instead of bs TFRecord files
+- implement and run on Savio
 
 
 ######################
@@ -201,7 +195,8 @@ const INBANDS = ["constant", "sin_1", "cos_1", "sin_2", "cos_2"]
 """
 names of the bands to save in the output TFRecord files
 """
-const OUTBANDS = ["asynch", "asynch_R2", "asynch_euc", "asynch_euc_R2", "asynch_n"]
+const OUTBANDS = ["asynch", "asynch_R2", "asynch_euc",
+                  "asynch_euc_R2", "asynch_n"]
 
 """
 max distance out to which to find and include neighbors in
@@ -225,7 +220,7 @@ pixels within the nhood radius in meters
 const °_NEIGH_RAD_BUFF_FACTOR = 1.05
 
 """
-use the above vars to determine thmax distance in degrees
+use the above vars to determine the max distance in degrees
 (for the first-pass, Euclidean distance-based neighbor filtering)
 """
 const MAX_DIST_° = (NEIGH_RAD/MIN_DIST_°_LON) * °_NEIGH_RAD_BUFF_FACTOR
@@ -446,8 +441,8 @@ function get_patch_lons_lats(xmin::Float64, ymin::Float64, xres::Float64, yres::
                              dims::Tuple{Int64,Int64},
                              patch_j::Int64, patch_i::Int64)::Tuple{Array{Float64,2},Array{Float64,2}}
     # calculate the x and y mins of the current patch
-    patch_xmin = xmin + (patch_j * dims[1] * xres)
-    patch_ymin = ymin + (patch_i * dims[2] * yres)
+    patch_xmin = xmin + (patch_j * dims[2] * xres)
+    patch_ymin = ymin + (patch_i * dims[1] * yres)
 
     # get lists of xs and ys of all the current patch's pixels
     xs = LinRange(patch_xmin,
@@ -457,7 +452,7 @@ function get_patch_lons_lats(xmin::Float64, ymin::Float64, xres::Float64, yres::
                   # getting a list of pixel-center
                   # coordinates of total length dims[i]
                   patch_xmin + (xres * (dims[1] - 1)),
-                  dims[1])
+                  dims[2])
     ys = LinRange(patch_ymin,
                   patch_ymin + (yres * (dims[2] - 1)),
                   dims[2])
@@ -569,7 +564,7 @@ standardize(a1::Array{Float64,1})::Array{Float64,1} = (a1.-mean(a1))/std(a1)
 
 """
 Finds all pixel-center coordinates within neigh_dist (in meters) of
-the input lat,long coordinates.
+the input lat,lon coordinates.
 
 To do this, a BallTree (constructed to use the Haversine distance metric)
 is first queried to find all neighbors within the neighborhood radius (in meters)
@@ -595,7 +590,7 @@ function get_neighbors_info(i::Int64, j::Int64,
                             neigh_rad=NEIGH_RAD)::Dict{Tuple{Float64, Float64}, Tuple{Float64, Tuple{Int64, Int64}}}
     # get the tree's data-row numbers for all neighbors
     # within the required distance
-    neighs = inrange(tree, [foc_y, foc_x], NEIGH_RAD)
+    neighs = inrange(tree, [foc_x, foc_y], NEIGH_RAD)
     #neighs = inrange(tree, [foc_y, foc_x], MAX_DIST_°)
     # use the row numbers to subset the pixels' centerpoint coords and
     # their index coordinate pairs
@@ -799,6 +794,9 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
                                            yres, xres, dims, hav_fn,
                                            tree)
 
+    println("\t\t($foc_x, $foc_y)\n")
+    println("\t\t$(length(coords_dists_inds)) neighbors\n")
+
     # loop over neighbors
     for (neigh_coords, neigh_info) in coords_dists_inds
         # unpack the neighbor info
@@ -847,10 +845,11 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
                                                                        "ts_dists, " *
                                                                        "and R2s are " *
                                                                        "not equal!")
-        asynch_n = length(geo_dists)
+       #asynch_n = length(geo_dists)
 
         # update the output patch with the new values
-        outpatch[i, j, :] = [NaN, NaN, asynch_ts, R2_ts, asynch_n]
+        outpatch[i, j, :] = [NaN, NaN, asynch_ts, R2_ts, num_neighs]
+        #outpatch[i, j, :] = [NaN, NaN, asynch_ts, R2_ts, asynch_n]
 
     # if we don't have at least the minimum number of neighbors
     # then just add NaNs to the outpatch, except for the neighbor count
@@ -915,7 +914,7 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
         #        indicating that it should really have been a N-S trending gradient
         #        but instead became an E-W trending broken gradient because of lat-lon
         #        swapping...)
-        tree = BallTree([vec_ys vec_xs]', Haversine(EARTH_RAD))
+        tree = BallTree([vec_xs vec_ys]', Haversine(EARTH_RAD))
 
         #----------------
         # run calculation
@@ -972,6 +971,90 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
 end
 
 
+
+function calc_num_neighs(inpatches::OrderedDict{Int64, Array{Float32,3}},
+                     outpatches::OrderedDict{Int64, Array{Float32,3}},
+                     patch_is::Array{Int64,1}, patch_js::Array{Int64,1}, patch_ns::Array{Int64,1},
+                     vec_is::Array{Int64,1}, vec_js::Array{Int64,1},
+                     cart_inds::CartesianIndices{2,Tuple{Base.OneTo{Int64},Base.OneTo{Int64}}},
+                     xmin::Float64, ymin::Float64, xres::Float64, yres::Float64,
+                     dims::Tuple{Int64,Int64}, design_mat::Array{Float64,2},
+                     kernel_size::Int64, hkw::Int64;
+                     trim_margin=false, verbose=true, timeit=true)
+
+    # loop over the patches from the current file
+    # NOTE: each patch is of shape (n_bands, lat, lon)
+    for (patch_idx, inpatch) in inpatches
+        if patch_idx == 1
+        # grab important variables
+        outpatch = outpatches[patch_idx]
+        patch_i = patch_is[patch_idx]
+        patch_j = patch_js[patch_idx]
+        patch_n = patch_ns[patch_idx]
+
+        # get the lons and lats of the pixels in the current example's patch
+        # as well as an array containing columns for each of the coord pairs of the pixels
+        xs, ys = get_patch_lons_lats(xmin, ymin, xres, yres, dims, patch_j, patch_i)
+        vec_ys = vec(ys)
+        vec_xs = vec(xs)
+
+        # get the BallTree for these lons and lats
+        # make a KDTree out of all the coordinates in a patch,
+        # to be used in neighbor-searching
+        # NOTE: I THINK I MAY HAVE FOUND THE ISSUE WITH THE SAMPLE-SIZE BUG;
+        #       LOOKS TO HAVE GONE AWAY WHEN I SWITCHED THE ORDER OF THE xs AND ys
+        #       USED TO BUILD THE HAVERSINE BALLTREE;
+        #       MAYBE THEY WERE BEING FED INTO Haversine FN IN LON, LAT ORDER
+        #       INSTEAD OF THE LAT, LON THAT IT WANTS?
+        #       (test results checks out now on a single patch;
+        #        will wait to see what global result looks like;
+        #        what turned me onto this possibility is that the incorrect-looking
+        #        biased pattern flips N and S of the equator,
+        #        indicating that it should really have been a N-S trending gradient
+        #        but instead became an E-W trending broken gradient because of lat-lon
+        #        swapping...)
+        tree = BallTree([vec_xs vec_ys]', Haversine(EARTH_RAD))
+
+        #----------------
+        # run calculation
+        #----------------
+
+        # loop over pixels (excluding those in the kernel's margin,
+        # since there's no use wasting time calculating for those)
+        for ind in eachindex(inpatch[:, :, 1])
+            i,j  = Tuple(cart_inds[ind])
+            foc_y, foc_x = (ys[i,j], xs[i,j])
+
+            # make the Haversine instance and function for this cell
+            # TODO: FIX THIS LINE
+            hav_inst = Haversine(EARTH_RAD)
+            hav_fn = function(coord_pair)
+                return hav_inst((foc_x, foc_y), coord_pair)
+            end
+
+            # get the coords, dists, and array-indices
+            # of all of the focal pixel's neighbors
+            coords_dists_inds = get_neighbors_info(i, j, vec_is, vec_js,
+                                                   foc_y, foc_x, vec_ys, vec_xs,
+                                                   yres, xres, dims, hav_fn,
+                                                   tree)
+
+            println("\t\t($foc_x, $foc_y)\n")
+            println("\t\t$(length(coords_dists_inds)) neighbors\n")
+            outpatch[i,j,1] = length(coords_dists_inds)
+
+
+        end
+    else
+        a = 1
+    end
+    
+    end
+    return outpatches
+
+end
+
+
 #----------------------
 # get the design matrix
 #----------------------
@@ -1003,12 +1086,12 @@ const VEC_IS, VEC_JS = get_is_js(DIMS)
 """
 a CartesianIndices object to be used for iteration over
 a patch's pixels in calc_asynchrony();
-treid this approach while reading about Julia Array types,
+tried this approach while reading about Julia Array types,
 to help learn better how they are put together and work,
 and while it appears to only offer a very slight speed-up,
 it surely can't hurt
 """
-const CI = CartesianIndices(DIMS)
+const CART_INDS = CartesianIndices(DIMS)
 
 #------------------------------------
 # get files' row, col, and patch info
@@ -1077,7 +1160,7 @@ function main_fn(file_info::Tuple{String,Dict{String,Any}};
 
     # run the asynchrony calculation
     outpatches = calc_asynch(inpatches, outpatches,
-                             patch_is, patch_js, patch_ns, VEC_IS, VEC_JS, CI,
+                             patch_is, patch_js, patch_ns, VEC_IS, VEC_JS, CART_INDS,
                              XMIN, YMIN, XRES, YRES, DIMS, DESIGN_MAT, KERNEL_SIZE, HKW;
                              trim_margin=trim_margin, verbose=verbose, timeit=timeit)
 
@@ -1090,10 +1173,52 @@ function main_fn(file_info::Tuple{String,Dict{String,Any}};
 end
 
 
+function main_fn_calc_num_neighs(file_info::Tuple{String,Dict{String,Any}};
+                 verbose=VERBOSE, timeit=TIMEIT, trim_margin=TRIM_MARGIN)
+    # split input info into variables
+    infilepath, file_dict = file_info
+    infilename = splitpath(infilepath)[end]
+    outfilepath = file_dict["outfilepath"]
+    patch_is::Array{Int64,1} = file_dict["patch_is"]
+    patch_js::Array{Int64,1} = file_dict["patch_js"]
+    patch_ns::Array{Int64,1} = file_dict["patch_ns"]
+    if verbose
+        @info "\nWorker $(myid()) processing file $infilename\n"
+    end
+
+    # read the data in, and set up the output patches' data structure
+    # NOTE: by setting this up outside the calc_asynch function, 
+    #       I make it so that I can run the script for a short amount of
+    #       time, then retain the partial result
+    #       for interactive introspection
+    inpatches, outpatches = get_inpatches_outpatches(infilepath, INBANDS, DIMS)
+
+    if verbose
+        println("RUNNING ASYNCH CALC FOR FILE: $infilename")
+        for (patch_i, patch_j, patch_n) in zip(patch_is, patch_js, patch_ns)
+            println("\tPATCH: $patch_n (patch row: $patch_i, patch col: $patch_j)")
+        end
+    end
+
+    # run the asynchrony calculation
+    outpatches = calc_num_neighs(inpatches, outpatches,
+                             patch_is, patch_js, patch_ns, VEC_IS, VEC_JS, CART_INDS,
+                             XMIN, YMIN, XRES, YRES, DIMS, DESIGN_MAT, KERNEL_SIZE, HKW;
+                             trim_margin=trim_margin, verbose=verbose, timeit=timeit)
+    #outpatches = calc_asynch(inpatches, outpatches,
+    #                         patch_is, patch_js, patch_ns, VEC_IS, VEC_JS, CART_INDS,
+    #                         XMIN, YMIN, XRES, YRES, DIMS, DESIGN_MAT, KERNEL_SIZE, HKW;
+    #                         trim_margin=trim_margin, verbose=verbose, timeit=timeit)
+
+    return outpatches
+end
 
 
 
 
+################################################################################
+################################################################################
+################################################################################
 
 
 #------------------------
@@ -1180,7 +1305,7 @@ function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=
     foc_y, foc_x = (ys[i,j], xs[i,j])
 
     # get the BallTree
-    tree = BallTree([vec_ys vec_xs]', Haversine(EARTH_RAD))
+    tree = BallTree([vec_xs vec_ys]', Haversine(EARTH_RAD))
 
     # create lists of R2 and dist values
     R2s::Array{Float64, 1} = []

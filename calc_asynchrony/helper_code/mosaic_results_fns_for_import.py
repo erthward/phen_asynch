@@ -2,15 +2,7 @@
 # calc_asynchrony.py
 
 """
-Reads in the results calculated by Julia on Savio, mosaics them together,
-then saves the global raster to a new file.
-
-Call as `python mosaic_results.py <DATA_DIR> <OUTPUT_FILEPATH> <DATA_TYPE>`,
-where <DATA_TYPE> can be 'c' (for coefficients) or 'a' (for asynchrony).
-
-NOTE: This is only necessary because the GEE bug won't read my results files
-      correctly...
-
+Functions to mosaic multiple TFRecord files
 """
 
 
@@ -40,40 +32,12 @@ import os
 # set params
 #-----------
 
-# get the files directory
-DATA_DIR = sys.argv[1]
-#DATA_DIR = ('/home/deth/Desktop/UCB/research/projects'
-#            '/seasonality/GEE_output/NA_agg/')
-
-# output filepath
-OUTPUT_FILEPATH = sys.argv[2]
-#OUTPUT_FILEPATH = 'test_mosaic.tif'
-
-# whether this represents unprocessed GEE output (coeff bands)
-# or processed output (asynch metrics)
-DATA_TYPE = sys.argv[3].lower()
-assert DATA_TYPE in ['c', 'a'], ('the third argument must either be "c" '
-                                 '(for coefficients) or "a" (for '
-                                 '"asynchrony").')
-
-# pattern that occurs just before the file number in each file's number
-if DATA_TYPE == 'c':
-    PATT_B4_FILENUM = '-'
-else:
-    PATT_B4_FILENUM = '-OUT-'
-
-# kernel size used by GEE to output the TFRecord files
-KERNEL_SIZE = 60
-HKW = int(KERNEL_SIZE/2)
-
 # default missing-data val
 NODATA_VAL = -9999.0
 
 # names of the bands saved into the TFRecord files
-if DATA_TYPE == 'a':
-    BANDS = ['asynch', 'asynch_R2', 'asynch_euc', 'asynch_euc_R2', 'asynch_n']
-else:
-    BANDS = ['constant', 'sin_1', 'cos_1', 'sin_2', 'cos_2']
+ASYNCH_BANDS = ['asynch', 'asynch_R2', 'asynch_euc', 'asynch_euc_R2', 'asynch_n']
+COEFF_BANDS = ['constant', 'sin_1', 'cos_1', 'sin_2', 'cos_2']
 
 
 #-----------------
@@ -89,11 +53,6 @@ def get_filepaths(data_dir):
     filepaths = glob.glob(os.path.join(data_dir, '*.tfrecord'))
     # order the infilepaths
     filepaths = sorted(filepaths)
-    # make sure all files are output files
-    if DATA_TYPE == 'a':
-        filepaths = [f for f in filepaths if 'OUT' in f]
-    else:
-        filepaths = [f for f in filepaths if 'OUT' not in f]
     return filepaths
 
 
@@ -110,14 +69,14 @@ def read_mixer_file(data_dir):
     return mixer
 
 
-def get_mixer_info(mixer_content):
+def get_mixer_info(mixer_content, kernel_size):
     """
     Parses the needed information out of a dict of mixerfile contents,
     altering it as necessary.
     """
     # get patch dimensions, adding the kernel size to correct for error
     # in the GEE TFRecord output
-    dims = calc_patch_dimensions(mixer_content, KERNEL_SIZE)
+    dims = calc_patch_dimensions(mixer_content, kernel_size)
     # get the SRS and its affine projection matrix
     srs = mixer_content['projection']
     crs = srs['crs']
@@ -133,8 +92,8 @@ def get_mixer_info(mixer_content):
     #       fact that the xmin and ymin are expressed
     #       as upper-left pixel corner, whereas I want to operate
     #       on basis of pixel centers
-    xmin = affine[2] - (((KERNEL_SIZE/2) + 0.5)* xres)
-    ymin = affine[5] - (((KERNEL_SIZE/2) + 0.5)* yres)
+    xmin = affine[2] - (((kernel_size/2) + 0.5)* xres)
+    ymin = affine[5] - (((kernel_size/2) + 0.5)* yres)
     # get the number of patches per row and the total number of rows
     # NOTE: FOR NOW, ASSUMING THAT THE MIXER IS SET UP
     # SUCH THAT THE MOSAIC SHOULD BE FILLED ROW BY ROW, LEFT TO RIGHT
@@ -156,6 +115,7 @@ def calc_patch_dimensions(mixer_content, kernel_size):
     patch_width = mixer_content['patchDimensions'][0]
     patch_height = mixer_content['patchDimensions'][1]
     patch_dimensions = (patch_width, patch_height)
+    patch_dimensions = [num + kernel_size for num in patch_dimensions]
     return patch_dimensions
 
 
@@ -179,7 +139,7 @@ def parse_tfexample_to_numpy(ex, dims, bands, default_val=NODATA_VAL):
     return out
 
 
-def read_tfrecord_file(infilepath, dims, bands):
+def read_tfrecord_file(infilepath, dims, bands, kernel_size, trim_kernel=True):
     """
     Combines all the patches contained in the file located at infilepath
     into a TFRecordDataset. Returns a generator that yields each next example
@@ -187,8 +147,8 @@ def read_tfrecord_file(infilepath, dims, bands):
     n_bands x lon x lat numpy array.
     """
     # add the kernel size to the bands, if reading a coeffs file
-    if DATA_TYPE == 'c':
-        dims = tuple([dim+KERNEL_SIZE for dim in dims])
+    if not trim_kernel:
+        dims = tuple([dim+kernel_size for dim in dims])
     # create a TFRecordDataset from the files
     raw_dataset = tf.data.TFRecordDataset(infilepath)
     # turn the dataset into a list of arrays
@@ -196,7 +156,7 @@ def read_tfrecord_file(infilepath, dims, bands):
         yield parse_tfexample_to_numpy(example, dims, bands)
 
 
-def get_row_col_patch_ns_allfiles(data_dir, patt_b4_filenum):
+def get_row_col_patch_ns_allfiles(data_dir, patt_b4_filenum, kernel_size):
     """
     Return an output dict containing the row, column, and patch numbers,
     and outfile paths (as dict values, organized as subdicts)
@@ -209,12 +169,12 @@ def get_row_col_patch_ns_allfiles(data_dir, patt_b4_filenum):
     patch_n = 0
 
     # get the mixer file info
-    mix = read_mixer_file(DATA_DIR)
+    mix = read_mixer_file(data_dir)
     (dims, crs, xmin, ymin, xres, yres,
-     patches_per_row, tot_patches) = get_mixer_info(mix)
+     patches_per_row, tot_patches) = get_mixer_info(mix, kernel_size)
 
     # get all the input and output file paths
-    filepaths = get_filepaths(DATA_DIR)
+    filepaths = get_filepaths(data_dir)
 
     # assert that both lists are sorted in ascending numerical order
     # NOTE: if this is not true then my method for tracking the row, col, and
@@ -276,7 +236,9 @@ def make_empty_output_array(patches_per_row, tot_patches, dims, bands):
     return output
 
 
-def get_patch_insert_indices(row_i, col_j, dims):
+def get_patch_insert_indices(row_i, col_j, dims, kernel_size, trim_kernel=True):
+    if trim_kernel:
+        dims = [dim - kernel_size for dim in dims]
     i_start = row_i * dims[0]
     j_start = col_j * dims[1]
     i_stop = i_start + dims[0]
@@ -284,7 +246,7 @@ def get_patch_insert_indices(row_i, col_j, dims):
     return((i_start, i_stop), (j_start, j_stop))
 
 
-def write_geotiff(output_filepath, output_arr, bands):
+def write_geotiff(output_filepath, output_arr, bands, crs, mixer_content):
     # set up raster metadata
     meta = {'driver': 'GTiff',
             # NOTE: I think it makes sense to stick with float32,
@@ -294,9 +256,9 @@ def write_geotiff(output_filepath, output_arr, bands):
             'width': output_arr.shape[2],
             'height': output_arr.shape[1],
             'count': output_arr.shape[0],
-            'crs': rio.crs.CRS.from_epsg(int(CRS.split(':')[1])),
-            'transform': rio.transform.Affine(*mix['projection']['affine'][
-                                                            'doubleMatrix']),
+            'crs': rio.crs.CRS.from_epsg(int(crs.split(':')[1])),
+            'transform': rio.transform.Affine(*mixer_content['projection'][
+                                                    'affine'][ 'doubleMatrix']),
             'tiled': False, ## ?
             'interleave': 'band' ## ?
            }
@@ -308,55 +270,63 @@ def write_geotiff(output_filepath, output_arr, bands):
         f.descriptions = tuple(bands)
 
 
-#------------------------------------------------
-# get mixer info and set up output data structure
-#------------------------------------------------
+def mosaic_files(input_dir, output_filepath, patt_b4_filenum, kernel_size,
+                 bands, trim_kernel=True):
 
-mix = read_mixer_file(DATA_DIR)
-(DIMS, CRS, XMIN, YMIN, XRES, YRES, patches_per_row,
-                                    tot_patches) = get_mixer_info(mix)
+    #------------------------------------------------
+    # get mixer info and set up output data structure
+    #------------------------------------------------
 
-OUTPUT = make_empty_output_array(patches_per_row, tot_patches, DIMS, BANDS)
+    mixer_content = read_mixer_file(input_dir)
+    (dims, crs, xmin, ymin, xres, yres, patches_per_row,
+                                        tot_patches) = get_mixer_info(
+                                            mixer_content, kernel_size)
 
-#------------------------------------
-# get files' row, col, and patch info
-#------------------------------------
+    output = make_empty_output_array(patches_per_row, tot_patches, dims, bands)
 
-FILES_DICT = get_row_col_patch_ns_allfiles(DATA_DIR, PATT_B4_FILENUM)
+    #------------------------------------
+    # get files' row, col, and patch info
+    #------------------------------------
 
-#--------------------------------------------------------
-# loop over all files, patches and write them into output
-#--------------------------------------------------------
+    files_dict = get_row_col_patch_ns_allfiles(input_dir, patt_b4_filenum,
+                                               kernel_size)
 
-for filepath, patchinfo in FILES_DICT.items():
-    print("INSERTING DATA FOR %s\n" % filepath)
-    # grab patch info
-    row_is = patchinfo['row_is']
-    col_js = patchinfo['col_js']
-    patch_ns = patchinfo['patch_ns']
+    #--------------------------------------------------------
+    # loop over all files, patches and write them into output
+    #--------------------------------------------------------
 
-    # read the file's data into an iterator
-    patches = read_tfrecord_file(filepath, DIMS, BANDS)
+    for filepath, patchinfo in files_dict.items():
+        print("INSERTING DATA FOR %s\n" % filepath)
+        # grab patch info
+        row_is = patchinfo['row_is']
+        col_js = patchinfo['col_js']
+        patch_ns = patchinfo['patch_ns']
 
-    # loop over and grab data
-    for patch_n, patch in enumerate(patches):
-        # get the OUTPUT indices for this patch's data
-        i_inds, j_inds = get_patch_insert_indices(row_is[patch_n],
-                                                  col_js[patch_n], DIMS)
+        # read the file's data into an iterator
+        patches = read_tfrecord_file(filepath, dims, bands, kernel_size,
+                                     trim_kernel)
 
-        # if these are unprocessed GEE output (i.e. coefficients),
-        # then trim the margin
-        if DATA_TYPE == 'c':
-            print('\nTRIMMING MARGIN AROUND COEFFICIENTS PATCHES\n')
-            patch = patch[:, HKW:-HKW, HKW:-HKW]
+        # loop over and grab data
+        for patch_n, patch in enumerate(patches):
+            # get the OUTPUT indices for this patch's data
+            i_inds, j_inds = get_patch_insert_indices(row_is[patch_n],
+                                                      col_js[patch_n], dims,
+                                                      kernel_size, trim_kernel)
 
-        # insert the data
-        OUTPUT[:, i_inds[0]:i_inds[1], j_inds[0]:j_inds[1]] = patch
+            # if these are unprocessed GEE output (i.e. coefficients),
+            # then trim the margin
+            if trim_kernel:
+                hkw = int(kernel_size/2)
+                print('\nTRIMMING MARGIN AROUND PATCHES\n')
+                patch = patch[:, hkw:-hkw, hkw:-hkw]
+
+            # insert the data
+            output[:, i_inds[0]:i_inds[1], j_inds[0]:j_inds[1]] = patch
 
 
-#--------------------
-# write out to raster
-#--------------------
+    #--------------------
+    # write out to raster
+    #--------------------
 
-print('\nWRITING RESULTS TO FILE...\n')
-write_geotiff(OUTPUT_FILEPATH, OUTPUT, BANDS)
+    print('\nWRITING RESULTS TO FILE...\n')
+    write_geotiff(output_filepath, output, bands, crs, mixer_content)
