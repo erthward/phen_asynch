@@ -437,29 +437,43 @@ indices of the current patch. Returns a meshgrid of the cell centers of the
 current patch.
 """
 function get_patch_lons_lats(xmin::Float64, ymin::Float64, xres::Float64, yres::Float64,
-                             dims::Tuple{Int64,Int64},
+                             dims::Tuple{Int64,Int64}, hkw::Int64,
                              patch_j::Int64, patch_i::Int64)::Tuple{Array{Float64,2},Array{Float64,2}}
     # calculate the x and y mins of the current patch
-    patch_xmin = xmin + (patch_j * dims[2] * xres)
-    patch_ymin = ymin + (patch_i * dims[1] * yres)
+    # DETH: 10-05-21: NEW TAKE ON PATCH COORD CALCULATION:
+    #                 global xmin, minus kernel fringe, plus half cell-width to get to center, plus patch_i*dim*xres, to translate patch over
+    #patch_xmin = xmin + (patch_j * dims[1] * xres)
+    #patch_ymin = ymin + (patch_i * dims[2] * yres)
+    kern_xdim, kern_ydim = dims
+    real_xdim, real_ydim = [kern_xdim kern_ydim] .- (2 * hkw)
+    patch_xmin = xmin + (patch_j * real_xdim * xres)
+    patch_ymin = ymin + (patch_i * real_ydim * yres)
+    # NOTE: -1 gets us from the center of the first cell to the center of the last
+    patch_xmax = patch_xmin + (xres * (kern_xdim-1))
+    patch_ymax = patch_ymin + (yres * (kern_ydim-1))
 
     # get lists of xs and ys of all the current patch's pixels
-    xs = LinRange(patch_xmin,
+    # DETH: 10-05-21: NEW TAKE ON PATCH COORD CALCULATION
+    #                 just need min cell center as start,
+    #                 min cell center plus res*dim as end,
+    #                 and dim as length
+    #xs = LinRange(patch_xmin,
                   # NOTE: start at center of leftmost pixel,
                   # step to middle of rightmost pixel
                   # (i.e. step dims[i]-1 pixels to the right),
                   # getting a list of pixel-center
                   # coordinates of total length dims[i]
-                  patch_xmin + (xres * (dims[1] - 1)),
-                  dims[2])
-    ys = LinRange(patch_ymin,
-                  patch_ymin + (yres * (dims[2] - 1)),
-                  dims[2])
-
-    # get the meshgrid of those coordinates
-    gridx = xs' .* ones(length(xs))
-    gridy = ys .* ones(length(ys))'
-    return gridx, gridy
+   #               patch_xmin + (xres * (dims[1] - 1)),
+   #               dims[1])
+   ##ys = LinRange(patch_ymin,
+   #               patch_ymin + (yres * (dims[2] - 1)),
+   #               dims[2])
+   xs = LinRange(patch_xmin, patch_xmax, kern_xdim)
+   ys = LinRange(patch_ymin, patch_ymax, kern_ydim)
+   # get the meshgrid of those coordinates
+   gridx = xs' .* ones(length(xs))
+   gridy = ys .* ones(length(ys))'
+   return gridx, gridy
 end
 
 
@@ -664,22 +678,22 @@ and outfile paths (as values, each of which are sub-Dicts)
 for all files (keys).
 """
 function get_row_col_patch_ns_allfiles(data_dir::String,
-                                       patt_b4_filenum::String)::Dict{String,Dict{String,Any}}
+                                       patt_aft_filenum::String)::Dict{String,Dict{String,Any}}
     # set the starting row, column, and patch counters
     patch_i = 0
     patch_j = 0
     patch_n = 0
 
     # get the mixer file info
-    mix = read_mixer_file(DATA_DIR)
+    mix = read_mixer_file(data_dir)
     (dims, crs, xmin, ymin, xres, yres,
      patches_per_row, tot_patches) = get_mixer_info(mix)
 
     # get all the input and output file paths
-    infilepaths, outfilepaths = get_infile_outfile_paths(DATA_DIR)
+    infilepaths, outfilepaths = get_infile_outfile_paths(data_dir)
 
     # get the regex pattern
-    patt = Regex("\\d{5}?(?=$PATT_AFT_FILENUM)")
+    patt = Regex("\\d{5}?(?=$patt_aft_filenum)")
 
     # assert that both lists are sorted in ascending numerical order
     # NOTE: if this is not true then my method for tracking the row, col, and
@@ -894,7 +908,7 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
 
         # get the lons and lats of the pixels in the current example's patch
         # as well as an array containing columns for each of the coord pairs of the pixels
-        xs, ys = get_patch_lons_lats(xmin, ymin, xres, yres, dims, patch_j, patch_i)
+        xs, ys = get_patch_lons_lats(xmin, ymin, xres, yres, dims, hkw, patch_j, patch_i)
         vec_ys = vec(ys)
         vec_xs = vec(xs)
 
