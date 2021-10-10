@@ -445,7 +445,7 @@ function get_patch_lons_lats(xmin::Float64, ymin::Float64, xres::Float64, yres::
     #patch_xmin = xmin + (patch_j * dims[1] * xres)
     #patch_ymin = ymin + (patch_i * dims[2] * yres)
     kern_xdim, kern_ydim = dims
-    real_xdim, real_ydim = [kern_xdim kern_ydim] .- (2 * hkw)
+    real_xdim, real_ydim = [kern_xdim kern_ydim] .- (KERNEL_SIZE)
     patch_xmin = xmin + (patch_j * real_xdim * xres)
     patch_ymin = ymin + (patch_i * real_ydim * yres)
     # NOTE: -1 gets us from the center of the first cell to the center of the last
@@ -576,6 +576,81 @@ standardize(a1::Array{Float64,1})::Array{Float64,1} = (a1.-mean(a1))/std(a1)
 
 
 """
+Uses the dataset's mixer info to create a lookup dict
+containing the number of neighors within the NEIGH_RAD-radius
+neighborhood for each latitudinal band of cells.
+"""
+function make_nneighs_lookup_dict(mix_info::Dict{String, Any},
+                                  hkw::Int64)::Dict{Tuple{Int64, Int64}, Int64}
+
+    # get min y value (i.e. northmost)
+    # and yres (which will be negative, hence progressing southward)
+    ymin = mix_info["projection"]["affine"]["doubleMatrix"][6]
+    yres = mix_info["projection"]["affine"]["doubleMatrix"][5]
+
+    # get number of patch rows
+    # and total number of lat cells
+    n_patch_rows = mix_info["totalPatches"]/mix_info["patchesPerRow"]
+    @assert(n_patch_rows%1 == 0, "n_patch_rows is not an integer!")
+    n_patch_rows = floor(Int, n_patch_rows)
+
+       
+    patch_ydim = mix_info["patchDimensions"][2]
+    tot_lat_cells = n_patch_rows * patch_ydim
+    # NOTE: should already be an integer, but can't hurt to double-check
+    @assert(tot_lat_cells%1 == 0, "tot_lat_cells is not an integer!")
+    tot_lat_cells = floor(Int, tot_lat_cells)
+
+    # get all lat values
+    # NOTE: add half res so that we're dealing with cell centers, not cell corners
+    lats = LinRange(ymin + 0.5*yres,
+                    ymin + 0.5*yres + (yres * (tot_lat_cells - 1)),
+                    tot_lat_cells)
+
+    # get the pairs of patch row-number and cell row-number
+    # that correspond to each cell-row in the final output dataset
+    # NOTE: is have to be 0-indexed in order to match up with
+    #       the patch_is values being returned by get_row_col_patch_ns_allfiles
+    patch_is = repeat([0:n_patch_rows-1;], inner=patch_ydim)
+    # NOTE: add hkw so that the is are expressed as they will appear in the overlapping
+    #       patch arrays, before we trim the margins!
+    row_is = repeat([1+hkw:patch_ydim+hkw;], n_patch_rows)
+
+    # pair up actual cell-center lats with their patch and cell i values
+    # (as a Dict, with Tuple(patch_i, cell_i) as keys and lat as values)
+    cells_lats_dict = Dict(zip(zip(patch_is, row_is), lats))
+
+    # create an empty Dict to fill up with our output
+    # (with Tuple(patch_i, cell_i) as keys and nneighs as values)
+    nneighs_lookup_dict = Dict()
+ 
+    # get xres and patch xdim (for use creating an arbitrary
+    # range of potential longitude values in the loop below)
+    xres = mix_info["projection"]["affine"]["doubleMatrix"][1]
+
+    # for each item in the cells_lats_dict
+    for (cell_info, lat) in cells_lats_dict
+        # NOTE: add 1 to the total number of cells so that the focal cell,
+        # whose center coords are (0, lat), will be the center cell
+        # in the potential-neighbor box we create
+        potent_lons = LinRange(0-(hkw*xres), 0+(hkw*xres), 2*hkw+1)
+        potent_lats = LinRange(lat-(hkw*yres), lat+(hkw*yres), 2*hkw+1)
+        vec_potent_lons = vec(potent_lons' .* ones(length(potent_lons)))
+        vec_potent_lats = vec(potent_lats .* ones(length(potent_lats))')
+        # build a tree containing excess potential coords
+        tree = BallTree([vec_potent_lons vec_potent_lats]', Haversine(EARTH_RAD))
+        # query the tree and record number of neighs
+        nneighs = length(inrange(tree, [0, lat], NEIGH_RAD))
+        # store the number of neighs in the cells_nneighs_dict
+        nneighs_lookup_dict[cell_info] = nneighs
+    end
+    
+    return nneighs_lookup_dict
+
+end
+
+
+"""
 Finds all pixel-center coordinates within neigh_dist (in meters) of
 the input lat,lon coordinates.
 
@@ -598,13 +673,18 @@ function get_neighbors_info(i::Int64, j::Int64,
                             foc_y::Float64, foc_x::Float64,
                             vec_ys::Array{Float64}, vec_xs::Array{Float64},
                             yres::Float64, xres::Float64,
-                            patch_dims::Tuple{Int64,Int64}, hav_fn::Function,
+                            patch_dims::Tuple{Int64,Int64},
+                            patch_i::Int64, nneighs_lookup_dict::Dict{Tuple{Int64, Int64}, Int64},
+                            hav_fn::Function,
                             tree::BallTree{SArray{Tuple{2},Float64,1,2},2,Float64,Haversine{Int64}};
                             neigh_rad=NEIGH_RAD)::Dict{Tuple{Float64, Float64}, Tuple{Float64, Tuple{Int64, Int64}}}
     # get the tree's data-row numbers for all neighbors
-    # within the required distance
-    neighs = inrange(tree, [foc_x, foc_y], NEIGH_RAD)
-    #neighs = inrange(tree, [foc_y, foc_x], MAX_DIST_°)
+    # within the NEIGH_RAD-radius neighborhood
+    # (by grabbing the k nearest neighbors, where k comes from the NNEIGHS_LOOKUP_DICT built at the outset)
+    neighs = knn(tree, [foc_x, foc_y], nneighs_lookup_dict[Tuple((patch_i, i))])[1]
+    # DETH: 10-09-21: trying the knn approach above instead of the inrange approach below because
+    #                 I've smasked my head against all the walls and couldn't debug that approach...
+    #neighs = inrange(tree, [foc_x, foc_y], NEIGH_RAD)
     # use the row numbers to subset the pixels' centerpoint coords and
     # their index coordinate pairs
     neigh_xs = vec_xs[neighs]
@@ -773,6 +853,7 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
                                patch_n::Int64, yres::Float64, xres::Float64,
                                dims::Tuple{Int64, Int64},
                                design_mat::Array{Float64,2},
+                               patch_i::Int64, nneighs_lookup_dict::Dict{Tuple{Int64, Int64}, Int64},
                                tree::BallTree{SArray{Tuple{2},Float64,1,2},2,Float64,Haversine{Int64}};
                                timeit=true, verbose=true)::Nothing
     if verbose && timeit
@@ -804,8 +885,9 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
     # of all of the focal pixel's neighbors
     coords_dists_inds = get_neighbors_info(i, j, vec_is, vec_js,
                                            foc_y, foc_x, vec_ys, vec_xs,
-                                           yres, xres, dims, hav_fn,
-                                           tree)
+                                           yres, xres, dims,
+                                           patch_i, nneighs_lookup_dict,
+                                           hav_fn, tree)
 
     println("\t\t($foc_x, $foc_y)\n")
     println("\t\t$(length(coords_dists_inds)) neighbors\n")
@@ -894,6 +976,7 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
                      cart_inds::CartesianIndices{2,Tuple{Base.OneTo{Int64},Base.OneTo{Int64}}},
                      xmin::Float64, ymin::Float64, xres::Float64, yres::Float64,
                      dims::Tuple{Int64,Int64}, design_mat::Array{Float64,2},
+                     nneighs_lookup_dict::Dict{Tuple{Int64, Int64}, Int64},
                      kernel_size::Int64, hkw::Int64;
                      trim_margin=false, verbose=true, timeit=true)::OrderedDict{Int64, Array{Float32,3}}
 
@@ -956,7 +1039,8 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
                                           foc_y, foc_x, vec_ys, vec_xs,
                                           inpatch, outpatch, patch_n,
                                           yres, xres, dims,
-                                          design_mat, tree,
+                                          design_mat,
+                                          patch_i, nneighs_lookup_dict, tree,
                                           verbose=verbose, timeit=timeit)
                 end
             else
@@ -1049,8 +1133,8 @@ function calc_num_neighs(inpatches::OrderedDict{Int64, Array{Float32,3}},
             # of all of the focal pixel's neighbors
             coords_dists_inds = get_neighbors_info(i, j, vec_is, vec_js,
                                                    foc_y, foc_x, vec_ys, vec_xs,
-                                                   yres, xres, dims, hav_fn,
-                                                   tree)
+                                                   yres, xres, dims, patch_i, nneighs_lookup_dict,
+                                                   hav_fn, tree)
 
             println("\t\t($foc_x, $foc_y)\n")
             println("\t\t$(length(coords_dists_inds)) neighbors\n")
@@ -1089,6 +1173,13 @@ Information read in from the JSON mixer file.
 const MIX = read_mixer_file(DATA_DIR)
 const (DIMS, CRS, XMIN, YMIN, XRES, YRES,
        PATCHES_PER_ROW, TOT_PATCHES) = get_mixer_info(MIX)
+
+"""
+Dict containing (patch_i, row_i) as keys and number of neighbor cells as values;
+will be used to subset the correct number (k) of nearest neighbors
+from the Haversine BallTree for each focal cell
+"""
+const NNEIGHS_LOOKUP_DICT = make_nneighs_lookup_dict(MIX, HKW)
 
 """
 vectors of pixel indices in the i and j array dims
@@ -1174,7 +1265,7 @@ function main_fn(file_info::Tuple{String,Dict{String,Any}};
     # run the asynchrony calculation
     outpatches = calc_asynch(inpatches, outpatches,
                              patch_is, patch_js, patch_ns, VEC_IS, VEC_JS, CART_INDS,
-                             XMIN, YMIN, XRES, YRES, DIMS, DESIGN_MAT, KERNEL_SIZE, HKW;
+                             XMIN, YMIN, XRES, YRES, DIMS, DESIGN_MAT, NNEIGHS_LOOKUP_DICT, KERNEL_SIZE, HKW;
                              trim_margin=trim_margin, verbose=verbose, timeit=timeit)
 
     # write out the asynch data
@@ -1340,7 +1431,9 @@ function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=
     # of all of the focal pixel's neighbors
     coords_dists_inds = get_neighbors_info(i, j, VEC_IS, VEC_JS,
                                            foc_y, foc_x, vec_ys, vec_xs,
-                                           YRES, XRES, DIMS, hav_fn, tree)
+                                           YRES, XRES, DIMS,
+                                           patch_i, nneighs_lookup_dict,
+                                           hav_fn, tree)
 
     # loop over neighbors
     for (neigh_coords, neigh_info) in coords_dists_inds
