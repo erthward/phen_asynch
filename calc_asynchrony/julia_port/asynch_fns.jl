@@ -79,6 +79,7 @@ using Statistics
 using Distances
 using GeoArrays
 using TFRecord
+using ArchGDAL
 using Printf
 using Images
 using Colors
@@ -427,6 +428,58 @@ function write_tfrecord_file_new(patches::OrderedDict{Int64, Array{Float32,3}},
                              filepath::String,
                              bands::Array{String, 1})::Nothing
     TFRecord.write(filepath, (prep_single_patch_for_tfrecord_file(patch_item[2], bands) for patch_item in sort(patches)))
+end
+
+
+"""
+write a GeoTIFF using the provided array and JSON mixer-file info,
+writing to the given filename
+"""
+function write_geotiff(arr::Array, mix_info::Dict,
+                       patch_i::Int64, patch_j::Int64,
+                       filename::String)
+    crs = mix_info["projection"]["crs"]
+    wkt_crs = ArchGDAL.toWKT(ArchGDAL.importPROJ4("+init=$crs"))
+    # fix the geotransform's order
+    geotrans = mix_info["projection"]["affine"]["doubleMatrix"]
+    res_x = geotrans[1]
+    res_y = geotrans[5]
+    ul_x = geotrans[3] + (patch_j * res_x * mix_info["patchDimensions"][1])
+    ul_y = geotrans[6] + (patch_i * res_y * mix_info["patchDimensions"][2])
+    reordered_geotrans::Vector{Float64} = [ul_x, res_x, 0.0, ul_y, 0.0, res_y]
+    if length(size(arr)) == 2
+        height, width = size(arr)
+        nbands = 1
+    else
+        height, width, nbands = size(arr)
+    end
+    ArchGDAL.create(
+        filename,
+        driver = ArchGDAL.getdriver("GTiff"),
+        width=width,
+        height=height,
+        nbands=nbands,
+        dtype=Float32
+    ) do dataset
+    # NOTE: for some reason (perhaps Julia's column major order?) it's writing rasters
+    # transposed! So, transpose them to offset this!
+    # NOTE: need to convert back to basic Matrix type because no method for write!(transpose(::Matrix))
+        if length(size(arr)) == 2
+            ArchGDAL.write!(dataset,
+                            convert(Matrix, transpose(arr)),
+                            #arr,
+                            1)
+        else
+            for band_n in 1:size(arr)[3]
+                ArchGDAL.write!(dataset,
+                                convert(Matrix, transpose(arr[:,:,band_n])),
+                                #arr[:,:,band_n],
+                                band_n)
+            end
+        end
+        ArchGDAL.setgeotransform!(dataset, reordered_geotrans)
+        ArchGDAL.setproj!(dataset, wkt_crs)
+    end
 end
 
 
@@ -1274,6 +1327,15 @@ function main_fn(file_info::Tuple{String,Dict{String,Any}};
     else
         write_tfrecord_file_new(outpatches, outfilepath, OUTBANDS)
     end
+    # and also write to geotiffs
+    for (idx, outpatch) in outpatches
+        # NOTE: just using a random number because gdal_merge.py will mosaic all anyhow
+        randnumstr = "$(round(Int, rand()*10000000))"
+        tiff_filename = "$(VAR)_$randnumstr.tif"
+        tiff_filepath = "/$(join(splitpath("/global/scratch/drew/things/here/file.tfrecord")[2:end-1], "/"))/$tiff_filename"
+        write_geotiff(outpatch, MIX, patch_is[idx], patch_js[idx], tiff_filepath)
+    end
+
 end
 
 
@@ -1582,3 +1644,5 @@ function plot_all_patches(fp; bands=INBANDS)
     end
     plot(plots...)
 end
+
+
