@@ -526,6 +526,11 @@ function get_patch_lons_lats(xmin::Float64, ymin::Float64, xres::Float64, yres::
    # get the meshgrid of those coordinates
    gridx = xs' .* ones(length(xs))
    gridy = ys .* ones(length(ys))'
+   # check that y values are identical across rows and x values are identical down columns
+   @assert(unique([length(unique(gridy[i,:])) == 1 for i in 1:size(gridy)[1]]) == [1,],
+           "y values are not identical across rows in gridy!")
+   @assert(unique([length(unique(gridx[:,j])) == 1 for j in 1:size(gridx)[2]]) == [1,]
+           "x values are not identical down columns in gridx!")
    return gridx, gridy
 end
 
@@ -1068,6 +1073,11 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
         #----------------
         # run calculation
         #----------------
+  
+        # data structs to make sure that each foc_x and foc_y are hit equal number of times
+        # (i.e. that there's not procession in these values as we progress across cols)
+        foc_xs = []
+        foc_ys = []
 
         # loop over pixels (excluding those in the kernel's margin,
         # since there's no use wasting time calculating for those)
@@ -1088,6 +1098,8 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
                     end
                 else
                     foc_y, foc_x = (ys[i,j], xs[i,j])
+                    append!(foc_xs, foc_x)
+                    append!(foc_ys, foc_y)
                     calc_asynch_one_pixel!(i, j, vec_is, vec_js,
                                           foc_y, foc_x, vec_ys, vec_xs,
                                           inpatch, outpatch, patch_n,
@@ -1102,6 +1114,15 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
                 end
             end
         end
+
+        # make sure that all foc_x and foc_y values were visited equally often
+        foc_x_cts = countmap(foc_xs)
+        foc_y_cts = countmap(foc_xs)
+        @assert(length(unique(values(foc_x_cts))) == 1, "not all foc_x values occurred equally!")
+        @assert(length(unique(values(foc_y_cts))) == 1, "not all foc_y values occurred equally!")
+        @assert(length(foc_x_cts) == unique(values(foc_x_cts))[1], "number of foc_x values used not equal to number of time each value was used!")
+        @assert(length(foc_y_cts) == unique(values(foc_y_cts))[1], "number of foc_y values used not equal to number of time each value was used!")
+
     end
 
     # trim the half-kernel-width margin, if requested
