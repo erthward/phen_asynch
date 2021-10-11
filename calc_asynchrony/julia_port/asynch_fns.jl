@@ -1333,51 +1333,52 @@ function main_fn(file_info::Tuple{String,Dict{String,Any}};
         randnumstr = "$(round(Int, rand()*10000000))"
         tiff_filename = "$(VAR)_$randnumstr.tif"
         tiff_filepath = "/$(join(splitpath("/global/scratch/drew/things/here/file.tfrecord")[2:end-1], "/"))/$tiff_filename"
+        println("\nNOW WRITING FILE $tiff_filepath\n")
         write_geotiff(outpatch, MIX, patch_is[idx], patch_js[idx], tiff_filepath)
     end
 
 end
 
 
-function main_fn_calc_num_neighs(file_info::Tuple{String,Dict{String,Any}};
-                 verbose=VERBOSE, timeit=TIMEIT, trim_margin=TRIM_MARGIN)
-    # split input info into variables
-    infilepath, file_dict = file_info
-    infilename = splitpath(infilepath)[end]
-    outfilepath = file_dict["outfilepath"]
-    patch_is::Array{Int64,1} = file_dict["patch_is"]
-    patch_js::Array{Int64,1} = file_dict["patch_js"]
-    patch_ns::Array{Int64,1} = file_dict["patch_ns"]
-    if verbose
-        @info "\nWorker $(myid()) processing file $infilename\n"
-    end
-
-    # read the data in, and set up the output patches' data structure
-    # NOTE: by setting this up outside the calc_asynch function, 
-    #       I make it so that I can run the script for a short amount of
-    #       time, then retain the partial result
-    #       for interactive introspection
-    inpatches, outpatches = get_inpatches_outpatches(infilepath, INBANDS, DIMS)
-
-    if verbose
-        println("RUNNING ASYNCH CALC FOR FILE: $infilename")
-        for (patch_i, patch_j, patch_n) in zip(patch_is, patch_js, patch_ns)
-            println("\tPATCH: $patch_n (patch row: $patch_i, patch col: $patch_j)")
-        end
-    end
-
-    # run the asynchrony calculation
-    outpatches = calc_num_neighs(inpatches, outpatches,
-                             patch_is, patch_js, patch_ns, VEC_IS, VEC_JS, CART_INDS,
-                             XMIN, YMIN, XRES, YRES, DIMS, DESIGN_MAT, KERNEL_SIZE, HKW;
-                             trim_margin=trim_margin, verbose=verbose, timeit=timeit)
-    #outpatches = calc_asynch(inpatches, outpatches,
-    #                         patch_is, patch_js, patch_ns, VEC_IS, VEC_JS, CART_INDS,
-    #                         XMIN, YMIN, XRES, YRES, DIMS, DESIGN_MAT, KERNEL_SIZE, HKW;
-    #                         trim_margin=trim_margin, verbose=verbose, timeit=timeit)
-
-    return outpatches
-end
+#function main_fn_calc_num_neighs(file_info::Tuple{String,Dict{String,Any}};
+#                 verbose=VERBOSE, timeit=TIMEIT, trim_margin=TRIM_MARGIN)
+#    # split input info into variables
+#    infilepath, file_dict = file_info
+#    infilename = splitpath(infilepath)[end]
+#    outfilepath = file_dict["outfilepath"]
+#    patch_is::Array{Int64,1} = file_dict["patch_is"]
+#    patch_js::Array{Int64,1} = file_dict["patch_js"]
+#    patch_ns::Array{Int64,1} = file_dict["patch_ns"]
+#    if verbose
+#        @info "\nWorker $(myid()) processing file $infilename\n"
+#    end
+#
+#    # read the data in, and set up the output patches' data structure
+#    # NOTE: by setting this up outside the calc_asynch function, 
+#    #       I make it so that I can run the script for a short amount of
+#    #       time, then retain the partial result
+#    #       for interactive introspection
+#    inpatches, outpatches = get_inpatches_outpatches(infilepath, INBANDS, DIMS)
+#
+#    if verbose
+#        println("RUNNING ASYNCH CALC FOR FILE: $infilename")
+#        for (patch_i, patch_j, patch_n) in zip(patch_is, patch_js, patch_ns)
+#            println("\tPATCH: $patch_n (patch row: $patch_i, patch col: $patch_j)")
+#        end
+#    end
+#
+#    # run the asynchrony calculation
+#    outpatches = calc_num_neighs(inpatches, outpatches,
+#                             patch_is, patch_js, patch_ns, VEC_IS, VEC_JS, CART_INDS,
+#                             XMIN, YMIN, XRES, YRES, DIMS, DESIGN_MAT, KERNEL_SIZE, HKW;
+#                             trim_margin=trim_margin, verbose=verbose, timeit=timeit)
+#    #outpatches = calc_asynch(inpatches, outpatches,
+#    #                         patch_is, patch_js, patch_ns, VEC_IS, VEC_JS, CART_INDS,
+#    #                         XMIN, YMIN, XRES, YRES, DIMS, DESIGN_MAT, KERNEL_SIZE, HKW;
+#    #                         trim_margin=trim_margin, verbose=verbose, timeit=timeit)
+#
+#    return outpatches
+#end
 
 
 
