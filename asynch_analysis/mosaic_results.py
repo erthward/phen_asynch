@@ -63,7 +63,7 @@ else:
     PATT_B4_FILENUM = '-OUT-'
 
 # kernel size used by GEE to output the TFRecord files
-KERNEL_SIZE = 60
+KERNEL_SIZE = 176
 HKW = int(KERNEL_SIZE/2)
 
 # default missing-data val
@@ -155,7 +155,7 @@ def calc_patch_dimensions(mixer_content, kernel_size):
     #       rather than asynchrony files
     patch_width = mixer_content['patchDimensions'][0]
     patch_height = mixer_content['patchDimensions'][1]
-    patch_dimensions = (patch_width, patch_height)
+    patch_dimensions = (patch_height, patch_width)
     return patch_dimensions
 
 

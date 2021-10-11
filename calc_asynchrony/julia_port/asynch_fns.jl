@@ -77,12 +77,12 @@ using StaticArrays
 using Distributed
 using Statistics
 using Distances
-using GeoArrays
+#using GeoArrays
 using TFRecord
 using Printf
-using Images
+#using Images
 using Colors
-using Plots
+#using Plots
 using Dates
 using JSON
 using Glob
@@ -104,12 +104,12 @@ const VAR = "SIF"
 """
 Whether to use verbose output
 """
-const VERBOSE = true
+const VERBOSE = false
 """
 Whether to time the asynchrony calculation
 (Time will be displayed per pixel)
 """
-const TIMEIT = true
+const TIMEIT = false
 
 
 
@@ -121,7 +121,7 @@ const TIMEIT = true
 if splitpath(pwd())[2] == "home"
     # choose the plots backend
     # (sticking with the python plotting window that I know well, for now)
-    pyplot()
+    #pyplot()
     # NOTE: pyplot breaks when trying to plot the Grayscale image,
     # so for now using GR instead
     #gr()
@@ -133,7 +133,7 @@ if splitpath(pwd())[2] == "home"
 
 else
     if VAR == "NIRvP"
-        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/NIRvP/CA_agg"
+        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/NIRvP/"
     else
         const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/SIF/"
     end
@@ -163,12 +163,12 @@ if VAR == "NIRvP"
     """
     kernel size used by GEE to output the TFRecord files
     """
-    const KERNEL_SIZE = 60
+    const KERNEL_SIZE = 176
 else
     """
     kernel size used by GEE to output the TFRecord files
     """
-    const KERNEL_SIZE = 60
+    const KERNEL_SIZE = 176
 end
 
 """
@@ -1325,260 +1325,260 @@ end
 ################################################################################
 
 
-#------------------------
-# define helper functions
-#------------------------
-
-"""
-Make a GeoArray (multilayer raster object) of the patch provided.
-Pull the necessary georeferencing info from dims and the mixer_info provided.
-NOTE: dims fed in separately because dims indicated in GEE's mixer file are incorrect.
-"""
-function make_geoarray(patch; dims=DIMS, mixer_info=MIX,
-                              xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing)
-    # make a GeoArray
-    # NOTE: not sure why I need to transpose the patch...
-    #ga = GeoArray(transpose(patch))
-    ga = GeoArray(patch)
-    # get the projection info
-    proj = mixer_info["projection"]
-    # get and set the CRS 
-    crs = parse(Int, split(proj["crs"], ':')[2]) 
-    epsg!(ga, crs)
-    # get and set the bounding box
-    aff = proj["affine"]["doubleMatrix"]
-    if isa(xmin, Nothing)
-        xmin = aff[3]
-    end
-    if isa(ymin, Nothing)
-        ymin = aff[6]
-    end
-    if isa(xmax, Nothing)
-        xmax = xmin + aff[1]*dims[1]
-    end
-    if isa(ymax, Nothing)
-        ymax = ymin + aff[5]*dims[2]
-    end
-    bbox!(ga, (min_x=xmin,
-               min_y=ymin,
-               max_x=xmax,
-               max_y=ymax))
-    return ga
-end
-
-"""
-Plot a patch as a GeoArray.
-"""
-function plot_patch(patch, bbox_coords; cmap=:inferno)
-    mins, maxs = bbox_coords
-    xmin, ymin = mins
-    xmax, ymax = maxs
-    ga = make_geoarray(patch, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
-    plot(ga, band=1, color=cmap, tickfontsize=4)#, yflip=true)
-end
-
-"""
-Plot the asynch, its R2s, and its sample sizes.
-"""
-function plot_results(outpatch)
-    # plot asynch
-    ga =  make_geoarray(outpatch) 
-    p1 = plot(ga, band=1, title="asynch (corr)")
-    p2 = plot(ga, band=2, title="asynch (corr): R2s")
-    p3 = plot(ga, band=3, title="asynch (euc)")
-    p4 = plot(ga, band=4, title="asynch (euc): R2s")
-    p5 = plot(ga, band=5, title="n")
-    plot(p1, p2, p3, p4, p5, layout=5)
-end
-
-"""
-Plot the asynchrony calculation data for the chosen i,j pixel in the chosen patch.
-"""
-function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=true)
-
-    # time it?
-    if timeit
-        # get start time
-        start = now()
-    end
-
-    # get the lons and lats
-    xs, ys = get_patch_lons_lats(XMIN, YMIN, XRES, YRES, DIMS, patch_j, patch_i)
-    vec_ys = vec(ys)
-    vec_xs = vec(xs)
-    foc_y, foc_x = (ys[i,j], xs[i,j])
-
-    # get the BallTree
-    tree = BallTree([vec_xs vec_ys]', Haversine(EARTH_RAD))
-
-    # create lists of R2 and dist values
-    R2s::Array{Float64, 1} = []
-    ts_dists::Array{Float64, 1} = []
-    geo_dists::Array{Float64, 1} = []
-    coeff_dists::Array{Float64, 1} = []
-
-    # calculate the focal pixel's time series (and its standardized time series)
-    ts_foc = calc_time_series(patch, i, j, DESIGN_MAT)
-    stand_ts_foc = standardize(ts_foc)
-
-    # make the Haversine instance and function for this cell
-    hav_inst = Haversine(EARTH_RAD)
-    hav_fn = function(coord_pair)
-        return hav_inst((foc_x, foc_y), coord_pair)
-    end
-
-    # get the coords, dists, and array-indices
-    # of all of the focal pixel's neighbors
-    coords_dists_inds = get_neighbors_info(i, j, VEC_IS, VEC_JS,
-                                           foc_y, foc_x, vec_ys, vec_xs,
-                                           YRES, XRES, DIMS,
-                                           patch_i, nneighs_lookup_dict,
-                                           hav_fn, tree)
-
-    # loop over neighbors
-    for (neigh_coords, neigh_info) in coords_dists_inds
-        # unpack the neighbor info
-        neigh_dist, neigh_inds = neigh_info
-        ni, nj = neigh_inds
-
-        # get the neighbor's time series
-        ts_neigh = calc_time_series(patch, ni, nj, DESIGN_MAT)
-        stand_ts_neigh = standardize(ts_neigh)
-
-        # drop this pixel if it returns NAs
-        if any(isnan.(ts_neigh))
-           # do nothing 
-           continue
-        else
-            try
-                # calculate the R2
-                R2 = run_linear_regression(ts_foc, ts_neigh)["R2"]
-
-                # calculate the Euclidean distance between the 2 standardized time series
-                ts_dist = euclidean(stand_ts_foc, stand_ts_neigh)
-
-                # calculate the Euclidean distance between the coeff vectors
-                coeff_dist = euclidean(view(patch, i, j, :), view(patch, ni, nj, :))
-         
-                # append the metrics, if the neighbor-distance calculation was successful
-                append!(geo_dists, neigh_dist)
-                append!(R2s, R2)
-                append!(ts_dists, ts_dist)
-                append!(coeff_dists, coeff_dist)
-            catch error
-                @warn ("ERROR THROWN WHILE CALCULATING NEIGHBOR-DISTANCE METRICS:" *
-                         "\n\tpixel: $i, $j\n\tneighbor: $ni, $nj\n")
-            end
-        end
-    end
-
-    # get the slope of the overall regression of R2s on geo dist
-    # NOTE: setting fit_intercept to false and subtracting 1
-    #       from the array of R2s effectively
-    #       fixes the intercept at R2=1
-    res = run_linear_regression(geo_dists, R2s .- 1, fit_intercept=false)
-    # get the slope of the overall regression of Euclidean ts dists on geo dist
-    # NOTE: just setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
-    res_euc = run_linear_regression(geo_dists, ts_dists, fit_intercept=true)
-   
-    # get the slope of the coeff_dist, geo_dist regression
-    res_coeff = run_linear_regression(geo_dists, coeff_dists, fit_intercept=true)
-
-    # get trendlines for the regressions
-    line_xs = [0:1:150_000;]
-    r2_ys = @. 1 + res["slope"] * line_xs
-    euc_ys = @. 0 + res_euc["slope"] * line_xs
-    coeff_ys = @. 0 + res_coeff["slope"] * line_xs
-
-    # set up the layout grid
-    lo = @layout [ [ a ; b ] c{0.75w} ]
-
-    # make the scatterplots
-    p_r2 = scatter(geo_dists, R2s,
-                   xlabel="geographic distance (m)",
-                   ylabel="time series' R²s",
-                   title=("R² asynchrony\n" *
-                          "(β=$(@sprintf("%e", res["slope"])), " *
-                          "R²=$(round(res["R2"],digits=3)))",),
-                   titlefontsize=8,
-                   guidefontsize=7,
-                   tickfontsize=4,
-                   markercolor="black",
-                   markersize=2,
-                   markerstrokecolor=nothing,
-                   alpha=0.6,
-                   #smooth=true,
-                   #linecolor="red",
-                   legend=false)
-    plot!(line_xs, r2_ys, color="red")
-
-    p_euc = scatter(geo_dists, ts_dists,
-                    xlabel="geographic distance (m)",
-                    ylabel="Euclidean time-series distance",
-                    title=("Euclidean asynchrony\n" *
-                           "(β=$(@sprintf("%e", res_euc["slope"])), " *
-                           "R²=$(round(res_euc["R2"],digits=3)))"),
-                    titlefontsize=8,
-                    guidefontsize=7,
-                    tickfontsize=4,
-                    markercolor="black",
-                    markersize=2,
-                    markerstrokecolor=nothing,
-                    alpha=0.6,
-                    #smooth=true,
-                    #linecolor="red",
-                    legend=false)
-    plot!(line_xs, euc_ys, color="red")
-
-    p_coeff = scatter(geo_dists, coeff_dists,
-                      xlabel="geographic distance (m)",
-                      ylabel="Euclidean coeff-vector distance",
-                      title=("Coefficient asynchrony\n" *
-                             "(β=$(@sprintf("%e", res_coeff["slope"])), " *
-                             "R²=$(round(res_coeff["R2"],digits=3)))"),
-                      titlefontsize=8,
-                      guidefontsize=7,
-                      tickfontsize=4,
-                      markercolor="black",
-                      markersize=2,
-                      markerstrokecolor=nothing,
-                      alpha=0.6,
-                      #smooth=true,
-                      #linecolor="red",
-                      legend=false)
-    plot!(line_xs, coeff_ys, color="red")
-
-    # plot the raster and highlight the location
-    hkw::Int64 = KERNEL_SIZE/2
-    xmin = minimum(xs[hkw+1:end-hkw]) - 0.5*XRES
-    xmax = maximum(xs[hkw+1:end-hkw]) + 0.5*XRES
-    ymin = maximum(ys[hkw+1:end-hkw]) + 0.5*YRES
-    ymax = minimum(ys[hkw+1:end-hkw]) - 0.5*YRES
-    println((xmin, ymin), (xmax, ymax))
-    ga = GeoArray(outpatch[:,:,1])
-    epsg!(ga, 4326)
-    bbox!(ga, (min_x=xmin, min_y=ymin, max_x=xmax, max_y=ymax))
-    p_rast = plot(ga)
-    #p_rast = plot_patch(outpatch, ((xmin, ymin), (xmax, ymax)))
-    scatter!([foc_x], [foc_y], legend=false,
-             title=("lon: $(round(foc_x, digits=4))\n" *
-                    "lat: $(round(foc_y, digits=4))\n" *
-                    "N:   $(length(geo_dists)) neighbors"),
-             seriescolor="red", markerstrokecolor=nothing, alpha=0.3,
-             markersize=10, tickfontsize=4, titlefontsize=8)
-
-
-    plot(p_r2, p_euc, p_coeff, p_rast)#, layout=lo)
-end
-
-"""
-Make a quick 'n dirty panel plot of all the patches in a TFRecord file
-"""
-function plot_all_patches(fp; bands=INBANDS)
-    ip, op = get_inpatches_outpatches(fp, bands, DIMS)
-    plots = Any[]
-    for (n, p) in ip
-        push!(plots, plot(GeoArray(p[:,:,1])))
-    end
-    plot(plots...)
-end
+##------------------------
+## define helper functions
+##------------------------
+#
+#"""
+#Make a GeoArray (multilayer raster object) of the patch provided.
+#Pull the necessary georeferencing info from dims and the mixer_info provided.
+#NOTE: dims fed in separately because dims indicated in GEE's mixer file are incorrect.
+#"""
+#function make_geoarray(patch; dims=DIMS, mixer_info=MIX,
+#                              xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing)
+#    # make a GeoArray
+#    # NOTE: not sure why I need to transpose the patch...
+#    #ga = GeoArray(transpose(patch))
+#    ga = GeoArray(patch)
+#    # get the projection info
+#    proj = mixer_info["projection"]
+#    # get and set the CRS 
+#    crs = parse(Int, split(proj["crs"], ':')[2]) 
+#    epsg!(ga, crs)
+#    # get and set the bounding box
+#    aff = proj["affine"]["doubleMatrix"]
+#    if isa(xmin, Nothing)
+#        xmin = aff[3]
+#    end
+#    if isa(ymin, Nothing)
+#        ymin = aff[6]
+#    end
+#    if isa(xmax, Nothing)
+#        xmax = xmin + aff[1]*dims[1]
+#    end
+#    if isa(ymax, Nothing)
+#        ymax = ymin + aff[5]*dims[2]
+#    end
+#    bbox!(ga, (min_x=xmin,
+#               min_y=ymin,
+#               max_x=xmax,
+#               max_y=ymax))
+#    return ga
+#end
+#
+#"""
+#Plot a patch as a GeoArray.
+#"""
+#function plot_patch(patch, bbox_coords; cmap=:inferno)
+#    mins, maxs = bbox_coords
+#    xmin, ymin = mins
+#    xmax, ymax = maxs
+#    ga = make_geoarray(patch, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
+#    plot(ga, band=1, color=cmap, tickfontsize=4)#, yflip=true)
+#end
+#
+#"""
+#Plot the asynch, its R2s, and its sample sizes.
+#"""
+#function plot_results(outpatch)
+#    # plot asynch
+#    ga =  make_geoarray(outpatch) 
+#    p1 = plot(ga, band=1, title="asynch (corr)")
+#    p2 = plot(ga, band=2, title="asynch (corr): R2s")
+#    p3 = plot(ga, band=3, title="asynch (euc)")
+#    p4 = plot(ga, band=4, title="asynch (euc): R2s")
+#    p5 = plot(ga, band=5, title="n")
+#    plot(p1, p2, p3, p4, p5, layout=5)
+#end
+#
+#"""
+#Plot the asynchrony calculation data for the chosen i,j pixel in the chosen patch.
+#"""
+#function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=true)
+#
+#    # time it?
+#    if timeit
+#        # get start time
+#        start = now()
+#    end
+#
+#    # get the lons and lats
+#    xs, ys = get_patch_lons_lats(XMIN, YMIN, XRES, YRES, DIMS, patch_j, patch_i)
+#    vec_ys = vec(ys)
+#    vec_xs = vec(xs)
+#    foc_y, foc_x = (ys[i,j], xs[i,j])
+#
+#    # get the BallTree
+#    tree = BallTree([vec_xs vec_ys]', Haversine(EARTH_RAD))
+#
+#    # create lists of R2 and dist values
+#    R2s::Array{Float64, 1} = []
+#    ts_dists::Array{Float64, 1} = []
+#    geo_dists::Array{Float64, 1} = []
+#    coeff_dists::Array{Float64, 1} = []
+#
+#    # calculate the focal pixel's time series (and its standardized time series)
+#    ts_foc = calc_time_series(patch, i, j, DESIGN_MAT)
+#    stand_ts_foc = standardize(ts_foc)
+#
+#    # make the Haversine instance and function for this cell
+#    hav_inst = Haversine(EARTH_RAD)
+#    hav_fn = function(coord_pair)
+#        return hav_inst((foc_x, foc_y), coord_pair)
+#    end
+#
+#    # get the coords, dists, and array-indices
+#    # of all of the focal pixel's neighbors
+#    coords_dists_inds = get_neighbors_info(i, j, VEC_IS, VEC_JS,
+#                                           foc_y, foc_x, vec_ys, vec_xs,
+#                                           YRES, XRES, DIMS,
+#                                           patch_i, nneighs_lookup_dict,
+#                                           hav_fn, tree)
+#
+#    # loop over neighbors
+#    for (neigh_coords, neigh_info) in coords_dists_inds
+#        # unpack the neighbor info
+#        neigh_dist, neigh_inds = neigh_info
+#        ni, nj = neigh_inds
+#
+#        # get the neighbor's time series
+#        ts_neigh = calc_time_series(patch, ni, nj, DESIGN_MAT)
+#        stand_ts_neigh = standardize(ts_neigh)
+#
+#        # drop this pixel if it returns NAs
+#        if any(isnan.(ts_neigh))
+#           # do nothing 
+#           continue
+#        else
+#            try
+#                # calculate the R2
+#                R2 = run_linear_regression(ts_foc, ts_neigh)["R2"]
+#
+#                # calculate the Euclidean distance between the 2 standardized time series
+#                ts_dist = euclidean(stand_ts_foc, stand_ts_neigh)
+#
+#                # calculate the Euclidean distance between the coeff vectors
+#                coeff_dist = euclidean(view(patch, i, j, :), view(patch, ni, nj, :))
+#         
+#                # append the metrics, if the neighbor-distance calculation was successful
+#                append!(geo_dists, neigh_dist)
+#                append!(R2s, R2)
+#                append!(ts_dists, ts_dist)
+#                append!(coeff_dists, coeff_dist)
+#            catch error
+#                @warn ("ERROR THROWN WHILE CALCULATING NEIGHBOR-DISTANCE METRICS:" *
+#                         "\n\tpixel: $i, $j\n\tneighbor: $ni, $nj\n")
+#            end
+#        end
+#    end
+#
+#    # get the slope of the overall regression of R2s on geo dist
+#    # NOTE: setting fit_intercept to false and subtracting 1
+#    #       from the array of R2s effectively
+#    #       fixes the intercept at R2=1
+#    res = run_linear_regression(geo_dists, R2s .- 1, fit_intercept=false)
+#    # get the slope of the overall regression of Euclidean ts dists on geo dist
+#    # NOTE: just setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
+#    res_euc = run_linear_regression(geo_dists, ts_dists, fit_intercept=true)
+#   
+#    # get the slope of the coeff_dist, geo_dist regression
+#    res_coeff = run_linear_regression(geo_dists, coeff_dists, fit_intercept=true)
+#
+#    # get trendlines for the regressions
+#    line_xs = [0:1:150_000;]
+#    r2_ys = @. 1 + res["slope"] * line_xs
+#    euc_ys = @. 0 + res_euc["slope"] * line_xs
+#    coeff_ys = @. 0 + res_coeff["slope"] * line_xs
+#
+#    # set up the layout grid
+#    lo = @layout [ [ a ; b ] c{0.75w} ]
+#
+#    # make the scatterplots
+#    p_r2 = scatter(geo_dists, R2s,
+#                   xlabel="geographic distance (m)",
+#                   ylabel="time series' R²s",
+#                   title=("R² asynchrony\n" *
+#                          "(β=$(@sprintf("%e", res["slope"])), " *
+#                          "R²=$(round(res["R2"],digits=3)))",),
+#                   titlefontsize=8,
+#                   guidefontsize=7,
+#                   tickfontsize=4,
+#                   markercolor="black",
+#                   markersize=2,
+#                   markerstrokecolor=nothing,
+#                   alpha=0.6,
+#                   #smooth=true,
+#                   #linecolor="red",
+#                   legend=false)
+#    plot!(line_xs, r2_ys, color="red")
+#
+#    p_euc = scatter(geo_dists, ts_dists,
+#                    xlabel="geographic distance (m)",
+#                    ylabel="Euclidean time-series distance",
+#                    title=("Euclidean asynchrony\n" *
+#                           "(β=$(@sprintf("%e", res_euc["slope"])), " *
+#                           "R²=$(round(res_euc["R2"],digits=3)))"),
+#                    titlefontsize=8,
+#                    guidefontsize=7,
+#                    tickfontsize=4,
+#                    markercolor="black",
+#                    markersize=2,
+#                    markerstrokecolor=nothing,
+#                    alpha=0.6,
+#                    #smooth=true,
+#                    #linecolor="red",
+#                    legend=false)
+#    plot!(line_xs, euc_ys, color="red")
+#
+#    p_coeff = scatter(geo_dists, coeff_dists,
+#                      xlabel="geographic distance (m)",
+#                      ylabel="Euclidean coeff-vector distance",
+#                      title=("Coefficient asynchrony\n" *
+#                             "(β=$(@sprintf("%e", res_coeff["slope"])), " *
+#                             "R²=$(round(res_coeff["R2"],digits=3)))"),
+#                      titlefontsize=8,
+#                      guidefontsize=7,
+#                      tickfontsize=4,
+#                      markercolor="black",
+#                      markersize=2,
+#                      markerstrokecolor=nothing,
+#                      alpha=0.6,
+#                      #smooth=true,
+#                      #linecolor="red",
+#                      legend=false)
+#    plot!(line_xs, coeff_ys, color="red")
+#
+#    # plot the raster and highlight the location
+#    hkw::Int64 = KERNEL_SIZE/2
+#    xmin = minimum(xs[hkw+1:end-hkw]) - 0.5*XRES
+#    xmax = maximum(xs[hkw+1:end-hkw]) + 0.5*XRES
+#    ymin = maximum(ys[hkw+1:end-hkw]) + 0.5*YRES
+#    ymax = minimum(ys[hkw+1:end-hkw]) - 0.5*YRES
+#    println((xmin, ymin), (xmax, ymax))
+#    ga = GeoArray(outpatch[:,:,1])
+#    epsg!(ga, 4326)
+#    bbox!(ga, (min_x=xmin, min_y=ymin, max_x=xmax, max_y=ymax))
+#    p_rast = plot(ga)
+#    #p_rast = plot_patch(outpatch, ((xmin, ymin), (xmax, ymax)))
+#    scatter!([foc_x], [foc_y], legend=false,
+#             title=("lon: $(round(foc_x, digits=4))\n" *
+#                    "lat: $(round(foc_y, digits=4))\n" *
+#                    "N:   $(length(geo_dists)) neighbors"),
+#             seriescolor="red", markerstrokecolor=nothing, alpha=0.3,
+#             markersize=10, tickfontsize=4, titlefontsize=8)
+#
+#
+#    plot(p_r2, p_euc, p_coeff, p_rast)#, layout=lo)
+#end
+#
+#"""
+#Make a quick 'n dirty panel plot of all the patches in a TFRecord file
+#"""
+#function plot_all_patches(fp; bands=INBANDS)
+#    ip, op = get_inpatches_outpatches(fp, bands, DIMS)
+#    plots = Any[]
+#    for (n, p) in ip
+#        push!(plots, plot(GeoArray(p[:,:,1])))
+#    end
+#    plot(plots...)
+#end
