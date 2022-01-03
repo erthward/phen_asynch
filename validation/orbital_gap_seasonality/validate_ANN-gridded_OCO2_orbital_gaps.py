@@ -434,9 +434,9 @@ def make_scatter_and_tsgrid():
                    }
     color_dict = {'S.Am.': 'orange',
                   'Afr.': 'purple',
-                  'Pap.': '#b8ecf2',
-                  'Jav.': '#60c1cc',
-                  'Aus.': '#1d8a96'
+                  'Pap.': '#b8ecf2', # lightest blue
+                  'Jav.': '#60c1cc', # medium blue
+                  'Aus.': '#1d8a96'  # darkest blue
                  }
     fig_tsgrid = plt.figure()
     fig_tsgrid.suptitle(('paired TROPOMI (solid) and ANN-gridded (dashed) time '
