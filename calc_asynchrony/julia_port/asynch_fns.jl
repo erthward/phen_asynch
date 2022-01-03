@@ -1354,6 +1354,7 @@ function main_fn(file_info::Tuple{String,Dict{String,Any}};
         randnumstr = "$(round(Int, rand()*10000000))"
         tiff_filename = "$(VAR)_$randnumstr.tif"
         tiff_filepath = "/$(join(splitpath("/global/scratch/drew/things/here/file.tfrecord")[2:end-1], "/"))/$tiff_filename"
+        println("\nNOW WRITING FILE $tiff_filepath\n")
         write_geotiff(outpatch, MIX, patch_is[idx], patch_js[idx], tiff_filepath)
     end
 
