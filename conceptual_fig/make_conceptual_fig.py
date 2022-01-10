@@ -20,9 +20,12 @@ title_fontsize = 12
 rowlab_fontsize = 20
 axislab_fontsize = 11
 ticklab_fontsize = 12
+cbarlab_fontsize = 9
+cbarticklab_fontsize = 6
 annot_fontsize = 14
 scat_label_fontsize = 6
-scat_label_fontcolor = 'red'
+scat_label_fontcolor = '#ff4d4d'
+scat_label_linewidth = 2
 fig_width = 10.5
 fig_height = 5.6
 dpi = 400
@@ -43,13 +46,19 @@ rad_color = 'white'
 rad_linewidth = 2
 rad_alpha = 0.75
 rad_mask_alpha = 0.175
-arr_cmap = plt.cm.viridis
+arr_cmap = plt.cm.twilight_shifted
 arr_mask_color = '#555555'
-curve_cmap = plt.cm.viridis_r
-scat_label_text = {'high': 'steep slope:\nhigh asynch',
-                   'low': 'shallow slope:\nlow asynch',
+curve_cmap = plt.cm.viridis
+asynch_scat_cmap = curve_cmap
+rand_pix_to_track = 186
+rand_pix_color = '#ffaa21'
+rand_pix_linewidth = 0.75
+rand_pix_markersize=8
+scat_markersize=25
+scat_label_text = {'high': 'steep slope:\nhigh asynch value',
+                   'low': 'shallow slope:\nlow asynch value',
                   }
-betas = [1, 2, 1, 1]
+betas = [5, 1, 2, 1, 1]
 noise_max = 0.3
 rad = 10
 min_x=0
@@ -58,24 +67,31 @@ min_y=0
 max_y=1
 dims=(21,21)
 central_cell = [int((n-1)/2) for n in dims]
-seed = 9
+seed = 99
 mpd_h = 1.2
 orientation='landscape'
 savefig=True
 
 def get_seasonal_curve(betas, plot=True, color='gray',
-                       ax=None, linestyle='-', linewidth=1, alpha=0.5):
+                       ax=None, linestyle='-', linewidth=1, alpha=0.5,
+                       min_seas_dist=None, max_seas_dist=None):
     if plot:
         if ax is None:
             no_ax = True
             fig, ax = plt.subplots()
         else:
             no_ax = False
-    fitted = (betas[0]*np.sin(np.linspace(0,2*pi,365)) +
-              betas[1]*np.cos(np.linspace(0,2*pi,365)) +
-              betas[2]*np.sin(np.linspace(0,4*pi,365)) +
-              betas[3]*np.cos(np.linspace(0,4*pi,365)))
+    fitted = (betas[0] +
+              betas[1]*np.sin(np.linspace(0,2*pi,365)) +
+              betas[2]*np.cos(np.linspace(0,2*pi,365)) +
+              betas[3]*np.sin(np.linspace(0,4*pi,365)) +
+              betas[4]*np.cos(np.linspace(0,4*pi,365)))
     if plot:
+        if isinstance(color, np.ndarray):
+            seas_dist = pythag_dist(fitted, color)
+            color_val = int(((seas_dist-min_seas_dist)/(
+                            max_seas_dist-min_seas_dist)) * 255)
+            color=curve_cmap(color_val)
         ax.plot(np.linspace(1,365,365), fitted, linestyle,
                 color=color, linewidth=linewidth, alpha=alpha)
         if no_ax:
@@ -87,10 +103,10 @@ def get_seasonal_curve(betas, plot=True, color='gray',
 def make_betas_array(betas, asynch, dims=(21,21)):
     assert asynch in ['high', 'low']
     if asynch == 'high':
-        arr = np.stack([nlmpy.mpd(*dims, h=mpd_h)-0.5*betas[i] for i in range(4)])
+        arr = np.stack([nlmpy.mpd(*dims, h=mpd_h)-0.5*betas[i] for i in range(5)])
     else:
         stack = []
-        for i in range(4):
+        for i in range(5):
             central_val = np.ones(dims)*betas[i]
             noise = np.random.uniform(0, noise_max, np.prod(dims)).reshape(dims)
             lyr = central_val + noise
@@ -111,8 +127,9 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
 
     if plot_it:
         fig = plt.figure(dpi=dpi, figsize=(fig_width, fig_height))
-        top_axs = [fig.add_subplot(2,3,i+1) for i in range(3)]
-        bot_axs = [fig.add_subplot(2,3,i+4) for i in range(3)]
+        gs = fig.add_gridspec(nrows=2, ncols=4, width_ratios = [1.1, 0.2, 1, 1])
+        top_axs = [fig.add_subplot(gs[0,i]) for i in [0,2,3]]
+        bot_axs = [fig.add_subplot(gs[1,i]) for i in [0,2,3]]
     else:
         top_axs = [0,0]
         bot_axs = [0,0]
@@ -136,20 +153,22 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
 
         cent_fitted = get_seasonal_curve(arr[:, central_cell[0], central_cell[1]],
                                              plot=False)
+        pix_n = 0
         for i in range(arr.shape[1]):
             for j in range(arr.shape[2]):
                 dist = pythag_dist([i,j], central_cell)
                 geo_dist_arr[i,j] = dist
                 linewidth = neighbor_linewidth
                 alpha = neighbor_alpha
-                color_val = int(((rad-dist)/(rad-0)) * 255)
-                color=curve_cmap(color_val)
-                fitted = get_seasonal_curve(arr[:, i, j], color=color,
+                #color_val = int(((rad-dist)/(rad-0)) * 255)
+                #color=curve_cmap(color_val)
+                fitted = get_seasonal_curve(arr[:, i, j], color=cent_fitted,
                                                 ax=ax2, linewidth=linewidth,
                                                 alpha=alpha,
+                                            min_seas_dist=min_seas_dist,
+                                            max_seas_dist=max_seas_dist,
                         # NOTE: only plot non-central cells and cells within rad
                         plot=([i, j] != central_cell and dist<rad and plot_it))
-
 
                 # gather values for ax1 plot
                 seas_dist = pythag_dist(fitted, cent_fitted)
@@ -160,7 +179,18 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
                 if dist <= rad:
                     xs.append(dist)
                     ys.append(seas_dist)
-                    cols.append(color)
+                    #cols.append(color)
+                    cols.append(np.argmax(fitted))
+
+                # save the random pixel to be tracked, if it's the right time
+                if pix_n == rand_pix_to_track:
+                    rand_pix_i = i
+                    rand_pix_j = j
+                    rand_pix_geo_dist = dist
+                    rand_pix_seas_dist = seas_dist
+
+                # increment the pixel counter
+                pix_n += 1
         # now plot the central cell's curve
         cent_fitted = get_seasonal_curve(arr[:, central_cell[0], central_cell[1]],
                                          ax=ax2,
@@ -168,11 +198,20 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
                                          alpha=central_alpha,
                                          linewidth=central_linewidth,
                                          plot=plot_it)
+        # and plot the random pixel's curve
+        fitted = get_seasonal_curve(arr[:, rand_pix_i, rand_pix_j],
+                                    color=rand_pix_color,
+                                    ax=ax2, linewidth=rand_pix_linewidth,
+                                    alpha=1, plot=plot_it)
 
         # plot image of seasonal distance and label with geo dist and radius)
         if plot_it:
-            ax1.imshow(seas_dist_arr, cmap=arr_cmap,
-                       vmin=min_seas_dist, vmax=max_seas_dist)
+            # ax1
+            im = ax1.imshow(seas_peak_arr, cmap=arr_cmap,
+                            vmin=0, vmax=364)
+            cbar = plt.colorbar(im, ax=ax1, orientation='vertical')
+            cbar.set_label(label='day of year',size=cbarlab_fontsize)
+            cbar.ax.tick_params(labelsize=cbarticklab_fontsize)
             ax1.imshow(np.invert(geo_dist_arr>rad), cmap=plt.cm.gray,
                        vmin=0, vmax=1, alpha=rad_mask_alpha)
             #for i in range(dims[0]):
@@ -184,19 +223,27 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
                                                                              2*pi, 720)]
             ax1.plot(rad_xs, rad_ys, rad_linestyle,
                      color=rad_color, linewidth=rad_linewidth, alpha=rad_alpha)
+            ax1.scatter(*central_cell, c='black', s=rand_pix_markersize)
+            ax1.scatter(rand_pix_i, rand_pix_j, c=rand_pix_color,
+                        s=rand_pix_markersize)
 
-
+            # ax3
             y = np.array(ys).T
             X = np.array(xs).T
             mod = sm.OLS(y, X).fit()
             pred_xs = np.linspace(0.9*np.min(xs), 1.1*np.max(xs), 10)
             preds = mod.predict(pred_xs)
-            ax3.scatter(xs, ys, c=cols)
+            ax3.scatter(xs, ys, c=cols, s=scat_markersize,
+                        cmap=asynch_scat_cmap)
+            ax3.scatter(rand_pix_geo_dist, rand_pix_seas_dist,
+                        c=rand_pix_color, s=rand_pix_markersize)
             ax3.set_ylim((min_seas_dist, max_seas_dist))
             ax3.plot(pred_xs, preds, '-k')
-            ax3.plot([pred_xs[4], pred_xs[7], pred_xs[7]],
-                     [preds[4], preds[4], preds[7]], ':r')
-            ax3.text(pred_xs[7], preds[2], scat_label_text[asynch],
+            ax3.plot([pred_xs[2], pred_xs[5], pred_xs[5]],
+                     [preds[2], preds[2], preds[5]], ':',
+                     color=scat_label_fontcolor,
+                     linewidth=scat_label_linewidth)
+            ax3.text(pred_xs[5], 0.5*preds[1], scat_label_text[asynch],
                      fontdict={'fontsize': scat_label_fontsize,
                                'color': scat_label_fontcolor})
 
@@ -208,19 +255,9 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             ax1.set_yticklabels(())
             ax1.tick_params(axis=u'both', which=u'both', length=0)
             if asynch == 'high':
-                ax1.set_xlabel('map of seasonal distance',
+                ax1.set_xlabel('map of peak seasonality',
                                fontdict={'fontsize': axislab_fontsize})
-
-            # dress it up
-            ax1.set_xticks(())
-            ax1.set_yticks(())
-            ax1.set_xticklabels(())
-            ax1.set_yticklabels(())
-            ax1.tick_params(axis=u'both', which=u'both', length=0)
-            if asynch == 'high':
-                ax1.set_xlabel('map of seasonal peak',
-                               fontdict={'fontsize': axislab_fontsize})
-            ax1.set_ylabel('%s asynch' % asynch,
+            ax1.set_ylabel('%s asynch\nlandscape' % asynch,
                            fontdict={'fontsize': rowlab_fontsize})
 
             ax2.set_xticks(())
@@ -240,7 +277,7 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             if asynch == 'high':
                 ax3.set_xlabel('geographic distance',
                           fontdict={'fontsize': axislab_fontsize})
-            ax3.set_ylabel('phenological distance',
+            ax3.set_ylabel('seasonal distance',
                            fontdict={'fontsize': axislab_fontsize})
 
         # if not plotting, just store the min and max values
