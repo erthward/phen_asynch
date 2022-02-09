@@ -20,24 +20,25 @@ title_fontsize = 12
 rowlab_fontsize = 20
 axislab_fontsize = 11
 ticklab_fontsize = 12
-cbarlab_fontsize = 9
+cbarlab_fontsize = 12
+cbarticklab_fontsize = 10
 cbarticklab_fontsize = 6
 annot_fontsize = 14
-scat_label_fontsize = 6
+scat_label_fontsize = 10
 scat_label_fontcolor = '#ff4d4d'
-scat_label_linewidth = 2
+scat_label_linewidth = 3
 fig_width = 10.5
 fig_height = 5.6
 dpi = 400
 n_ticklabels = 5
-subplots_adj_left=0.05
+subplots_adj_left=0.06
 subplots_adj_bottom=0.05
 subplots_adj_right=0.96
 subplots_adj_top=0.95
 subplots_adj_wspace=0.14
 subplots_adj_hspace=0.30
 central_curve_color = '#220000'
-central_linewidth = 3
+central_linewidth = 2
 central_alpha = 1
 neighbor_linewidth = 1
 neighbor_alpha = 0.5
@@ -50,16 +51,19 @@ arr_cmap = plt.cm.twilight_shifted
 arr_mask_color = '#555555'
 curve_cmap = plt.cm.viridis
 asynch_scat_cmap = curve_cmap
-rand_pix_to_track = 186
-rand_pix_color = '#ffaa21'
-rand_pix_linewidth = 0.75
-rand_pix_markersize=8
-scat_markersize=25
-scat_label_text = {'high': 'steep slope:\nhigh asynch value',
-                   'low': 'shallow slope:\nlow asynch value',
+rand_pix_to_track = 208
+rand_pix_color = '#ffc31c'
+rand_pix_linewidth = 1.5
+#rand_pix_marker = '$\U0001F4CD$'
+rand_pix_marker = '*'
+rand_pix_markersize=80
+scat_markersize=5
+scat_markeralpha=0.75
+scat_label_text = {'high': '$steep \\rightarrow high\ asynch$',
+                   'low': '$flat\ \\rightarrow low\ asynch$',
                   }
 betas = [5, 1, 2, 1, 1]
-noise_max = 0.3
+noise_max = 0.25
 rad = 10
 min_x=0
 max_x=1
@@ -67,8 +71,8 @@ min_y=0
 max_y=1
 dims=(21,21)
 central_cell = [int((n-1)/2) for n in dims]
-seed = 99
-mpd_h = 1.2
+seed = 103121
+mpd_h = 1.4
 orientation='landscape'
 savefig=True
 
@@ -112,6 +116,7 @@ def make_betas_array(betas, asynch, dims=(21,21)):
             lyr = central_val + noise
             stack.append(lyr)
         arr = np.stack(stack)
+
     return(arr)
 
 
@@ -200,9 +205,15 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
                                          plot=plot_it)
         # and plot the random pixel's curve
         fitted = get_seasonal_curve(arr[:, rand_pix_i, rand_pix_j],
+                                    color='k',
+                                    ax=ax2, linewidth=1.5*rand_pix_linewidth,
+                                    alpha=1, plot=plot_it)
+        fitted = get_seasonal_curve(arr[:, rand_pix_i, rand_pix_j],
                                     color=rand_pix_color,
                                     ax=ax2, linewidth=rand_pix_linewidth,
                                     alpha=1, plot=plot_it)
+
+
 
         # plot image of seasonal distance and label with geo dist and radius)
         if plot_it:
@@ -210,8 +221,11 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             im = ax1.imshow(seas_peak_arr, cmap=arr_cmap,
                             vmin=0, vmax=364)
             cbar = plt.colorbar(im, ax=ax1, orientation='vertical')
-            cbar.set_label(label='day of year',size=cbarlab_fontsize)
+            cbar.set_label(label='time of year',size=cbarlab_fontsize)
+            cbar.set_ticks(np.linspace(0,364,5))
+            cbar.set_ticklabels(['Jan', 'Apr', 'Jul', 'Oct', 'Jan'])
             cbar.ax.tick_params(labelsize=cbarticklab_fontsize)
+            cbar.ax.tick_params(labelsize=cbarticklab_fontsize, length=0)
             ax1.imshow(np.invert(geo_dist_arr>rad), cmap=plt.cm.gray,
                        vmin=0, vmax=1, alpha=rad_mask_alpha)
             #for i in range(dims[0]):
@@ -225,25 +239,38 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
                      color=rad_color, linewidth=rad_linewidth, alpha=rad_alpha)
             ax1.scatter(*central_cell, c='black', s=rand_pix_markersize)
             ax1.scatter(rand_pix_i, rand_pix_j, c=rand_pix_color,
-                        s=rand_pix_markersize)
+                        s=rand_pix_markersize, marker=rand_pix_marker,
+                        edgecolor='k', linewidth=0.5)
 
             # ax3
             y = np.array(ys).T
-            X = np.array(xs).T
-            mod = sm.OLS(y, X).fit()
-            pred_xs = np.linspace(0.9*np.min(xs), 1.1*np.max(xs), 10)
+            X = np.stack((np.ones((len(xs))), np.array(xs))).T
+            #X = np.array(xs).T
+            mod = sm.OLS(y, X, hasconst=True).fit()
+            #mod = sm.OLS(y, X, hasconst=False).fit()
+            pred_xs = np.stack((np.ones(10), np.linspace(0.9*np.min(xs), 1.1*np.max(xs), 10))).T
+            #pred_xs = np.linspace(0.9*np.min(xs), 1.1*np.max(xs), 10)
             preds = mod.predict(pred_xs)
-            ax3.scatter(xs, ys, c=cols, s=scat_markersize,
-                        cmap=asynch_scat_cmap)
+            #ax3.scatter(xs, ys, c=cols, s=scat_markersize,
+            #            cmap=asynch_scat_cmap)
+            ax3.scatter(xs, ys, c='k', s=scat_markersize,
+                        alpha=scat_markeralpha)
             ax3.scatter(rand_pix_geo_dist, rand_pix_seas_dist,
-                        c=rand_pix_color, s=rand_pix_markersize)
-            ax3.set_ylim((min_seas_dist, max_seas_dist))
-            ax3.plot(pred_xs, preds, '-k')
-            ax3.plot([pred_xs[2], pred_xs[5], pred_xs[5]],
-                     [preds[2], preds[2], preds[5]], ':',
+                        c=rand_pix_color, s=rand_pix_markersize,
+                        marker=rand_pix_marker, edgecolor='k', linewidth=0.5)
+            if asynch == 'low':
+                ax3.set_ylim((min_seas_dist, max_seas_dist))
+            else:
+                ax3.set_ylim((min_seas_dist, max_seas_dist))
+            ax3.plot(pred_xs[:,1], preds, '-k')
+            #ax3.plot(pred_xs, preds, '-k')
+            ax3.plot([pred_xs[2,1], pred_xs[2,1], pred_xs[5,1]],
+            #ax3.plot([pred_xs[2], pred_xs[2], pred_xs[5]],
+                     [preds[2], preds[5], preds[5]], ':',
                      color=scat_label_fontcolor,
                      linewidth=scat_label_linewidth)
-            ax3.text(pred_xs[5], 0.5*preds[1], scat_label_text[asynch],
+            ax3.text(0.05, 0.85, scat_label_text[asynch],
+                     transform=ax3.transAxes,
                      fontdict={'fontsize': scat_label_fontsize,
                                'color': scat_label_fontcolor})
 
@@ -265,7 +292,7 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             ax2.set_yticks(())
             ax2.set_yticklabels(())
             if asynch == 'high':
-                ax2.set_xlabel('day of year',
+                ax2.set_xlabel('time of year',
                            fontdict={'fontsize': axislab_fontsize})
             ax2.set_ylabel('phenological signal',
                            fontdict={'fontsize': axislab_fontsize})

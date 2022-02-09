@@ -219,7 +219,7 @@ def extract_vals_at_site(data, data_lons, data_lats, site_lon, site_lat,
 ###############################################
 
 # get the data directory
-data_dir = '/run/media/drew/SLAB/seasonality/SIF'
+data_dir = '/media/deth/SLAB/seasonality/SIF'
 orig_dir = os.path.join(data_dir, 'OCO-2/orig')
 grid_dir = os.path.join(data_dir,
                         'OCO-2/gridded/Global_High_Res_SIF_OCO2_1696/data')
@@ -233,7 +233,6 @@ stop_date = '2017-12-31'
 orig_files, orig_dates = get_netcdf_files(orig_dir)
 grid_files, grid_dates = get_netcdf_files(grid_dir, filetype='grid')
 trop_files, trop_dates = get_netcdf_files(trop_dir, filetype='trop')
-
 
 # get the cell-centers from gridded ANN data
 grid_lons, grid_lats, grid_sif_0 = read_netcdf(grid_files[0], filetype='grid')
@@ -260,9 +259,17 @@ coverage_array = np.zeros((grid_lats.size, grid_lons.size))
 
 # now loop through all original OCO-2 files and determine which of those cells
 # have no coverage, i.e. which cells are within the orbital gaps
-tmp_dir = ('/home/drew/Desktop/stuff/berk/research/projects/'
-           'seasonality/tmp_data_coverage_arrays')
-for n, f in enumerate(orig_files):
+tmp_dir = '/media/deth/SLAB/seasonality/tmp_data_coverage_arrays'
+
+# 02-08-2022: get rid of files already covered by existing tmp files
+# (array_up_to_file_XXXX.txt), so that I can rerun and pick up where
+# I left off if the previous job died midway
+last_file_completed = np.max([int(re.search(
+                                '(?<=^array_up_to_file_)\d+(?=.txt$)',
+                                f).group()) for f in os.listdir(tmp_dir)])
+orig_files_to_analyze = orig_files[last_file_completed+1:]
+
+for n, f in enumerate(orig_files_to_analyze):
     if n > -1:
         print('\nNow processing file number %i:\n\t%s\n\n' % (n, f))
         orig_lons, orig_lats, orig_sif = read_netcdf(f)
@@ -404,7 +411,8 @@ for site, grid_series in grid_data_series.items():
 # histogram of the correlation coefficients
 fig_hist = plt.figure()
 fig_hist.suptitle(('corr. coeffs.: TROPOMI vs. ANN-gridded OCO-2 '
-                   'within orbital gaps'))
+                   'within orbital gaps'),
+                  fontdict={'fontsize': 25})
 plt.hist([*corr_coeffs.values()], bins=25, alpha=0.8)
 plt.xlabel('correlation coefficient')
 plt.ylabel('frequency')
@@ -415,10 +423,13 @@ plt.ylabel('frequency')
 def make_scatter_and_tsgrid():
     fig_scat = plt.figure()
     fig_scat.suptitle(('scatterplot of paired values across all sites, colored '
-                       'by region'))
+                       'by region'),
+                      fontdict={'fontsize': 25})
     scat_ax = fig_scat.add_subplot(111)
-    scat_ax.set_xlabel('ANN-gridded SIF ($mW/m^2/sr/nm$)')
-    scat_ax.set_ylabel('TROPOMI SIF ($mW/m^2/sr/nm$)')
+    scat_ax.set_xlabel('ANN-gridded SIF ($mW/m^2/sr/nm$)',
+                       fontdict={'fontsize':22})
+    scat_ax.set_ylabel('TROPOMI SIF ($mW/m^2/sr/nm$)',
+                       fontdict={'fontsize':22})
 
     # grid of paired time-series plots, one per site
     region_dict = {(-76.4851409407,-11.1511447176,
@@ -434,15 +445,15 @@ def make_scatter_and_tsgrid():
                    }
     color_dict = {'S.Am.': 'orange',
                   'Afr.': 'purple',
-                  'Pap.': '#b8ecf2', # lightest blue
-                  'Jav.': '#60c1cc', # medium blue
-                  'Aus.': '#1d8a96'  # darkest blue
+                  'Pap.': '#60c1cc', # 02-07-2022: changed all to same blue
+                  'Jav.': '#60c1cc',
+                  'Aus.': '#60c1cc',
                  }
     fig_tsgrid = plt.figure()
     fig_tsgrid.suptitle(('paired TROPOMI (solid) and ANN-gridded (dashed) time '
                          'series, by site: ORANGE=South America, '
                          'PURPLE=Africa, BLUES=Papua New Guinea, Java, Australia '
-                         '(light to dark)'))
+                         '(light to dark)'), fontdict={'fontsize':25})
     fig_tsgrid.tight_layout()
     n_cols = 20
     n_rows = 9
@@ -475,15 +486,15 @@ def make_scatter_and_tsgrid():
             plt.xticks(size=6, rotation=45)
             #ax.set_xticklabels(ax.get_xticklabels(), size=6, rotation=45)
         if n == 82:
-            ax.set_ylabel('SIF ($mW/m^2/sr/nm$)')
+            ax.set_ylabel('SIF ($mW/m^2/sr/nm$)', fontdict={'fontsize':22})
         if n == 171:
-            ax.set_xlabel('time')
+            ax.set_xlabel('time', fontdict={'fontsize':22})
 
         # add the site's TROPOMI and ANN-gridded data to the overall
         # scatterplot
         scat_ax.plot(grid_series, trop_subset_data_series[site], '.',
                       c=color_dict[region])
-        
+
         # add the data to the tot_series lists
         tot_series[0].extend(grid_series)
         tot_series[1].extend(trop_subset_data_series[site])
@@ -496,9 +507,9 @@ def make_scatter_and_tsgrid():
     pred_ys = mod.predict(pred_xs)
     scat_ax.plot(pred_ys, pred_xs, ':k')
     scat_ax.text(0.5, 0.25, '$R^2$: ' + str(np.round(mod.rsquared, 2)),
-                 color='black')
+                 color='black', fontdict={'fontsize':20})
     scat_ax.text(0.5, 0.15, '$slope$: ' + str(np.round(mod.params[0], 2)),
-                 color='black')
+                 color='black', fontdict={'fontsize':20})
 
     fig_scat.show()
     fig_tsgrid.show()
@@ -509,10 +520,11 @@ make_scatter_and_tsgrid()
 
 def make_sample_point_map():
     fig_map = plt.figure()
-    fig_map.suptitle('validation test sites, plotted within orbital gap areas')
+    fig_map.suptitle('validation test sites, plotted within orbital gap areas',
+                     fontdict={'fontsize':25})
     map_ax = fig_map.add_subplot(111)
-    map_ax.set_xlabel('lon')
-    map_ax.set_ylabel('lat')
+    map_ax.set_xlabel('lon', fontdict={'fontsize':22})
+    map_ax.set_ylabel('lat', fontdict={'fontsize':22})
     map_ax.imshow(coverage_array, cmap='winter')
     points = [(np.abs(grid_lons - site[0]).argmin(),
                np.abs(grid_lats[::-1]-site[1]).argmin()) for site in site_set]
