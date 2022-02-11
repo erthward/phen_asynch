@@ -1,0 +1,77 @@
+\documentclass[9pt,twocolumn,twoside,lineno]{pnas-new}
+% Use the lineno option to display guide line numbers if required.
+
+% packages
+\usepackage{courier}
+
+\templatetype{pnasresearcharticle} % Choose template 
+% {pnasresearcharticle} = Template for a two-column research article
+% {pnasmathematics} %= Template for a one-column mathematics article
+% {pnasinvited} %= Template for a PNAS invited submission
+
+\title{Global mapping of spatial asnychrony of seasons}
+
+% Use letters for affiliations, numbers to show equal authorship (if applicable) and to indicate the corresponding author
+\author[a,1]{Drew E. Terasaki Hart}
+\author[a]{Ian J. Wang}
+
+\affil[a]{Department of Environmental Science, Policy, and Management, University of California, Berkeley, CA 94720}
+
+% Please give the surname of the lead author for the running footer
+\leadauthor{Terasaki Hart} 
+
+% Please include corresponding author, author contribution and author declaration information
+\authorcontributions{D.E.T.H. conceived, designed and wrote the simulations and analysis, and wrote the manuscript. I.J.W. helped conceive and design the simulations and analysis, and cowrote the manuscript.}
+\authordeclaration{The authors declare no competing interests.}
+\correspondingauthor{\textsuperscript{1}To whom correspondence should be addressed. E-mail: drew.hart@berkeley.edu}
+
+% At least three keywords are required at submission. Please provide three to five keywords, separated by the pipe symbol.
+\keywords{phenology $|$ seasonality $|$ $|$ biogeography $|$ remote sensing $|$ $NIR_{V}P$} 
+
+\begin{abstract}
+Please provide an abstract of no more than 250 words in a single paragraph. Abstracts should explain to the general reader the major contributions of the article. References in the abstract must be cited in full within the abstract itself and cited in the text.
+\end{abstract}
+
+% Please add a significance statement to explain the relevance of your work
+\significancestatement{Authors must submit a 120-word maximum statement about the significance of their research paper written at a level understandable to an undergraduate educated scientist outside their field of speciality. The primary goal of the significance statement is to explain the relevance of the work in broad context to a broad readership. The significance statement appears in the paper itself and is required for all research papers.}
+
+\dates{This manuscript was compiled on \today}
+\doi{\url{www.pnas.org/cgi/doi/10.1073/pnas.XXXXXXXXXX}}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{firststyle}
+\ifthenelse{\boolean{shortarticle}}{\ifthenelse{\boolean{singlecolumn}}{\abscontentformatted}{\abscontent}}{}
+
+\dropcap{S}easonal phenology is a thing.
+
+
+\section*{Results}
+
+
+\section*{Discussion}
+
+
+
+
+\matmethods{
+
+\subsection*{Simulation}
+
+\subsection*{Analysis}
+
+
+
+} % end matmethods
+
+\showmatmethods{} % Display the Materials and Methods section
+
+\acknow{We thank D. Ackerly, L. Anderegg, A. Bishop, T. Dawson, J. Frederick, N. Graham, M. Kelly, M. Kling, N. Muchhala, P. Papper, A. Turner, E. Westeen, G. Wogan, and M. Yuan for feedback and guidance on various iterations of the simulations presented herein. We thank Berkeley Research Computing for providing access to the Savio computing cluster. Lastly, we thank M. Terasaki Hart, C. Nemec-Hart, G. Hart, J. Hart, and M. Tylka for supporting and encouraging a lifetime of curiosity about nature, and XXXXXXXXXXXXXXXXXX for the good grooves. D.E.T.H. was supported by an Emerging Challenges in Tropical Science Graduate Student Fellowship from the Organization for Tropical Studies, by a Tinker Field Resesarch Grant from the UC Berkeley Center for Latin American Studies, by a research equipment grant from IdeaWild, and by a Berkeley Fellowship (to D.E.T.H.). I.J.W. was supported by a National Science Foundation grant DEB1845682 (to I.J.W.).}
+
+\showacknow{} % Display the acknowledgments section
+
+% Bibliography
+\bibliography{terasaki_hart_ch2}
+
+\end{document}

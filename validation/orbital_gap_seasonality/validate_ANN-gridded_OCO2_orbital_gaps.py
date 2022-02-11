@@ -259,7 +259,7 @@ coverage_array = np.zeros((grid_lats.size, grid_lons.size))
 
 # now loop through all original OCO-2 files and determine which of those cells
 # have no coverage, i.e. which cells are within the orbital gaps
-tmp_dir = '/media/deth/SLAB/seasonality/tmp_data_coverage_arrays'
+tmp_dir = '/media/deth/SLAB/seasonality/tmp_orbital_gap_validation_data_coverage_arrays'
 
 # 02-08-2022: get rid of files already covered by existing tmp files
 # (array_up_to_file_XXXX.txt), so that I can rerun and pick up where
@@ -271,7 +271,8 @@ orig_files_to_analyze = orig_files[last_file_completed+1:]
 
 for n, f in enumerate(orig_files_to_analyze):
     if n > -1:
-        print('\nNow processing file number %i:\n\t%s\n\n' % (n, f))
+        print('\nNow processing file number %i:\n\t%s\n\n' % (
+                                                n+last_file_completed+1, f))
         orig_lons, orig_lats, orig_sif = read_netcdf(f)
         #print(len(orig_lons), len(orig_lats))
         # drop of footprints that seem to have missing vertex lat or lon vals
@@ -525,12 +526,13 @@ def make_sample_point_map():
     map_ax = fig_map.add_subplot(111)
     map_ax.set_xlabel('lon', fontdict={'fontsize':22})
     map_ax.set_ylabel('lat', fontdict={'fontsize':22})
-    map_ax.imshow(coverage_array, cmap='winter')
+    # 02-09-2022: array lats were flipped by accident, so flipping here just
+    # for the map
+    map_ax.imshow(np.flipud(coverage_array), cmap='winter')
     points = [(np.abs(grid_lons - site[0]).argmin(),
                np.abs(grid_lats[::-1]-site[1]).argmin()) for site in site_set]
     map_ax.scatter([p[0] for p in points], [p[1] for p in points],
                    color='white', edgecolors='black', s=6)
-    map_ax.invert_yaxis()
     xticks = np.linspace(0, len(grid_lons), 10)
     yticks = np.linspace(0, len(grid_lats), 10)
     xtick_labs = np.round(np.linspace(grid_lons[0], grid_lons[-1], 10), 1)
@@ -540,7 +542,6 @@ def make_sample_point_map():
     map_ax.set_xticklabels([*xtick_labs][::-1])
     map_ax.set_xticks(xticks)
     map_ax.set_yticklabels(ytick_labs)
-    map_ax.invert_yaxis()
     fig_map.show()
 
 #call that function

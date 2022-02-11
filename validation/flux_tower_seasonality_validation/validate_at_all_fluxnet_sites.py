@@ -1,4 +1,7 @@
 import pandas as pd
+import geopandas as gpd
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import xarray as xr
 import rasterio as rio
@@ -8,6 +11,7 @@ from datetime import datetime
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error, r2_score
 import zipfile36 as zipfile
+import seaborn as sns
 import re, os
 
 """
@@ -19,8 +23,7 @@ TODO:
 global constraints to not allow warping across time, so as not to lose signal
 of timing?
 
-- handle flux towers that fall in NA pixels by walking in all directions up
-to some distance and looking for a nearby available pixel to use
+- figure out how to fix towers that are falling out of analysis
 
 """
 
@@ -246,9 +249,11 @@ def calc_euc_dist(a1, a2):
     return dist
 
 
-def normalize_ts(ts):
-    norm_ts = (ts - np.min(ts))/(np.max(ts)-np.min(ts))
-    return norm_ts
+def normalize_data(data, lo=0, hi=1):
+    assert hi>lo, 'hi must be > lo!'
+    norm_data = (data - np.min(data))/(np.max(data)-np.min(data))
+    norm_data = lo + (norm_data*(hi-lo))
+    return norm_data
 
 
 def make_design_matrix():
@@ -289,7 +294,7 @@ def predict_fluxnet_detrended_vals(df, mod, normalize=True):
 
     # normalize it
     if normalize:
-        predicted = normalize_ts(predicted)
+        predicted = normalize_data(predicted)
 
     df['pred'] = predicted
 
@@ -381,6 +386,7 @@ def compare_rs_flux_predicted_vals(zip_filename, coeffs_rast, design_mat,
     # of a valid seasonality-fitted pixel
     if np.all(pd.isnull(rs_pred['rs_pred'])):
         dist = np.nan
+        r2 = np.nan
         flux_pred_df = rs_pred = None
 
     else:
@@ -413,6 +419,9 @@ def compare_rs_flux_predicted_vals(zip_filename, coeffs_rast, design_mat,
         # calculate the Euclidean distance between both time series
         dist = calc_euc_dist(merged['rs_pred'], merged['flux_pred'])
 
+        # calculate the R^2 between both time series
+        r2 = (np.corrcoef(merged['rs_pred'], merged['flux_pred'])[0,1])**2
+
         # plot and save, if requested
         if plot_time_series:
             fig, ax = plt.subplots(1)
@@ -425,8 +434,9 @@ def compare_rs_flux_predicted_vals(zip_filename, coeffs_rast, design_mat,
                           ")") % (rs_var, rs_var_units[rs_var]),
                           fontdict={'fontsize':9})
             ax.legend()
-            fig.suptitle('%s: %s: DIST=%0.3f' % (id, name, dist))
-            fig.savefig('%s_%s.png' % (id, name))
+            fig.suptitle('%s: %s: DIST=%0.3f; $R^2$=%0.3f' % (id, name,
+                                                              dist, r2))
+            fig.savefig('./plots/%s.png' % id)
             plt.close('all')
 
 
@@ -439,7 +449,9 @@ def compare_rs_flux_predicted_vals(zip_filename, coeffs_rast, design_mat,
                    'mat': mat,
                    'map': map,
                    'dist': dist,
+                   'r2': r2,
                    'cell_dist': cell_dist,
+                   'notes': np.nan,
                   }
 
     return result_dict, rs_pred, flux_pred_df
@@ -461,15 +473,18 @@ results = {'id': [],
            'mat': [],
            'map': [],
            'dist': [],
+           'r2': [],
            'cell_dist': [],
+           'notes': [],
           }
 
 zip_filenames = [f for f in os.listdir(mount_datadir) if
                  os.path.splitext(f)[-1] == '.zip']
 zip_filenames = [os.path.join(mount_datadir, fn) for fn in zip_filenames]
 for zip_filename in zip_filenames:
-    print('\n\nNow processing: %s\n\n' % zip_filename)
-    result, rs_pred, flux_pred_df = compare_rs_flux_predicted_vals(
+    try:
+        print('\n\nNow processing: %s\n\n' % zip_filename)
+        result, rs_pred, flux_pred_df = compare_rs_flux_predicted_vals(
                                    zip_filename, coeffs_rast, design_mat,
                                    max_neigh_cell_dist,
                                    normalize=normalize,
@@ -477,6 +492,21 @@ for zip_filename in zip_filenames:
                                    filter_end_date=filter_end_date,
                                    delete_after_finished=delete_after_finished,
                                    plot_time_series=plot_time_series)
+    except Exception as e:
+        id, name, lon, lat, igbp, mat, map = get_site_info(zip_filename)
+        print('\n\nSite %s: %s failed with error:\n\n\t%s\n\n' % (id, name, e))
+        result = {'id': id,
+                  'name': name,
+                  'lon': lon,
+                  'lat': lat,
+                  'igbp': igbp,
+                  'mat': mat,
+                  'map': map,
+                  'dist': np.nan,
+                  'r2': np.nan,
+                  'cell_dist': np.nan,
+                  'notes': e
+                 }
 
     for k,v in result.items():
         results[k].append(v)
@@ -486,3 +516,56 @@ for zip_filename in zip_filenames:
 # save all results
 results_df = pd.DataFrame(results)
 results_df.to_csv('FLUXNET_validation_results.csv', index=False)
+
+
+#########################################################################
+# ANALYSIS
+
+# load countries data
+countries = gpd.read_file(('/home/deth/Desktop/TNC/repos/agrofor_lit_review/'
+                           'mapping/country_bounds/NewWorldFile_2020.shp'))
+countries = countries.to_crs(4326)
+
+
+# map results
+fig1, ax1 = plt.subplots(1, 1)
+divider = make_axes_locatable(ax1)
+cax1 = divider.append_axes('right', size='5%', pad=0.1)
+countries.plot(facecolor='none',
+               edgecolor='black',
+               linewidth=0.25,
+               ax=ax1)
+scat = ax1.scatter(results_df['lon'],
+                  results_df['lat'],
+                  c = results_df['r2'],
+                  cmap='plasma_r',
+                  alpha=0.75,
+                  s=normalize_data(1-results_df['r2'], 10, 150),
+                  edgecolor='black',
+                  linewidth=0.75)
+plt.colorbar(scat, cax=cax1)
+fig1.suptitle(('$R^2$ between RS-fitted seasonality '
+              'and FLUXNET GPP seasonality'),
+             fontdict={'fontsize':20})
+
+
+fig2, ax2 = plt.subplots(1, 1)
+divider = make_axes_locatable(ax2)
+cax2 = divider.append_axes('right', size='5%', pad=0.1)
+scat = ax2.scatter(results_df['mat'],
+           results_df['map'],
+           c = results_df['r2'],
+           s=normalize_data(1-results_df['r2'], 10, 150),
+           cmap='plasma_r')
+plt.colorbar(scat, cax=cax2)
+ax2.set_xlabel('MAT ($^{\circ}C$)',
+              fontdict={'fontsize': 16})
+ax2.set_ylabel('MAP ($mm$)',
+              fontdict={'fontsize': 16})
+fig2.suptitle(('$R^2$ between RS-fitted seasonality '
+              'and FLUXNET GPP seasonality, vs MAT and MAP'))
+               edgecolor='k',
+               linewidth=0.25,
+               ax=ax2)
+
+plt.show()
