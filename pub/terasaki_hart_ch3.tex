@@ -26,7 +26,7 @@
 \correspondingauthor{\textsuperscript{1}To whom correspondence should be addressed. E-mail: drew.hart@berkeley.edu}
 
 % At least three keywords are required at submission. Please provide three to five keywords, separated by the pipe symbol.
-\keywords{phenology $|$ seasonality $|$ $|$ biogeography $|$ remote sensing $|$ $NIR_{V}P$} 
+\keywords{phenology $|$ seasonality $|$ $|$ biogeography $|$ remote sensing $|$ NIR_{V}P} 
 
 \begin{abstract}
 Please provide an abstract of no more than 250 words in a single paragraph. Abstracts should explain to the general reader the major contributions of the article. References in the abstract must be cited in full within the abstract itself and cited in the text.
@@ -44,7 +44,21 @@ Please provide an abstract of no more than 250 words in a single paragraph. Abst
 \thispagestyle{firststyle}
 \ifthenelse{\boolean{shortarticle}}{\ifthenelse{\boolean{singlecolumn}}{\abscontentformatted}{\abscontent}}{}
 
-\dropcap{S}easonal phenology is a thing.
+\section*{DRAFT CONTENT FOR DISSERTATION INTRO}
+My third chapter departs from microevolutionary modeling to probe a
+hypothesis that attempts to bridge micro- and macro- time scales. It is
+theoretically plausible and conceptually satisfying that some spatially
+structured landscape genetic processes could be stable over long-enough
+timescales to have driven phylogeographic processes and generated
+contemporary biogeographic patterns. Some of the most pronounced such
+patterns (beta diversity patterns in tropical mountain ranges, the
+latitudinal diversity gradient) have enticed hypotheses along these lines,
+attempting to explain current distributions of biodiversity on the basis
+of spatially variable speciation rates driven by predictable and
+persistent environmentally structured processes. INTRODUCE ASH…
+
+\section{DELETE THIS SECTION HEADER AND JUST LEAVE DROPCAP!}
+\dropcap{T}his is the intro section.
 
 
 \section*{Results}
@@ -57,7 +71,186 @@ Please provide an abstract of no more than 250 words in a single paragraph. Abst
 
 \matmethods{
 
-\subsection*{Simulation}
+\subsection*{NIR_VP and SIF data}
+
+Both the NIRVP and SIF datasets were preprocessed on Google Earth Engine
+(GEE; (Gorelick et al., 2017). Our main dataset was MODIS-derived NIRVP …
+
+
+To help validate our NIRVP maps, we ran an identical analysis using the
+global, gridded SIF dataset produced by Yu et al. (Yu et al., 2019). This
+is a spatially contiguous time series dataset, interpolated by ANN from
+the spatially discontiguous SIF data estimated along OCO-2 orbital
+swaths. This dataset was rigorously validated, internally and externally,
+by the data authors, who found that it accurately captured the global
+patterns present in the original OCO-2 retrievals and that it explained
+upwards of XX% of the variation in contemporaneous Chlorophyll
+Fluorescence Imaging Spectrometer (CFIS) aerial measurements. We
+downloaded this data from its host site
+(https://daac.ornl.gov/VEGETATION/guides/Global_High_Res_SIF_OCO2.html),
+then uploaded it to GEE.
+
+Given that the SIF dataset interpolates across orbital gaps, but that the
+original authors did not explicitly validate the seasonal phenological
+patterns of the interpolated data, we compared seasonality in the
+interpolated, orbital-gap data to seasonality in another,
+coarser-resolution SIF data. To do this, we extracted SIF time series
+from the ANN-interpolated dataset at random points within OCO-2 orbital
+gaps in three tropical realms (the Neotropics, tropical Africa, and
+Indo-Pacific and Australia), then compared those values to
+contemporaneous time series extracted from another high-resolution,
+satellite-derived SIF dataset from the TROPOMI sensor (CITE). We used
+tropical regions for this validation because those regions’ lack of a
+pronounced thermal winter creates the possibility that seasonality there
+exhibits spatially varying patterns that are not accurately recovered by
+spatial interpolation from orbital swaths. If the interpolated dataset
+adequately captures the true seasonal patterns of SIF within OCO-2
+orbital gaps then its time series should explain the bulk of the
+variation in the TROPOMI time series. Indeed, we find that the
+correlation between these orbital-gap datasets is XX\% (BREAK DOWN BY
+REALM) (SEE Fig SX; ADD SUPPLEMENTAL FIGURE).
+
+\subsection*{Estimation and validation of seasonal phenology}
+To estimate the seasonality of stand-level photosynthesis at all pixels,
+we ran a harmonic regression model in which the data values (SIF or
+NIRVP) were predicted as a function of time. We used the following model:
+
+$$val=\beta _0\ +\ \beta _tt\ +\ \beta _{\sin ,ann}\sin (t_{ann})\ +\ \beta _{\cos ,ann}\cos (t_{ann})\ +\ \beta _{\sin ,sem}\sin (t_{sem})\ +\ \beta _{\cos ,sem}\cos (t_{sem})\ +\ \epsilon$$
+
+where  is the linear time component (expressed in fractional days), and 
+and  are circular time components for the annual and semiannual
+frequencies (expressed in radians). This model is algebraically
+equivalent to detrending the data and running a Fourier transform that
+includes both the annual and semiannual frequency components. We chose to
+include the semiannual frequency because our preliminary, global analysis
+revealed numerous regions with predominating bimodal seasonal patterns
+(i.e. regions containing many pixels whose R2 values were higher in
+semiannual-only harmonic regression models than in annual-only models;
+see Fig. SXX), many of which were expected on the basis of well-known
+regions with two rainy seasons. We found that the linear combination of
+both components was complex enough to adequately reflect the seasonality
+in unevenly bimodal sites (i.e. sites with two annual peaks or troughs of
+differing heights or depths), without risk of overfitting by including
+unjustifiable higher-frequency components.
+
+PARAGRAPH OR TWO EXPLAINING THE FLUXNET VALIDATION PROCEDURE
+
+\subsection*{Data filtering}
+We pushed both the SIF and NIRV datasets through various filtering steps,
+including filtering of invalid land cover types, open water bodies,
+data-deficient pixels, and pixels whose fitted seasonality was not
+statistically significant. First, we used 500 meter, yearly, global MODIS
+land cover data (MCD12Q1.006; CITE), classified according to the Annual
+International Geosphere-Biosphere Programme’s (IGBP) classification
+scheme (‘Land Cover Type 1’) to mask out all pixels within the cropland,
+urban, crop-natural mosaic, permanent snow/ice, barren, and permanent
+water body categories (i.e. all pixels with a value greater than 12).
+This produced a conservatie dataset restricted to only fully ‘natural’
+land cover types. RUN SAME ANALYSIS WITH LOOSER FILTERINING HERE, SINCE
+IT’S ARGUABLE THAT SOME OF THESE CATEGORIES SHOULD BE COVERED BY THE
+A.S.H. ANYWAY?
+
+To filter out all cells with inadequate data availability we calculated
+the percent missingness of the time series at each pixel, then dropped
+all pixels with percent missingness greater than 75%. As expected, this
+predominantly filters out pixels with high missingness because of
+persistent cloud cover (e.g. cloud forest regions) or because of long
+periods without adequate sunlight to stimulate photosynthesis (i.e.
+high-latitude regions).
+
+Finally, after running the global harmonic regression described in the
+previous section, we used permutation tests to filter out pixels whose
+fitted seasonality was insignificant. To do this, we ran XX harmonic
+regressions, each time permuting the time-series stack of raster images
+so as to scramble any true temporal (i.e. seasonal) pattern. The image of
+R2 values was extracted from each permuted regression, compared to the R2
+values from the true harmonic regression, and used to create a binary
+image indicating which pixels had a greater R2 value in the permuted
+regression than in the real regression. After running the full series of
+permutations, we filtered out of our analysis any pixels for which the
+fraction of permuted R2s greater than the true R2 exceeded our threshold
+for significance (ɑ=0.01).
+
+\subsection*{Calculation of phenological asynchrony}
+Google Earth Engine is designed for carrying out a set of common spatial
+analysis operations at scale, but it is not particularly well suited to
+the calculating of a custom and complicated neighborhood metric such as
+spatial asynchrony. For this reason, our Earth Engine implementation of
+the asynchrony calculation could not be scaled past a neighborhood of
+about 50 km (for the SIF data) or XX km (for the NIRVP data). Thus we
+exported the results of our filtered harmonic regression as a series of
+\textit{TFRecord} (TensorFlow Record) files, each containing a stack of images of
+the regression coefficients for a number of rectangular geographic
+regions. Earth Engine accepts a ‘kernel width’ argument for the export of
+these files, which determines the extent of overlap between neighboring
+regions. We set the kernel width to be double our target neighborhood
+size (300 km; WHY/HOW CHOSE THIS?), thus outputting a series of files
+whose new asynchrony images could be independently calculated. These new
+asynchrony files were calculated in parallel on a supercomputer (UC
+Berkeley’s Savio, using the savio3 partition, each node of which contains
+a 2.1 GHz Skylake processor with 32 cores and 96 GB of RAM).
+
+We calculated global images of two distinct asynchrony metrics, to be
+able to compare and verify our results. These metrics were calculated,
+pixel-wise, using the following algorithm:
+\begin{enumerate}
+    \item Use the regression coefficients to calculate the 365-day annual time series of fitted SIF or NIRV values for the focal pixel.
+    \item Identify all pixels whose centerpoints are within the chosen neighborhood radius of the focal pixel (the ‘neighbor pixels’).
+    \item For each neighbor pixel:
+    \begin{enumerate}
+        \item Calculate the fitted SIF or NIRV time series;
+        \item Calculate and save the R2 of the regression between that time series and the focal pixel’s time series;
+        \item Calculate and save the 365-dimensional Euclidean seasonal distance between that time series the focal pixel’s time series (after standardizing each time series);
+        \item Calculate and save the geographic (geodesic) distance to the focal pixel;
+    \end{enumerate}
+    \item Derive two distinct asynchrony metrics, calculated as the absolute values of the slopes of the two master regressions of:
+        \begin{enumerate}
+            \item neighbor-wise R2s on neighbor-wise geographic distances (‘asynchronyR2’);
+            \item neighbor-wise Euclidean seasonal distances on neighbor-wise geographic distances (‘asynchronyEuc’);
+        \end{enumerate}
+\end{enumerate}
+
+To be able to assess the performance of our two asynchrony metrics, we
+also saved the R2s from the two master regressions (‘R2R2’ and ‘R2Euc’)
+and the sample size of the master regressions (‘n’), giving us a final
+output TFRecord file containing two asynchrony metrics and three
+evaluative metrics (‘asynchronyR2’, ‘asynchronyEuc’, ‘R2R2’, ‘R2Euc’, and
+‘n’; the ‘asynchrony image’). The output collection of asynchrony image
+TFRecord files was re-ingested into Earth Engine, which automatically
+stitched them back into a global map. 
+
+\subsection*{Calculation of physiographic covariates}
+We used Earth Engine to produce a number of physiographic variables, to
+use as covariates in our global modeling of asynchrony. Cell-center
+latitude and longitude were generated as a pair of images using Earth
+Engine’s Image.pixelLonLat() function. Altitude data were derived from
+the global, hole-filled Shuttle Radar Topography Mission (SRTM) 90-meter
+dataset, loaded from Earth Engine’s data catalogue (Jarvis et al., 2008).
+
+
+SARAH TO INCLUDE TERSE PARAGRAPH EXPLAINING CALCULATION OF VRM
+
+Distance to the nearest major river (DNMR) was derived from the World
+Wildlife Federation (WWF) HydroSHEDS Free Flowing Rivers Network, V1
+dataset, a vectorized feature collection of global river courses and
+pertinent attribute data that was loaded from Earth Engine’s data
+catalogue (Grill et al., 2019; Lehner et al., 2008). We filtered the
+dataset to retain only major riverbeds, which we defined as all river
+segments with river order (‘RIV_ORD’) ≤ 4, i.e. all segments with
+long-term average discharge ≥ 100 cubic meters per second (Linke et al.,
+2019) We then used Earth Engine’s FeatureCollection.distance() function
+to calculate each pixel’s distance to the nearest segment in this river
+dataset, using a maxError argument of 1000000 (1000 km), to ensure
+accurate calculation for all pixels.
+
+We aggregated all resulting covariates to match the resolution and
+registration of our independent variables (SIF and NIRV), then exported
+them as GeoTIFF rasters, for downstream analysis in R (Team, 2020).
+Analysis of physiographic predictors of asynchrony
+Random forest model (provide formula and explain, justify)
+Whatever other models we decide to use (e.g. superlearner model, as
+recommended by Maura?)
+
 
 \subsection*{Analysis}
 
