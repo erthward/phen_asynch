@@ -2,6 +2,8 @@ import pandas as pd
 import geopandas as gpd
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.patches import Polygon
+from matplotlib.collections import PatchCollection
 import numpy as np
 import xarray as xr
 import rasterio as rio
@@ -549,14 +551,51 @@ fig1.suptitle(('$R^2$ between RS-fitted seasonality '
              fontdict={'fontsize':20})
 
 
+whittaker = pd.read_csv('whittaker_biomes.csv', sep=';')
+whittaker['temp_c'] = whittaker['temp_c'].apply(lambda x:
+                                            float(x.replace(',', '.')))
+whittaker['precp_mm'] = whittaker['precp_cm'].apply(lambda x:
+                                            float(x.replace(',', '.'))*10)
+biomes = []
+centroids = []
+patches = []
+
+for biome in whittaker['biome'].unique():
+    subwhit = whittaker[whittaker.biome == biome].loc[:, ['temp_c', 'precp_mm']].values
+    centroids.append(np.mean(subwhit, axis=0))
+    poly = Polygon(subwhit, True)
+    patches.append(poly)
+    biomes.append(re.sub('/', '/\n', biome))
+
+#colors = ['#80fffd', # tundra
+#          '#2b422f', # boreal forest
+#          '#ebe157', # temperate grassland/desert
+#          '#ab864b', # woodland/shrubland
+#          '#17a323', # temperate seasonal forest
+#          '#13916b', # temperate rain forest
+#          '#00a632', # tropical rain forest
+#          '#c2d69a', # tropical seasonal forest/savanna
+#          '#e3a107', # subtropical desert
+#         ]
+#colors = np.array(colors)
+
+colors = 255 * np.linspace(0, 1, len(patches))
+p = PatchCollection(patches, alpha=0.4, edgecolor='k', cmap='Pastel1')
+p.set_array(colors)
 fig2, ax2 = plt.subplots(1, 1)
 divider = make_axes_locatable(ax2)
 cax2 = divider.append_axes('right', size='5%', pad=0.1)
+ax2.add_collection(p)
+
+for b,c in zip(biomes, centroids):
+    ax2.text(c[0], c[1], b)
+
 scat = ax2.scatter(results_df['mat'],
            results_df['map'],
            c = results_df['r2'],
            s=normalize_data(1-results_df['r2'], 10, 150),
            cmap='plasma_r')
+
 plt.colorbar(scat, cax=cax2)
 ax2.set_xlabel('MAT ($^{\circ}C$)',
               fontdict={'fontsize': 16})
@@ -564,8 +603,5 @@ ax2.set_ylabel('MAP ($mm$)',
               fontdict={'fontsize': 16})
 fig2.suptitle(('$R^2$ between RS-fitted seasonality '
               'and FLUXNET GPP seasonality, vs MAT and MAP'))
-               edgecolor='k',
-               linewidth=0.25,
-               ax=ax2)
 
 plt.show()
