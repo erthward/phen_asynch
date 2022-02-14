@@ -511,6 +511,7 @@ def make_scatter_and_tsgrid():
                  color='black', fontdict={'fontsize':20})
     scat_ax.text(0.5, 0.15, '$slope$: ' + str(np.round(mod.params[0], 2)),
                  color='black', fontdict={'fontsize':20})
+    scat_ax.tick_params(labelsize=15)
 
     fig_scat.show()
     fig_tsgrid.show()
@@ -524,24 +525,26 @@ def make_sample_point_map():
     fig_map.suptitle('validation test sites, plotted within orbital gap areas',
                      fontdict={'fontsize':25})
     map_ax = fig_map.add_subplot(111)
-    map_ax.set_xlabel('lon', fontdict={'fontsize':22})
-    map_ax.set_ylabel('lat', fontdict={'fontsize':22})
+    #map_ax.set_xlabel('lon', fontdict={'fontsize':22})
+    #map_ax.set_ylabel('lat', fontdict={'fontsize':22})
     # 02-09-2022: array lats were flipped by accident, so flipping here just
     # for the map
-    map_ax.imshow(np.flipud(coverage_array), cmap='winter')
+    cmap_list = [(0, '#c7e7f2'), (1, '#aac98d')]
+    cmap = LinearSegmentedColormap.from_list('custom', cmap_list)
+    map_ax.imshow(np.flipud(coverage_array), cmap=cmap)
     points = [(np.abs(grid_lons - site[0]).argmin(),
                np.abs(grid_lats[::-1]-site[1]).argmin()) for site in site_set]
     map_ax.scatter([p[0] for p in points], [p[1] for p in points],
-                   color='white', edgecolors='black', s=6)
-    xticks = np.linspace(0, len(grid_lons), 10)
-    yticks = np.linspace(0, len(grid_lats), 10)
-    xtick_labs = np.round(np.linspace(grid_lons[0], grid_lons[-1], 10), 1)
-    ytick_labs = np.round(np.linspace(grid_lats[0],
-                                      grid_lats[-1], 10), 1)[::-1]
-    map_ax.set_xticks(xticks)
-    map_ax.set_xticklabels([*xtick_labs][::-1])
-    map_ax.set_xticks(xticks)
-    map_ax.set_yticklabels(ytick_labs)
+                   color='black', edgecolors='black', s=12, alpha=0.7)
+    #xticks = np.linspace(0, len(grid_lons), 10)
+    #yticks = np.linspace(0, len(grid_lats), 10)
+    #xtick_labs = np.round(np.linspace(grid_lons[0], grid_lons[-1], 10), 1)
+    #ytick_labs = np.round(np.linspace(grid_lats[0],
+    #                                  grid_lats[-1], 10), 1)[::-1]
+    map_ax.set_xticks([])
+    #map_ax.set_xticklabels([*xtick_labs][::-1])
+    map_ax.set_yticks([])
+    #map_ax.set_yticklabels(ytick_labs)
     fig_map.show()
 
 #call that function
