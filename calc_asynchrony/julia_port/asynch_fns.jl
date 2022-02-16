@@ -76,6 +76,7 @@ using NearestNeighbors
 using StaticArrays
 using Distributed
 using Statistics
+using StatsBase
 using Distances
 #using GeoArrays
 using TFRecord
