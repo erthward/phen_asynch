@@ -63,7 +63,7 @@ else:
     PATT_B4_FILENUM = '-OUT-'
 
 # kernel size used by GEE to output the TFRecord files
-KERNEL_SIZE = 176
+KERNEL_SIZE = 288
 HKW = int(KERNEL_SIZE/2)
 
 # default missing-data val

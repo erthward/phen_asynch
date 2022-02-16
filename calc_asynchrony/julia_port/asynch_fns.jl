@@ -97,10 +97,11 @@ using GLM
 """
 Which variable to calculate asynchrony for
 """
-const VAR = "tmmean"
+#const VAR = "def"
 const VAR = "pr"
-const VAR = "def"
-const VAR = "SIF"
+#const VAR = "tmmean"
+#const VAR = "cloud"
+#const VAR = "SIF"
 #const VAR = "NIRvP"
 
 
@@ -540,7 +541,7 @@ function get_patch_lons_lats(xmin::Float64, ymin::Float64, xres::Float64, yres::
    # check that y values are identical across rows and x values are identical down columns
    @assert(unique([length(unique(gridy[i,:])) == 1 for i in 1:size(gridy)[1]]) == [1,],
            "y values are not identical across rows in gridy!")
-   @assert(unique([length(unique(gridx[:,j])) == 1 for j in 1:size(gridx)[2]]) == [1,]
+   @assert(unique([length(unique(gridx[:,j])) == 1 for j in 1:size(gridx)[2]]) == [1,],
            "x values are not identical down columns in gridx!")
    return gridx, gridy
 end
