@@ -97,6 +97,9 @@ using GLM
 """
 Which variable to calculate asynchrony for
 """
+const VAR = "tmmean"
+const VAR = "pr"
+const VAR = "def"
 const VAR = "SIF"
 #const VAR = "NIRvP"
 
@@ -135,8 +138,16 @@ if splitpath(pwd())[2] == "home"
 else
     if VAR == "NIRvP"
         const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/NIRvP/"
-    else
+    elseif VAR == "SIF"
         const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/SIF/"
+    elseif VAR == "tmmean"
+        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/tmmean/"
+    elseif VAR == "pr"
+        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/pr/"
+    elseif VAR == "def"
+        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/def/"
+    elseif VAR == "cloud"
+        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/cloud/"
     end
 end
 

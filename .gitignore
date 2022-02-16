@@ -13,6 +13,7 @@ asynch_analysis/__pycache__/*.pyc
 asynch_analysis/*.csv
 asynch_analysis/hotspots/
 asynch_analysis/data/
+asynch_analysis/other_data/
 asynch_analysis/data/*
 asynch_analysis/data/*.csv
 asynch_analysis/phen_dist/results/
