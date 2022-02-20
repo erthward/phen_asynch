@@ -132,9 +132,11 @@ if splitpath(pwd())[2] == "home"
     # so for now using GR instead
     #gr()
     if VAR == "NIRvP"
-        const ABS_DATA_DIR = "/home/deth/Desktop/UCB/research/projects/seasonality/GEE_output/CA/"
-    else
-        const ABS_DATA_DIR = "/home/deth/Desktop/UCB/research/projects/seasonality/GEE_output/old/"
+        const ABS_DATA_DIR = "/home/deth/Desktop/CAL/research/projects/seasonality/GEE_output/CA/"
+    elseif VAR == "SIF"
+        const ABS_DATA_DIR = "/home/deth/Desktop/CAL/research/projects/seasonality/GEE_output/old/"
+    elseif VAR in ["pr", "def", "tmmean", "cloud"]
+        const ABS_DATA_DIR = "/home/deth/Desktop/CAL/research/projects/seasonality/tmp_dirs/tmp_debug_asynch_for_climate_data"
     end
 
 else
@@ -1089,8 +1091,7 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
   
         # data structs to make sure that each foc_x and foc_y are hit equal number of times
         # (i.e. that there's not procession in these values as we progress across cols)
-        foc_xs = []
-        foc_ys = []
+        foc_pts = []
 
         # loop over pixels (excluding those in the kernel's margin,
         # since there's no use wasting time calculating for those)
@@ -1111,8 +1112,7 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
                     end
                 else
                     foc_y, foc_x = (ys[i,j], xs[i,j])
-                    append!(foc_xs, foc_x)
-                    append!(foc_ys, foc_y)
+                    push!(foc_pts, (foc_x, foc_y))
                     calc_asynch_one_pixel!(i, j, vec_is, vec_js,
                                           foc_y, foc_x, vec_ys, vec_xs,
                                           inpatch, outpatch, patch_n,
@@ -1129,12 +1129,9 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
         end
 
         # make sure that all foc_x and foc_y values were visited equally often
-        foc_x_cts = countmap(foc_xs)
-        foc_y_cts = countmap(foc_xs)
-        @assert(length(unique(values(foc_x_cts))) == 1, "not all foc_x values occurred equally!")
-        @assert(length(unique(values(foc_y_cts))) == 1, "not all foc_y values occurred equally!")
-        @assert(length(foc_x_cts) == unique(values(foc_x_cts))[1], "number of foc_x values used not equal to number of time each value was used!")
-        @assert(length(foc_y_cts) == unique(values(foc_y_cts))[1], "number of foc_y values used not equal to number of time each value was used!")
+        foc_pt_cts = countmap(foc_pts)
+        @assert(length(unique(values(foc_pt_cts))) == 1, "not all foc_pts occurred equally!\n\n$foc_pts\n\n")
+        #@assert(length(foc_pt_cts) == unique(values(foc_pt_cts))[1], "number of foc_pts values used not equal to number of time each point was used!")
 
     end
 

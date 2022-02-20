@@ -17,7 +17,7 @@ import os
 
 # plot params
 title_fontsize = 12
-rowlab_fontsize = 20
+rowlab_fontsize = 18
 axislab_fontsize = 11
 ticklab_fontsize = 12
 cbarlab_fontsize = 12
@@ -25,7 +25,7 @@ cbarticklab_fontsize = 10
 cbarticklab_fontsize = 6
 annot_fontsize = 14
 scat_label_fontsize = 10
-scat_label_fontcolor = '#ff4d4d'
+scat_label_fontcolor = 'black'
 scat_label_linewidth = 3
 fig_width = 10.5
 fig_height = 5.6
@@ -52,15 +52,15 @@ arr_mask_color = '#555555'
 curve_cmap = plt.cm.viridis
 asynch_scat_cmap = curve_cmap
 rand_pix_to_track = 208
-rand_pix_color = '#ffc31c'
+rand_pix_color = 'red'
 rand_pix_linewidth = 1.5
 #rand_pix_marker = '$\U0001F4CD$'
 rand_pix_marker = '*'
 rand_pix_markersize=80
 scat_markersize=5
 scat_markeralpha=0.75
-scat_label_text = {'high': '$steep \\rightarrow high\ asynch$',
-                   'low': '$flat\ \\rightarrow low\ asynch$',
+scat_label_text = {'high': '$steep\ =\ high\ asynch$',
+                   'low': '$flat\ =\ low\ asynch$',
                   }
 betas = [5, 1, 2, 1, 1]
 noise_max = 0.25
@@ -71,7 +71,7 @@ min_y=0
 max_y=1
 dims=(21,21)
 central_cell = [int((n-1)/2) for n in dims]
-seed = 103121
+seed = 103121887
 mpd_h = 1.4
 orientation='landscape'
 savefig=True
@@ -258,17 +258,19 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             ax3.scatter(rand_pix_geo_dist, rand_pix_seas_dist,
                         c=rand_pix_color, s=rand_pix_markersize,
                         marker=rand_pix_marker, edgecolor='k', linewidth=0.5)
+            # cover the (0,0) point, to avoid confusion
+            ax3.scatter(0, 0, c='white', s=2*scat_markersize, edgecolor='white')
             if asynch == 'low':
                 ax3.set_ylim((min_seas_dist, max_seas_dist))
             else:
                 ax3.set_ylim((min_seas_dist, max_seas_dist))
-            ax3.plot(pred_xs[:,1], preds, '-k')
+            ax3.plot(pred_xs[:,1], preds, '-', color=scat_label_fontcolor)
             #ax3.plot(pred_xs, preds, '-k')
-            ax3.plot([pred_xs[2,1], pred_xs[2,1], pred_xs[5,1]],
+            #ax3.plot([pred_xs[2,1], pred_xs[2,1], pred_xs[5,1]],
             #ax3.plot([pred_xs[2], pred_xs[2], pred_xs[5]],
-                     [preds[2], preds[5], preds[5]], ':',
-                     color=scat_label_fontcolor,
-                     linewidth=scat_label_linewidth)
+            #         [preds[2], preds[5], preds[5]], ':',
+            #         color=scat_label_fontcolor,
+            #         linewidth=scat_label_linewidth)
             ax3.text(0.05, 0.85, scat_label_text[asynch],
                      transform=ax3.transAxes,
                      fontdict={'fontsize': scat_label_fontsize,
@@ -284,7 +286,7 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             if asynch == 'high':
                 ax1.set_xlabel('map of peak seasonality',
                                fontdict={'fontsize': axislab_fontsize})
-            ax1.set_ylabel('%s asynch\nlandscape' % asynch,
+            ax1.set_ylabel('%s\nasynchrony' % asynch,
                            fontdict={'fontsize': rowlab_fontsize})
 
             ax2.set_xticks(())
