@@ -179,12 +179,12 @@ if VAR == "NIRvP"
     """
     kernel size used by GEE to output the TFRecord files
     """
-    const KERNEL_SIZE = 176
+    const KERNEL_SIZE = 288
 else
     """
     kernel size used by GEE to output the TFRecord files
     """
-    const KERNEL_SIZE = 176
+    const KERNEL_SIZE = 288
 end
 
 """
@@ -1130,7 +1130,9 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
 
         # make sure that all foc_x and foc_y values were visited equally often
         foc_pt_cts = countmap(foc_pts)
-        @assert(length(unique(values(foc_pt_cts))) == 1, "not all foc_pts occurred equally!\n\n$foc_pts\n\n")
+        # NOTE: make <=1 so that length 0 (when no non-nan focal pts exist)
+        #       doesn't break the code
+        @assert(length(unique(values(foc_pt_cts))) <= 1, "not all foc_pts occurred equally!\n\n$foc_pts\n\n")
         #@assert(length(foc_pt_cts) == unique(values(foc_pt_cts))[1], "number of foc_pts values used not equal to number of time each point was used!")
 
     end
