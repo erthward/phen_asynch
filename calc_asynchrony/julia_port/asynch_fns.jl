@@ -1363,7 +1363,7 @@ function main_fn(file_info::Tuple{String,Dict{String,Any}};
         # NOTE: just using a random number because gdal_merge.py will mosaic all anyhow
         randnumstr = "$(round(Int, rand()*10000000))"
         tiff_filename = "$(VAR)_$randnumstr.tif"
-        tiff_filepath = "/$(join(splitpath("/global/scratch/drew/things/here/file.tfrecord")[2:end-1], "/"))/$tiff_filename"
+        tiff_filepath = join([ABS_DATA_DIR, tiff_filename]) 
         println("\nNOW WRITING FILE $tiff_filepath\n")
         write_geotiff(outpatch, MIX, patch_is[idx], patch_js[idx], tiff_filepath)
     end
