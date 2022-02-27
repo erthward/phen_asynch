@@ -43,7 +43,7 @@ if (strsplit(getwd(), '/')[[1]][2] == 'home'){
 save.plots=F
 
 # RF params
-ntree=1000
+ntree=500
 mtry=NULL
 
 
@@ -300,89 +300,6 @@ if (save.plots){
    ggsave(plots, file='global_rf_results.png', width=35, height=45, units='cm', dpi=1000)
 }
 
-
-
-##########################################################
-##########################################################
-#############DELETE ME####################################
-##########################################################
-##########################################################
-
-# NOTE: some of this code pulled and tweaked from:
-# https://zia207.github.io/geospatial-r-github.io/geographically-wighted-random-forest.html
-
-# grid search for hyperparameters
-h2o.init(nthreads=-1, max_mem_size="48g", enable_assertions=F)
-
-# define h2o dfs
-test.mf = df[seq(1, nrow(df), 3), 3:ncol(df)] 
-valid.mf = df[seq(2, nrow(df), 3), 3:ncol(df)]
-train.mf = df[seq(3, nrow(df), 3), 3:ncol(df)]
-test.hex<-  as.h2o(test.mf)
-valid.hex<-  as.h2o(valid.mf)
-train.hex<-  as.h2o(train.mf)
-
-# define response and predictors
-response <- "phn.asy"
-predictors <- setdiff(names(train.hex), response)
-
-# hyperparameters
-drf_hyper_params <-list(
-          ntrees  = seq(10, 5000, by = 10),
-          max_depth=c(10,20,30,40,50),
-          sample_rate=c(0.7, 0.8, 0.9, 1.0)
-          )
-
-#  search criteria
-drf_search_criteria <- list(
-          strategy = "RandomDiscrete", 
-          max_models = 200,
-          max_runtime_secs = 900,
-          stopping_tolerance = 0.001,
-          stopping_rounds = 2,
-          seed = 1345767
-          )
-
-# Grid Search
-drf_grid <- h2o.grid(
-          algorithm="randomForest",
-          grid_id = "drf_grid_IDy",
-          x= predictors,
-          y = response,
-          training_frame = train.hex,
-          validation_frame = valid.hex,
-          stopping_metric = "RMSE",
-          nfolds=10,
-          keep_cross_validation_predictions = TRUE,
-          hyper_params = drf_hyper_params,
-          search_criteria = drf_search_criteria,
-          seed = 42
-          )
-
-# get RF grid params
-drf_get_grid <- h2o.getGrid("drf_grid_IDx",sort_by="RMSE",decreasing=FALSE)
-drf_get_grid@summary_table[1,]
-
-# get the best DRF model
-best_drf <- h2o.getModel(drf_get_grid@model_ids[[1]]) 
-#capture.output(print(summary(best_drf)),file =  "DRF_summary_N_RY.txt")
-best_drf
-
-# get the DRF CV result
-cv.drf<-best_drf@model$cross_validation_metrics_summary%>%.[,c(1,2)]
-cv.drf
-
-
-
-
-
-#################################################################
-#################################################################
-#############DELETE ME###########################################
-#################################################################
-#################################################################
-
-
 ######################
 # RUN LOCAL GWRF MODEL
 ######################
@@ -398,8 +315,6 @@ grf.model <- grf(formula=phn.asy ~ tmp.mea.asy + tmp.min.asy + tmp.min.mea + tmp
                  mtry=mtry,
                  forests = FALSE,
                  coords=coords)
-
-
 
 
 ###############################
