@@ -1,5 +1,5 @@
 library(raster)               # raster data
-library(terra)                # newer raster data
+#library(terra)                # newer raster data
 library(sp)                   # spatial data
 library(sf)                   # newer spatial data
 library(spdep)                # spatial autocorrelation
@@ -61,10 +61,12 @@ set.seed(seed.num)
 # to use for stratified random sampling
 n.strata = 5
 strat.samp.prop = 0.1
-strat.samp.n = 25000/n.strata
+# NOTE: full raster should have ~15925248 pixels, so
+#       this would use ~1/15th of the full dataset
+strat.samp.n = 1000000/n.strata 
 
 # training data fraction
-train.frac = 0.2
+train.frac = 0.7 # use 70% for training, 30% for testing
 
 
 # global RF params
@@ -325,16 +327,16 @@ if (mode %in% c('prep', 'both')){
  
   # rename all bands 
   names = c('phn.asy', 'tmp.mea.asy', 'tmp.min.asy', 'tmp.max.asy',
-                  'tmp.min.mea', 'tmp.max.mea', 'tmp.sea', 'ngd', 'ppt.asy',
-                  'ppt.sea', 'def.asy', 'cld.asy', 'wds.asy', 'vrm.med', 'vrm.std',
-                  'hab.div', 'riv.dis', 'eco.dis')
+            'tmp.min.mea', 'tmp.max.mea', 'tmp.sea', 'ngd', 'ppt.asy',
+            'ppt.sea', 'def.asy', 'cld.asy', 'wds.asy', 'vrm.med', 'vrm.std',
+            'hab.div', 'riv.dis', 'eco.dis')
 
   names(vars) = names
 
   # write stack to file (for reload in 'analyze' mode),
-  # converting first with terra to preserve band names
   #vars = rast(vars)
-  terra::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars.tif"), overwrite=T)
+  #terra::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars.tif"), overwrite=T)
+  raster::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars.tif"), overwrite=T)
   
   # coerce to a data.frame
   df = as.data.frame(vars, xy=T)
