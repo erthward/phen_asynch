@@ -1,5 +1,5 @@
 library(raster)               # raster data
-#library(terra)                # newer raster data
+library(terra)                # newer raster data
 library(sp)                   # spatial data
 library(sf)                   # newer spatial data
 library(spdep)                # spatial autocorrelation
@@ -66,11 +66,11 @@ strat.samp.prop = 0.1
 strat.samp.n = 1000000/n.strata 
 
 # training data fraction
-train.frac = 0.7 # use 70% for training, 30% for testing
+train.frac = 0.3 # use 70% for training, 30% for testing
 
 
 # global RF params
-ntree = 500
+ntree = 50
 mtry = 5
 
 # local RF params
@@ -203,14 +203,14 @@ if (mode %in% c('prep', 'both')){
   ####################
   # LOAD RESPONSE VARS
   ####################
+ 
+  # SIF-based asynch
+  #phn.asy = read.file('SIF', asynch.file=T)
   
   # NIRv-based asynch
-  # NOTE: ADD ME
-  #phn.asy = read.file('NIRv', T)
+  phn.asy = read.file('NIRv', T)
   
-  # SIF-based asynch
-  phn.asy = read.file('SIF', asynch.file=T)
-  
+ 
   #################
   # LOAD PREDICTORS
   #################
@@ -334,9 +334,9 @@ if (mode %in% c('prep', 'both')){
   names(vars) = names
 
   # write stack to file (for reload in 'analyze' mode),
-  #vars = rast(vars)
-  #terra::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars.tif"), overwrite=T)
-  raster::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars.tif"), overwrite=T)
+  #raster::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars.tif"), overwrite=T)
+  vars = rast(vars)
+  terra::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars.tif"), overwrite=T)
   
   # coerce to a data.frame
   df = as.data.frame(vars, xy=T)
@@ -368,7 +368,9 @@ if (mode %in% c('prep', 'both')){
   write.csv(df.strat, paste0(data.dir, "/asynch_model_all_vars_prepped_strat.csv"), row.names=F)
  
 
-} else if (mode %in% c('analyze', 'both')){
+} 
+
+if (mode %in% c('analyze', 'both')){
 
   # load rasters of prepped variables
   vars = brick(paste0(data.dir, "/asynch_model_all_vars.tif"))
@@ -540,8 +542,10 @@ if (mode %in% c('prep', 'both')){
   
   # local model summary and variable importance
   print(grf.model$LocalModelSummary)
-  
-  var.imp.loc = grf.model$Local.Pc.IncMSE
+ 
+  #imp.var.to.use = "Local.Pc.IncMSE" 
+  imp.var.to.use = "Local.IncNodePurity"
+  var.imp.loc = grf.model[[imp.var.to.use]]
   
   # plot local var importance, with plots in order of decreasing global var imp
   plots = lapply(seq(nrow(glob.imp)), function(n){
@@ -553,7 +557,7 @@ if (mode %in% c('prep', 'both')){
                                     color="black", fill="white" ) +
        geom_point(aes(x=trn$x, y=trn$y, col=var.imp.loc[,var]), alpha=0.5, size=0.75) +
        scale_color_cmocean(name='curl', direction=-1, limits=cbar.limits) +
-       ggtitle(paste0(var, ": global % inc. MSE: ", glob.imp.val)) +
+       ggtitle(paste0(var, ": Global ", imp.var.to.use, ": ", glob.imp.val)) +
        labs(col=var)
     return(p)
   })
@@ -565,14 +569,42 @@ if (mode %in% c('prep', 'both')){
                ncol=4)
  
   if (save.plots){
-     ggsave(local_rf_main_plots, file='local_rf_main_plots.png',
+     ggsave(local_rf_main_plots, file='local_rf_main_plot.png',
             width=75, height=55, units='cm', dpi=1000)
     }
+
+
+
+  # map goodness of fit 
+  gof.loc = grf.model$LGofFit
+
+  # plot local var importance, with plots in order of decreasing global var imp
+  plots = lapply(seq(ncol(gof.loc)), function(n){
+    var = colnames(gof.loc)[n]
+    cbar.limits = rep(max(abs(quantile(gof.loc[,var], c(0.01, 0.99), na.rm=T, type=8))),2) * c(-1,1)
+    p = ggplot() +
+       geom_polygon(data=world, aes(x=long, y=lat, group=group),
+                                    color="black", fill="white" ) +
+       geom_point(aes(x=grf.model$Locations[,1], y=grf.model$Locations[,2],
+                      col=gof.loc[,var]), alpha=0.5, size=0.75) +
+       scale_color_cmocean(name='curl', direction=-1, limits=cbar.limits) +
+       ggtitle(paste0("GoF metric: ", var)) +
+       labs(col=var)
+    return(p)
+  })
+  local_rf_gof_plots = grid.arrange(plots[[1]], plots[[2]], plots[[3]],
+               plots[[4]], plots[[5]], plots[[6]], plots[[7]], 
+               ncol=3)
+ 
+  if (save.plots){
+     ggsave(local_rf_main_plots, file='local_rf_gof_plot.png',
+            width=75, height=55, units='cm', dpi=1000)
+    }
+ 
   
-  
-  ################################
-  # MODEL SELECTION AND EVALUATION
-  ################################
+  ####################################
+  # MODEL/VAR SELECTION AND EVALUATION
+  ####################################
   
   # what to do here exactly?
   
