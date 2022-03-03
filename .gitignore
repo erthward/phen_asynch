@@ -4,6 +4,8 @@ calc_asynchrony/__pycache__/
 *.csv
 *.xlsx
 *.png
+*.gif
+*.mp4
 *.pdf
 *.pyc
 *.zip
