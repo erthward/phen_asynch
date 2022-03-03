@@ -67,7 +67,7 @@ gen_dist_file_patt = "%s_genepop.gen." + gen_dist_metric + ".csv"
 csv_file_patt = "%s_populations.csv"
 
 
-# HELPER FNS
+# MORE HELPER FNS
 def check_symmetric(a, rtol=1e-05, atol=1e-08):
     return np.allclose(a, a.T, rtol=rtol, atol=atol)
 

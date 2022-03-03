@@ -37,7 +37,7 @@ from collections import Counter as C
 
 # get the variables' filepaths
 #BIO_DATA_DIR = ('C:\\Users\\thaon\\Documents\\Asynchrony\\bioclim')
-DATA_DIR = ('/home/deth/Desktop/UCB/research/projects/seasonality/'
+DATA_DIR = ('/home/deth/CAL/research/projects/seasonality/'
             'seasonal_asynchrony/asynch_analysis/data/')
 BIOCLIM_DATA_DIR = DATA_DIR + 'bioclim/'
 COUNTRIES_DATA_DIR = DATA_DIR + 'countries/'

@@ -15,13 +15,11 @@ from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import DistanceMetric
 from sklearn.neighbors import BallTree
 from haversine import haversine, Unit
-from geopy.distance import geodesic
-from shapely.geometry import Point
+from collections import Counter as C
 from scipy.spatial import cKDTree
 from scipy.stats import entropy
 import matplotlib.pyplot as plt
 from pprint import pprint
-from collections import Counter as C
 import rasterstats as rs
 import geopandas as gpd
 import rioxarray as rxr
