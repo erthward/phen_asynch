@@ -20,7 +20,6 @@ from scipy.spatial import cKDTree
 from scipy.stats import entropy
 import matplotlib.pyplot as plt
 from pprint import pprint
-import rasterstats as rs
 import geopandas as gpd
 import rioxarray as rxr
 import rasterio as rio
