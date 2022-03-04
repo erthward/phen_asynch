@@ -6,16 +6,17 @@ import glob
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import rioxarray as rxr
 import geopandas as gpd
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from scipy.spatial import ConvexHull
+from shapely.geometry import Polygon
 from skbio.stats.distance import mantel
 
 
 #############################################################################
 # TODO:
-
-    # fix map code
 
     # what to do about having so few samples for pop-based analysis?
     #   could probably write some code to draw seasonality from nearest 
@@ -36,12 +37,6 @@ from skbio.stats.distance import mantel
 
     # correct for multiple tests
 
-    # mean coeff in sig vs insig seasonality spps
-
-    # mean asynch within convex hull of points for significant-seasonality spps
-    #     vs seasonality-inisigif spps?
-
-    # map pops colored by: both insig, clim insig, seas insig, both sig
 #############################################################################
 
 
@@ -78,6 +73,7 @@ def check_symmetric(a, rtol=1e-05, atol=1e-08):
 spps = [os.path.basename(f).split('_')[0] for f in glob.glob(
                     os.path.join(hf.DATA_DIR, gen_subdir + '/*_genepop.gen'))]
 spps = [*np.unique(spps)]
+
 
 # data structures to hold MMRR results and sample sizes
 res = {}
@@ -125,8 +121,8 @@ for spp in spps:
             env = hf.calc_pw_clim_dist_mat(pts)
 
             # get seasonal distmat
-            #sea = hf.get_raster_info_points(hf.COEFFS_FILE, pts, 'ts_pdm',
-            sea = hf.get_raster_info_points(hf.COEFFS_FILLED_FILE, pts, 'ts_pdm',
+            sea = hf.get_raster_info_points(hf.COEFFS_FILE, pts, 'ts_pdm',
+           # sea = hf.get_raster_info_points(hf.COEFFS_FILLED_FILE, pts, 'ts_pdm',
                                             fill_nans=False, fill_tol=fill_tol)
 
             # drop pts for which there are no seasonal distance values, no
@@ -321,3 +317,76 @@ results_df.boxplot(column=['env(p)', 'geo(p)', 'sea(p)',
 fig_box.show()
 
 
+# load NIRv asynch map ax rioxarray DataArray
+asynch = rxr.open_rasterio(('/home/deth/Desktop/CAL/research/projects/'
+                            'seasonality/results/maps/NIRv_global_asynch.tif'))
+
+# get average asynchrony value for each population and add to results df
+mean_asynch = []
+std_asynch = []
+poly_mean_asynch = []
+poly_std_asynch = []
+polys = []
+for i, row in results_df.iterrows():
+    # read in population points
+    spp = row['spp']
+    pops = pd.read_csv(os.path.join(hf.DATA_DIR, gen_subdir,
+                                        csv_file_patt % spp))
+    asynch_vals = []
+    xs = pops['longitude']
+    ys = pops['latitude']
+    pts = np.stack((xs, ys)).T
+    hull = ConvexHull(pts)
+    poly = Polygon(pts[hull.vertices, :])
+    polys.append(poly)
+    # get asynch vals at all points
+    for x, y in zip(xs, ys):
+        # NOTE: take 2nd layer, which is the Euclidean asynchrony value
+        asynch_vals.append(float(asynch.sel(x=x, y=y, method='nearest')[2]))
+    # average and std of the asynch vals
+    mean_asynch.append(np.nanmean(asynch_vals))
+    std_asynch.append(np.nanstd(asynch_vals))
+    # also get mean and std within convex hull polygon
+    asynch_clip = asynch.rio.set_spatial_dims(x_dim="x", y_dim="y").rio.clip(
+                        [poly], all_touched=False)
+    poly_mean_asynch.append(np.nanmean(asynch_clip[2,:,:]))
+    poly_std_asynch.append(np.nanstd(asynch_clip[2,:,:]))
+# add new columns to results_df
+results_df['mean_asynch'] = mean_asynch
+results_df['std_asynch'] = std_asynch
+results_df['poly_mean_asynch'] = poly_mean_asynch
+results_df['poly_std_asynch'] = poly_std_asynch
+results_df['geometry'] = polys
+# column indicating if p val on seasonality < 0.05
+results_df['MMRR_sea_p_lt_p05'] = results_df['sea(p)'] < 0.05
+#coerce to GeoDataFrame
+results_gdf = gpd.GeoDataFrame(results_df, geometry=results_df.geometry, crs=4326)
+
+# boxplot it
+fig, axs = plt.subplots(2,4)
+for i, col in enumerate(['mean_asynch', 'std_asynch',
+                         'poly_mean_asynch', 'poly_std_asynch']):
+    sns.boxenplot(x='mantel_p_lt_p05',
+                  y=col,
+                  data=results_gdf,
+                  ax=axs[0,i])
+    sns.boxenplot(x='MMRR_sea_p_lt_p05',
+                  y=col,
+                  data=results_gdf,
+                  ax=axs[1,i])
+    axs[0,i].set_title(col)
+axs[0,0].set_ylabel('mantel result')
+axs[1,0].set_ylabel('MMRR result')
+fig.show()
+
+# map asynch results
+fig, ax = plt.subplots(1,1)
+asynch[2,:,:].squeeze().plot.imshow(ax=ax, cmap='cividis')
+results_gdf.to_crs(asynch.rio.crs).plot(column='mantel_p_lt_p05',
+                                        alpha=0.4,
+                                        ax=ax,
+                                        cmap='cividis')
+ax.scatter(results_gdf.centroid.x, results_gdf.centroid.y,
+           c=results_gdf['mantel_p_lt_p05'],
+           alpha=0.7, cmap='cividis')
+fig.show()

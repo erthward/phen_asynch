@@ -37,12 +37,12 @@ from collections import Counter as C
 
 # get the variables' filepaths
 #BIO_DATA_DIR = ('C:\\Users\\thaon\\Documents\\Asynchrony\\bioclim')
-DATA_DIR = ('/home/deth/CAL/research/projects/seasonality/'
-            'seasonal_asynchrony/asynch_analysis/data/')
+DATA_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+            'seasonal_asynchrony/analysis/other_data/')
 BIOCLIM_DATA_DIR = DATA_DIR + 'bioclim/'
 COUNTRIES_DATA_DIR = DATA_DIR + 'countries/'
-COEFFS_FILE = DATA_DIR + 'SIF_coeffs.tif'
-COEFFS_FILLED_FILE = DATA_DIR + 'SIF_coeffs_FILLED_tol25.tif'
+COEFFS_FILE = DATA_DIR + 'NIRv_global_coeffs.tif'
+COEFFS_FILLED_FILE = DATA_DIR + 'NIRv_coeffs_FILLED_tol25.tif'
 BIOCLIM_INFILEPATHS = glob.glob(os.path.join(BIOCLIM_DATA_DIR,"*.tif"))
 BIOCLIM_INFILEPATHS = sorted(BIOCLIM_INFILEPATHS)
 
