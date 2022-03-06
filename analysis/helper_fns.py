@@ -307,8 +307,8 @@ def generate_random_points_in_polygon(n, polygon):
     points = []
     minx, miny, maxx, maxy = polygon.bounds
     while len(points) < n:
-        pnt = Point(random.uniform(minx, maxx),
-                    random.uniform(miny, maxy))
+        pnt = Point(np.random.uniform(minx, maxx),
+                    np.random.uniform(miny, maxy))
         if polygon.contains(pnt):
             points.append(pnt)
     return points
@@ -321,7 +321,7 @@ def calc_pw_geo_dist_mat(pts):
     """
     # empty pw dist mat
     geo_dist = np.zeros([pts.shape[0]]*2) * np.nan
-    
+
     # loop over pts
     for i in range(pts.shape[0]):
         pt_i = pts[i,:]
@@ -351,6 +351,9 @@ def calc_pw_clim_dist_mat(pts, nodata_val=-3.4e+38):
     Calculates the pw bioclim-dist matrix for an nx2 numpy array
     containing the (lon, lat) coordinates for n points.
     """
+    # TODO:
+        # IMPLEMENT ARGUMENT TO NORMALIZE BIOCLIM DATA?
+
     # list to hold arrays of all bioclim vars' vals
     bioclim_vals_arrs = []
     for fn in BIOCLIM_INFILEPATHS:

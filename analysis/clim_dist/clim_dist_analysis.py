@@ -11,7 +11,9 @@ import os
 #from osgeo import gdal
 import random
 import numpy as np
+import pandas as pd
 from scipy.spatial import KDTree
+import seaborn as sns
 import math
 import itertools
 import rasterio as rio
@@ -99,6 +101,15 @@ dist_dict = {}
 # get the nodata val
 nodata_val = rio.open(hf.BIOCLIM_INFILEPATHS[0]).nodata
 
+# columns for pandas DataFrame
+seas_dist_colm = []
+clim_dist_colm = []
+reg_colm = []
+x1_colm = []
+x2_colm = []
+y1_colm = []
+y2_colm = []
+
 for reg_poly, reg_pts, reg_col, reg_name in zip(regs,
                                                 regs_pts,
                                                 reg_cols,
@@ -110,7 +121,7 @@ for reg_poly, reg_pts, reg_col, reg_name in zip(regs,
     pts = np.concatenate([np.array(pt.coords) for pt in reg_pts], axis=0)
 
     # get points' pairwise clim dists
-    clim_dist = hg.calc_pw_clim_dist_pts(pts, nodata_val=nodata_val)
+    clim_dist = hf.calc_pw_clim_dist_mat(pts, nodata_val=nodata_val)
 
     # get points' pairwise ts dists
     seas_dist = hf.get_raster_info_points(hf.COEFFS_FILE, pts, 'ts_pdm')
@@ -147,9 +158,46 @@ for reg_poly, reg_pts, reg_col, reg_name in zip(regs,
                            'seas': seas_dist_vals
                           }
 
+    # add to DataFrame columns
+    seas_dist_colm.extend(seas_dist_vals)
+    clim_dist_colm.extend(clim_dist_vals)
+    reg_colm.extend([reg_name]*len(seas_dist_vals))
+    x1_colm.extend(pts[indices[0],0])
+    x2_colm.extend(pts[indices[1],0])
+    y1_colm.extend(pts[indices[0],1])
+    y2_colm.extend(pts[indices[1],1])
+
 ax.legend(fontsize=16)
 
 ax.set_xlabel('climate distance (Euclidean)', size=18)
 ax.set_ylabel('seasonal distance (Euclidean)', size=18)
 ax.tick_params(labelsize=16)
 fig.show()
+
+
+# contourplot
+df = pd.DataFrame({'seas_dist': seas_dist_colm,
+                   'clim_dist': clim_dist_colm,
+                   'reg': reg_colm,
+                   'x1': x1_colm,
+                   'x2': x2_colm,
+                   'y1': y1_colm,
+                   'y2': y2_colm,
+                  })
+
+dists = []
+for i, row in df.iterrows():
+    dist = hf.calc_euc_dist(row[['x1', 'y1']].values, row[['x2', 'y2']].values)
+    dists.append(dist)
+df['geo_dist'] = dists
+
+# write results to disk
+df.to_csv('clim_dist_results.csv', index=False)
+
+
+#fig_cont, ax = plt.subplots(1,1)
+#sns.jointplot(data=df.iloc[np.arange(0, len(df), 100),:],
+#                                     x='seas_dist', y='clim_dist', hue='reg', kind='kde')
+#fig_cont.show()
+
+

@@ -14,6 +14,7 @@ from scipy.signal import argrelextrema
 from scipy.optimize import curve_fit
 from scipy.interpolate import griddata
 from sklearn.manifold import MDS
+from sklearn.preprocessing import normalize
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -33,6 +34,9 @@ samp_size = 10_000
 # data dir
 data_dir = '/home/deth/Desktop/CAL/research/projects/seasonality/results/maps'
 
+# set the seed
+seed = 1
+np.random.seed(seed)
 
 
 ###########
@@ -137,6 +141,13 @@ dm = make_design_matrix()
 tss = np.ones((len(samp_df), 365)) * np.nan
 for i, row in samp_df.iterrows():
     ts = np.sum(row.values[:5] * dm, axis=1)
+    # rotate 1/2 year for soutern hemisphere
+    # TODO: DOES THIS MAKE A DIFF? IT CHANGES COLORS, BUT SEEMS TO LEAVE
+    # RELATIONSHIPS THE SAME!? NEED TO WORK THIS OUT NUMERICALLY
+    if row['y']<0:
+        ts = np.array([*ts[183:]] + [*ts[:183]])
+    # normalize to [0,1]
+    ts = normalize([ts]).flatten()
     assert ts.shape == (365,)
     tss[i, :] = ts
 
@@ -153,7 +164,6 @@ for i, row in samp_df.iterrows():
 # using pairwise Euclidean distance between the 365-d points as dissim metric
 mds = MDS(n_components=3, metric=True)
 tss_3d = mds.fit_transform(tss)
-
 
 
 #####################
@@ -204,7 +214,7 @@ for i in range(3):
 
 # write to file
 with rio.Env():
-    profile = rio.open('NIRv_global_coeffs.tif').profile
+    profile = rio.open(os.path.join(data_dir, 'NIRv_global_coeffs.tif')).profile
     profile.update(count=3, compress='lzw')
     with rio.open('seasonality_MDS_result.tif', 'w', **profile) as dst:
         # NOTE: profile from input file specifies float32, originating from GEE

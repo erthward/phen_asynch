@@ -9,6 +9,7 @@ calc_asynchrony/__pycache__/
 *.pdf
 *.pyc
 *.zip
+*.swp
 analysis/*.tif
 analysis/__pycache__/
 analysis/__pycache__/*.pyc
