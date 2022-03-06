@@ -19,12 +19,23 @@ import itertools
 import rasterio as rio
 import matplotlib.pyplot as plt
 from shapely.ops import unary_union
-from shapely.geometry import Polygon, Point
+from shapely.geometry import Polygon, Point, Multipolygon
 from scipy.spatial import ConvexHull
 from collections import Counter as C
 
 # local modules
 import helper_fns as hf
+
+
+# TODO:
+    # perhaps I should just be trying to calculate neighborhood multivariate
+    # variance in standardized bioclim variables as a RF covariate (rather
+    # than this inter-point comparison thing)?
+
+    # change this script to sample points in a stratified random way,
+    # then assign regions in some data-driven way
+
+    # account for/avoid spatial autocorrelation in some way?
 
 
 # load the country boundaries (to use for random point generation)
@@ -194,10 +205,5 @@ df['geo_dist'] = dists
 # write results to disk
 df.to_csv('clim_dist_results.csv', index=False)
 
-
-#fig_cont, ax = plt.subplots(1,1)
-#sns.jointplot(data=df.iloc[np.arange(0, len(df), 100),:],
-#                                     x='seas_dist', y='clim_dist', hue='reg', kind='kde')
-#fig_cont.show()
 
 

@@ -2,10 +2,8 @@ library(ggplot2)
 library(lme4)
 
 # TODO:
-  # change Python script to sample randomly globally,
-  # then assign regions in a data-driven way
 
-  # account for spatial autocorrelation somehow
+  # should this actually just be a multi-Mantel test of some sort, since they're distance vals so non-independent?
 
   # plot fitted results
 
