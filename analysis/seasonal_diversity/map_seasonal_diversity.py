@@ -99,11 +99,11 @@ center_eof = True
 neofs = 2
 
 # min and max x and y values, to optionally subset analysis to a region
-region_name = 'Andes'
-min_x = -76
-max_x = -73
-min_y = 3.5
-max_y = 9
+region_name = 'global'
+min_x = None
+max_x = None
+min_y = None
+max_y = None
 
 
 ###########
@@ -303,11 +303,14 @@ if run_mds:
     mds_res.attrs['add_offset'] = add_offset
     mds_res.attrs['_FillValue'] = _FillValue
     mds_res.attrs['long_name'] = ['R', 'G', 'B']
+    outfilename = os.path.join(data_dir,  '%s_MDS_res.tif' % region_name)
+    mds_res.rio.to_raster(outfilename)
+
 
     # map results
     fig4 = plt.figure(figsize=(16,12))
     gs = fig4.add_gridspec(nrows=6, ncols=4,
-                           width_ratios=[1,1,1,0.5,0.5,0.5])
+                           width_ratios=[1,1,0.5,0.5])
     ax_scat = fig4.add_subplot(gs[:3, 2:4], projection='3d')
     ax_scat.scatter(mds_axes[:,0], mds_axes[:,1], mds_axes[:,2],
                     c=mds_axes_norm, alpha=0.05)
