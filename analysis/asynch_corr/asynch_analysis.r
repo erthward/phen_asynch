@@ -4,6 +4,7 @@ library(sp)                   # spatial data
 library(sf)                   # newer spatial data
 library(spdep)                # spatial autocorrelation
 library(randomForest)         # global RFs
+library(RRF)                  # fast RF var selection (w/ conservative results in Bag et al. 2022)
 #library(ranger)               # faster RFs
 #library(h2o)                  # distributed RFs (on cloud)
 library(SpatialML)            # GWRFs
@@ -28,6 +29,12 @@ library(dplyr)                # reshaping dfs
 # 5. set up to run on Savio, then run it
 
 
+
+
+##########################################################################
+# SETUP 
+
+
 #######################
 # SET BEHAVIORAL PARAMS
 #######################
@@ -47,8 +54,8 @@ if (strsplit(getwd(), '/')[[1]][2] == 'home'){
 
 # mode (either prep data, or analyze data)
 #mode = 'prep'
-#mode = 'analyze'
-mode = 'both'
+mode = 'analyze'
+#mode = 'both'
 
 # save plots?
 save.plots = T
@@ -198,6 +205,14 @@ make.pdp = function(rf, trn, response, varn1, varn2, seed.num=NA){
   return(table_grob)
 }
 
+
+
+
+
+##########################################################################
+# PREP 
+
+
 if (mode %in% c('prep', 'both')){
   
   ####################
@@ -215,10 +230,6 @@ if (mode %in% c('prep', 'both')){
   # LOAD PREDICTORS
   #################
   
-  # asynchrony in mean temperature
-  tmp.mea.asy = read.file('tmmean', asynch.file=T,
-                      align.to=phn.asy, mask.it=F)
-  
   # asynchrony in min temperature
   tmp.min.asy = read.file('tmmn', asynch.file=T,
                       align.to=phn.asy, mask.it=F)
@@ -234,18 +245,11 @@ if (mode %in% c('prep', 'both')){
   
   # mean daily max temp, warmest month
   # NOTE: CALC AS NEIGH MEAN AND/OR SD?
-  tmp.max.mea = read.file('CHELSA_bio5', asynch.file=F,
-                      align.to=phn.asy, mask.it=F)
-  
-  # temperature seasonality
-  # NOTE: CALC AS NEIGH MEAN AND/OR SD?
-  tmp.sea = read.file('CHELSA_bio4', asynch.file=F,
-                      align.to=phn.asy, mask.it=F)
-  
-  # number of growing degree days (above 0deg C)
-  # NOTE: CALC AS NEIGH MEAN AND/OR SD?
-  ngd = read.file('CHELSA_ngd0', asynch.file=F,
-                      align.to=phn.asy, mask.it=F)
+  # NOTE: STRONGLY CORRELATED (0.82) WITH tmp.min.mea,
+  #       SO KEEPING ONLY THAT ONE (WHICH I THINK IS MORE
+  #       MORE MECHANSTICALLY DEFENSIBLE)
+  #tmp.max.mea = read.file('CHELSA_bio5', asynch.file=F,
+  #                    align.to=phn.asy, mask.it=F)
   
   # asynchrony in precipitation
   ppt.asy = read.file('pr', asynch.file=T,
@@ -276,9 +280,6 @@ if (mode %in% c('prep', 'both')){
   #       surrounding continents in their dataset
   vrm.med = read.file('vrm_50KMmd', asynch.file=F,
                       align.to=phn.asy, mask.it=T)
-  vrm.std = read.file('vrm_50KMsd', asynch.file=F,
-                      align.to=phn.asy, mask.it=T)
-  
   
   # neighborhood Shannon entropy of land cover
   # NOTE: CALCULATE THIS!
@@ -316,8 +317,8 @@ if (mode %in% c('prep', 'both')){
   ###########
   
   # gather into a stack
-  vars = stack(phn.asy, tmp.mea.asy, tmp.min.asy, tmp.max.asy, tmp.min.mea, tmp.max.mea,
-               tmp.sea, ngd, ppt.asy, ppt.sea, def.asy, cld.asy, wds.asy, vrm.med, vrm.std,
+  vars = stack(phn.asy, tmp.min.asy, tmp.max.asy, tmp.min.mea,
+               ppt.asy, ppt.sea, def.asy, cld.asy, wds.asy, vrm.med,
                hab.div, riv.dis, eco.dis)
 
   # aggregate to coarser res, if working on laptop
@@ -326,16 +327,17 @@ if (mode %in% c('prep', 'both')){
   }
  
   # rename all bands 
-  names = c('phn.asy', 'tmp.mea.asy', 'tmp.min.asy', 'tmp.max.asy',
-            'tmp.min.mea', 'tmp.max.mea', 'tmp.sea', 'ngd', 'ppt.asy',
-            'ppt.sea', 'def.asy', 'cld.asy', 'wds.asy', 'vrm.med', 'vrm.std',
+  names = c('phn.asy', 'tmp.min.asy', 'tmp.max.asy',
+            'tmp.min.mea', 'ppt.asy',
+            'ppt.sea', 'def.asy', 'cld.asy', 'wds.asy', 'vrm.med',
             'hab.div', 'riv.dis', 'eco.dis')
 
   names(vars) = names
 
   # write stack to file (for reload in 'analyze' mode),
   #raster::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars.tif"), overwrite=T)
-  vars = rast(vars)
+  #vars = rast(vars)
+
   terra::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars.tif"), overwrite=T)
   
   # coerce to a data.frame
@@ -366,11 +368,21 @@ if (mode %in% c('prep', 'both')){
   # write data.frame to file (for reload in 'analyze' mode),
   write.csv(df, paste0(data.dir, "/asynch_model_all_vars_prepped.csv"), row.names=F)
   write.csv(df.strat, paste0(data.dir, "/asynch_model_all_vars_prepped_strat.csv"), row.names=F)
- 
+
+
+
+##########################################################################
+# ANALYSIS 
 
 } 
 
 if (mode %in% c('analyze', 'both')){
+
+  # rename all bands 
+  names = c('phn.asy', 'tmp.min.asy', 'tmp.max.asy',
+            'tmp.min.mea', 'ppt.asy',
+            'ppt.sea', 'def.asy', 'cld.asy', 'wds.asy', 'vrm.med',
+            'hab.div', 'riv.dis', 'eco.dis')
 
   # load rasters of prepped variables
   vars = brick(paste0(data.dir, "/asynch_model_all_vars.tif"))
@@ -399,18 +411,49 @@ if (mode %in% c('analyze', 'both')){
   
   # build the model
   # NOTE: leaving lat and lon out of model
-  rf = randomForest(phn.asy ~ ., data=trn[,3:ncol(trn)],
-  #rf = randomForest(phn.asy ~ ., data=trn,
-                    ntree=ntree, importance=TRUE)
+
+  # standard RF
+  rf = RRF(phn.asy ~ .,
+           data=trn[,3:ncol(trn)],
+           ntree=ntree,
+           mtry=mtry,
+           importance=T,
+           flagReg=0)
+
+  # regularized RF
+  rrf = RRF(phn.asy ~ .,
+           data=trn[,3:ncol(trn)],
+           ntree=ntree,
+           mtry=mtry,
+           importance=T,
+           flagReg=1,
+           )
+
+  # guided regularized RF
+  impRF <- rf$importance[,"IncNodePurity"]
+  imp <- impRF/(max(impRF))#normalize the importance score
+  gamma <- 0.5
+  coefReg <- (1-gamma)+gamma*imp #weighted average
+  grrf <- RRF(phn.asy ~ .,
+              data=trn[,3:ncol(trn)],
+              ntree=ntree,
+              mtry=mtry,
+              importance=T,
+              coefReg=coefReg,
+              flagReg=1)
+
   
-  # take a look at the result
+  # take a look at the results
   print(rf)
+  print(rrf)
+  print(grrf)
   
   # quick assessment plots
   par(mfrow=c(1,2))
-  p1 = vip(rf)
+  p1 = varImpPlot(grrf)
+  # TODO: WHY STRANGE VERTICAL SUDDENLY SHOWED UP IN FOLLOWING PLOT?
   p2 = ggplot() +
-     geom_point(aes(x=trn$phn.asy, y=predict(rf)), alpha=0.2) +
+     geom_point(aes(x=trn$phn.asy, y=predict(grrf)), alpha=0.2) +
      geom_abline(intercept = 0, slope = 1)
   quick_assess_grob = grid.arrange(p1, p2, ncol=2)
   plot(quick_assess_grob)
@@ -420,30 +463,28 @@ if (mode %in% c('analyze', 'both')){
             width=45, height=35, units='cm', dpi=1000)
   }
   
-
-  
   # partial dependence plots
-  pdp12 = make.pdp(rf, trn, 'phn.asy', 1, 2, seed.num=seed.num)
+  pdp12 = make.pdp(grrf, trn, 'phn.asy', 1, 2, seed.num=seed.num)
   plot(pdp12)
   
-  pdp13 = make.pdp(rf, trn, 'phn.asy', 1, 3, seed.num=seed.num)
+  pdp13 = make.pdp(grrf, trn, 'phn.asy', 1, 3, seed.num=seed.num)
   plot(pdp13)
   
-  pdp23 = make.pdp(rf, trn, 'phn.asy', 2, 3, seed.num=seed.num)
+  pdp23 = make.pdp(grrf, trn, 'phn.asy', 2, 3, seed.num=seed.num)
   plot(pdp23)
 
   if (save.plots){
      ggsave(pdp12, file='pdp12.png',
-            width=45, height=25, units='cm', dpi=1000)
+            width=22, height=12, units='cm', dpi=500)
      ggsave(pdp13, file='pdp13.png',
-            width=45, height=25, units='cm', dpi=1000)
+            width=22, height=12, units='cm', dpi=500)
      ggsave(pdp23, file='pdp23.png',
-            width=45, height=25, units='cm', dpi=1000)
+            width=22, height=12, units='cm', dpi=500)
   }
   
   
   # make predictions
-  preds = predict(rf, tst[,3:ncol(tst)])
+  preds = predict(grrf, tst[,3:ncol(tst)])
   #preds = predict(rf, tst)
   tst$err = preds - tst[,'phn.asy'] 
   preds_plot = ggplot(tst) +
@@ -456,12 +497,12 @@ if (mode %in% c('analyze', 'both')){
 
   if (save.plots){
      ggsave(preds_plot, file='preds_plot.png',
-            width=75, height=45, units='cm', dpi=1000)
+            width=30, height=22, units='cm', dpi=500)
     }
 
   
-  # make predicitons for full dataset (to map as raster)
-  full_preds = predict(rf, df[,3:ncol(df)])
+  # make predicitions for full dataset (to map as raster)
+  full_preds = predict(grrf, df[,3:ncol(df)])
   df.res = df %>% mutate(preds = full_preds, err = full_preds - df[,'phn.asy'])
   dfrast <- rasterFromXYZ(df.res[, c('x', 'y', 'phn.asy', 'preds', 'err')])
   re_df = as.data.frame(dfrast, xy=T)
@@ -504,11 +545,11 @@ if (mode %in% c('analyze', 'both')){
   obs_vs_pred = ggplot() +
           geom_point(data=re_df, aes(x=phn.asy, y=preds), alpha=0.05) +
           geom_abline(intercept=0, slope=1)
-  global_rf_main_plots = cowplot::plot_grid(obs_map, preds_map, err_map, obs_vs_pred, nrow=2, ncol=2)
-  global_rf_main_plots
+  global_grrf_main_plots = cowplot::plot_grid(obs_map, preds_map, err_map, obs_vs_pred, nrow=2, ncol=2)
+  global_grrf_main_plots
 
   if (save.plots){
-     ggsave(global_rf_main_plots, file='global_rf_main_plot.png',
+     ggsave(global_grrf_main_plots, file='global_grrf_main_plot.png',
             width=75, height=55, units='cm', dpi=1000)
     }
   
@@ -519,9 +560,9 @@ if (mode %in% c('analyze', 'both')){
   
   # code adapted from https://zia207.github.io/geospatial-r-github.io/geographically-wighted-random-forest.html
   coords = trn[,1:2]
-  grf.model <- grf(formula=phn.asy ~ tmp.mea.asy + tmp.min.asy + tmp.max.asy + tmp.min.mea + tmp.max.mea +
-                                 tmp.sea + ngd + ppt.asy + ppt.sea + def.asy + cld.asy + 
-                                 vrm.med + vrm.std + riv.dis + hab.div + eco.dis,
+  grf.model <- grf(formula=phn.asy ~ tmp.min.asy + tmp.max.asy + tmp.min.mea +
+                                 ppt.asy + ppt.sea + def.asy + cld.asy + 
+                                 vrm.med + riv.dis + hab.div + eco.dis,
                    dframe=trn[, 3:ncol(trn)], 
                    bw=bw.local,
                    kernel="adaptive",
