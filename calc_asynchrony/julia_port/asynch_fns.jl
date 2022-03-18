@@ -99,11 +99,14 @@ using GLM
 Which variable to calculate asynchrony for
 """
 #const VAR = "def"
-const VAR = "pr"
+#const VAR = "pr"
 #const VAR = "tmmean"
+#const VAR = "tmmn"
+#const VAR = "tmmx"
+#const VAR = "vs"
 #const VAR = "cloud"
 #const VAR = "SIF"
-#const VAR = "NIRvP"
+const VAR = "NIRv"
 
 
 # stdout options
@@ -131,7 +134,7 @@ if splitpath(pwd())[2] == "home"
     # NOTE: pyplot breaks when trying to plot the Grayscale image,
     # so for now using GR instead
     #gr()
-    if VAR == "NIRvP"
+    if VAR == "NIRv"
         const ABS_DATA_DIR = "/home/deth/Desktop/CAL/research/projects/seasonality/GEE_output/CA/"
     elseif VAR == "SIF"
         const ABS_DATA_DIR = "/home/deth/Desktop/CAL/research/projects/seasonality/GEE_output/old/"
@@ -140,8 +143,8 @@ if splitpath(pwd())[2] == "home"
     end
 
 else
-    if VAR == "NIRvP"
-        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/NIRvP/"
+    if VAR == "NIRv"
+        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/NIRv/"
     elseif VAR == "SIF"
         const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/SIF/"
     elseif VAR == "tmmean"
@@ -181,7 +184,7 @@ directory where the TFRecord data and mixerfile live
 const DATA_DIR = relpath(ABS_DATA_DIR)
 
 # kernel size
-if VAR == "NIRvP"
+if VAR == "NIRv"
     """
     kernel size used by GEE to output the TFRecord files
     """
