@@ -50,13 +50,7 @@ def MMRR(Y, X, Xnames=None, nperm=999):
     for i in range(nperm):
         # shuffle the row numbers
         np.random.shuffle(rownums)
-        Yperm = Y[rownums,:][:, rownums]
-        assert not np.all(Yperm == Y), 'permuted matrix equal to original!'
-        assert np.allclose(np.sum(Yperm),
-                           np.sum(Y)), ('permuted matrix does not sum to '
-                                        'sum of the original!'
-                                        '\n(%0.3f vs %0.3f)') % (np.sum(Yperm),
-                                                                 np.sum(Y))
+        Yperm = Y[rownums, rownums]
         yperm = _unfold_tril(Yperm)
         permmod_y, permmod_x = _prep_mod_data(yperm, xs)
         permmod = sm.OLS(permmod_y, permmod_x).fit()
@@ -74,7 +68,7 @@ def MMRR(Y, X, Xnames=None, nperm=999):
     output.update({c: cval for c, cval in zip(coeff_names, coeffs)})
     output.update({c+ "(t)": tval for c, tval in zip(coeff_names, tstat)})
     output.update({c+ "(p)": pval for c, pval in zip(coeff_names, tp)})
-    output["F-statistic"] = Fstat
+    output["F-statistc"] = Fstat
     output["F p-value"] = Fp
 
     return output

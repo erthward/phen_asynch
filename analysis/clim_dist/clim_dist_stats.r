@@ -1,5 +1,6 @@
 library(ggplot2)
 library(lme4)
+library(ncf)
 
 # TODO:
 
@@ -17,3 +18,5 @@ coef(mod)
 # in temperate high-asynch regions,
 # but no better predicted by climatic distance in 
 # tropical high-asynchrony than in any low-asynchrony regions
+
+# HOWEVER: need to do this with a set of partial Mantels/MMRRs to be valid

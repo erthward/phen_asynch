@@ -10,6 +10,7 @@ import time
 import os
 #from osgeo import gdal
 import random
+import pyproj
 import numpy as np
 import pandas as pd
 from scipy.spatial import KDTree
@@ -19,12 +20,13 @@ import itertools
 import rasterio as rio
 import matplotlib.pyplot as plt
 from shapely.ops import unary_union
-from shapely.geometry import Polygon, Point, Multipolygon
+from shapely.geometry import Polygon, Point, MultiPolygon
 from scipy.spatial import ConvexHull
 from collections import Counter as C
 
 # local modules
 import helper_fns as hf
+from MMRR import MMRR
 
 
 # TODO:
@@ -42,6 +44,9 @@ import helper_fns as hf
 cntry = gpd.read_file(hf.COUNTRIES_DATA_DIR + 'countries.shp')
 
 n_pts = 1000  # Enter in the number greater than random points you need
+
+# run MMRR tests?
+run_MMRR = True
 
 
 # define regions for:
@@ -121,6 +126,9 @@ x2_colm = []
 y1_colm = []
 y2_colm = []
 
+if run_MMRR:
+    MMRR_res = {}
+
 for reg_poly, reg_pts, reg_col, reg_name in zip(regs,
                                                 regs_pts,
                                                 reg_cols,
@@ -137,16 +145,39 @@ for reg_poly, reg_pts, reg_col, reg_name in zip(regs,
     # get points' pairwise ts dists
     seas_dist = hf.get_raster_info_points(hf.COEFFS_FILE, pts, 'ts_pdm')
 
+    assert clim_dist.shape[0] == seas_dist.shape[0] == pts.shape[0]
+
     # drop clim dists for points without ts dists, and vice versa
     not_missing = np.where(np.nansum(seas_dist, axis=0)>0)[0]
     seas_dist = seas_dist[:, not_missing][not_missing,:]
     clim_dist = clim_dist[:, not_missing][not_missing,:]
+    pts = pts[not_missing, :]
     still_not_missing = np.where(np.nansum(clim_dist, axis=0)>0)[0]
     seas_dist = seas_dist[:, still_not_missing][still_not_missing,:]
     clim_dist = clim_dist[:, still_not_missing][still_not_missing,:]
+    pts = pts[still_not_missing, :]
 
     print(('\n%i points remain after dropping locations without seasonality '
           'data\n' % seas_dist.shape[0]))
+
+    # run MMRR, if requested
+    if run_MMRR:
+        g = pyproj.Geod(ellps='WGS84')
+        # get pw geo dist matrix of points
+        geo_dist = np.ones([pts.shape[0]]*2) * np.nan
+        for i in range(geo_dist.shape[0]):
+            for j in range(i, geo_dist.shape[1]):
+                lon1, lat1 = pts[i,:]
+                lon2, lat2 = pts[j,:]
+                (az12, az21, dist) = g.inv(lon1, lat1, lon2, lat2)
+                geo_dist[i, j] = dist
+                geo_dist[j, i] = dist
+        # run model
+        res = MMRR(seas_dist, [clim_dist, geo_dist], ['clim_dist', 'geo_dist'])
+        # print and store results
+        for k, v in res.items():
+            print('\n\t%s: %s' % (k, str(v)))
+        MMRR_res[reg_name] = res
 
     # extract the lower triangular values and scatter them
     indices = np.tril_indices(seas_dist.shape[0])
@@ -204,6 +235,9 @@ df['geo_dist'] = dists
 
 # write results to disk
 df.to_csv('clim_dist_results.csv', index=False)
+MMRR_res_df = pd.DataFrame(MMRR_res).T.reset_index()
+MMRR_res_df.columns = ['region']+[*MMRR_res_df.columns][1:]
+MMRR_res_df.to_csv('clim_dist_MMRR_results.csv', index=False)
 
 
 
