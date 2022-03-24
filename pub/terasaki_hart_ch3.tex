@@ -9,9 +9,9 @@
 % {pnasmathematics} %= Template for a one-column mathematics article
 % {pnasinvited} %= Template for a PNAS invited submission
 
-\title{Global mapping of spatial asnychrony of seasons}
+\title{Diversity and spatial asynchrony of phenological and climatic seasonality}
 
-% Use letters for affiliations, numbers to show equal authorship (if applicable) and to indicate the corresponding author
+% Use letters for affiliations, numbers to show equal authorship (if applicable) and to indicate the correspond  ing author
 \author[a,1]{Drew E. Terasaki Hart}
 \author[a]{Ian J. Wang}
 
@@ -29,7 +29,15 @@
 \keywords{phenology $|$ seasonality $|$ $|$ biogeography $|$ remote sensing $|$ NIR_{V}P} 
 
 \begin{abstract}
-Please provide an abstract of no more than 250 words in a single paragraph. Abstracts should explain to the general reader the major contributions of the article. References in the abstract must be cited in full within the abstract itself and cited in the text.
+Here, we use a robust, spatially consistent proxy of photosynthetic activity,
+rigorously validated by a second, independent proxy and by global flux-tower derived
+GPP measurements, to globally map diversity and spatial asynchrony in
+the timing of stand-level phenology. We then explore the drivers of phenological
+asynchrony using global maps of spatial averages, variation, and asynchrony
+in bioclimatic variables and landscape phsyiognomy.
+We unveil striking global patterns of phenological asynchrony
+that broadly overlap with continental biodiversity hotspots in
+, both in tropical montane regions and in global Mediterranean and semi-arid cliamtes. We report evidence that global variation in spatial phenological asynchrony is predominantly explained by spatial asynchrony in precipitation, ..., but that the explanatory factors vary from region to region in substantial and interpretable ways. Global mediterranean regions show strong phenological asynchrony, driven by ... that is rooted in the ... BRIEF DESCRIPTION OF CLIMATIC DYNAMICS. Conversely, some tropical montane regions, PARTICULARLY THOSE WITH UNBROKEN MOUNTAIN RANGES RUNNING ORTHOGONAL TO PREDOMINANT EASTERLY TRADEWINDS, show strong phenological asynchrony driven by ... These patterns suggest strong relevance to evolutionary biogeography...
 \end{abstract}
 
 % Please add a significance statement to explain the relevance of your work
@@ -57,8 +65,51 @@ attempting to explain current distributions of biodiversity on the basis
 of spatially variable speciation rates driven by predictable and
 persistent environmentally structured processes. INTRODUCE ASH…
 
-\section{DELETE THIS SECTION HEADER AND JUST LEAVE DROPCAP!}
-\dropcap{T}his is the intro section.
+\dropcap{N}EED A FIRST SENTENCE HERE!
+- \textit{TODO: REREAD/SKIM PAPERS I'VE COLLECTED FOR THIS CHAPTER, THEN CRAFT WELL-HONED 2-4 PARGRAPH INTRO!}
+- The seasonal timing of photosynthetic activity, and how this varies both regionally and globally, have major implications for evolutionary biogeography. EXPLAIN AHS. OTHER IMPLCIATIONS?
+However, little is known about this understudied field of research,
+making it difficult for hypotheses to be articulated and studied within
+specific species or ecosystems.
+- Over the past 1-2 decades, dramatic improvements in space-based remote sensing of strong proxies of photosynthetic activity have given rise to a number of time series datasets at ecologically relevant spatial scales capable of resolving variation in GPP across ecotones (CITE SUN ET AL SCIENCE 2017).
+- Brief explanation of SIF and NIRv methods, justifications, and caveats.
+
+Here, we use a MODIS-derived NIRv (OR IS IT NIRVP?) time series from 2010-2020 (RIGHT YEARS?) to ...
+
+- 1-2 paragraphs quickly summarizing methods
+
+- Global phenological diversity
+    - discuss map
+    - mention broad similarity to global map of ppt seasonal modality, except in regions with seasonal deep freeze during which temporal distribution of ppt has no immediate effect of photosynthetic activity
+    - mention use of SIF map (and validation of its seasonal patterns within orbital gaps using a second, independent SIF dataset)
+    - mention broad agreement with SIF-based validation map, as well as understandable differences (cite supps)
+- Global climatic seasonal diversity
+    - discuss map and compare to global phenological diversity map
+- validation of fitted phenology
+    - discuss flux-tower validation results
+    - general agreement
+    - largest disagreement in regions of high asnychrony (some Med climates, some tropical locations)
+        - patterns still strong similar, but timing and height of peaks wander
+        - implications for our findings? real or not? think through this more...
+        - ref. fig showing 3 CA sites (and multi sites in Australia maybe?)
+- Global phenological asynchrony
+    - discuss map
+    - generally low asynchrony in temperate regions with prolonged winter freeze
+    - high asynchrony in all major mediterran climate regions
+    - high asynchrony in a number of tropical montane regions, esp. where extensive mountain ranges run approximately orthogonal to prevalent easterly tradewinds
+- global climatic asynchrony
+    - provide maps (at least in supps) and briefly discuss)
+    - what else?
+- global RF model results
+    - initial vars, and those retained in final models
+    - vars of top importance
+- regional RF model results
+    - discuss amount by which most important vars and their relationships to asynch change
+    - highlight key takeaways (and cite results maps in supps)
+    
+
+- Warm and moist tropical locations are sometimes described as being 'aseasonal', and may largely seem so in comparison to the seasonal patterns of vegetation greenness in regions with seasonal deep freeze or severe drought, or from the perspective of human physiological experience, but many organisms in these locations still exhibit annual reproductive phenologies that are likely modulated by some seasonally varying environmental cue (CITE RADIATION STUFF, ETC), however slight in magnitude.
+- In temperatre regions, seasonality is driven by large circannual fluctuation in solar zenith angle and incident radiation, This latitudinal variation in synoptic-scale  by the circannual latitudinal variation in . In Mediterranean climates, this synoptic-scale variation in 
 
 
 \section*{Results}
@@ -66,12 +117,16 @@ persistent environmentally structured processes. INTRODUCE ASH…
 
 \section*{Discussion}
 
+- strong agreement with global patterns in precipitation seasonal modality, except in regions with deep winter freeze
+- corroborate striking bimodality in photosynthetic activit in California, USA (cite Turner), and find similarly striking regional patterns in other Mediterranean climate regions (e.g., coastal Chile, South Africa, Australia)
+
+
 
 
 
 \matmethods{
 
-\subsection*{NIR_VP and SIF data}
+\sub    section*{NIR_VP and SIF data}
 
 Both the NIRVP and SIF datasets were preprocessed on Google Earth Engine
 (GEE; (Gorelick et al., 2017). Our main dataset was MODIS-derived NIRVP …
@@ -260,7 +315,7 @@ recommended by Maura?)
 
 \showmatmethods{} % Display the Materials and Methods section
 
-\acknow{We thank D. Ackerly, L. Anderegg, A. Bishop, T. Dawson, J. Frederick, N. Graham, M. Kelly, M. Kling, N. Muchhala, P. Papper, A. Turner, E. Westeen, G. Wogan, and M. Yuan for feedback and guidance on various iterations of the simulations presented herein. We thank Berkeley Research Computing for providing access to the Savio computing cluster. Lastly, we thank M. Terasaki Hart, C. Nemec-Hart, G. Hart, J. Hart, and M. Tylka for supporting and encouraging a lifetime of curiosity about nature, and XXXXXXXXXXXXXXXXXX for the good grooves. D.E.T.H. was supported by an Emerging Challenges in Tropical Science Graduate Student Fellowship from the Organization for Tropical Studies, by a Tinker Field Resesarch Grant from the UC Berkeley Center for Latin American Studies, by a research equipment grant from IdeaWild, and by a Berkeley Fellowship (to D.E.T.H.). I.J.W. was supported by a National Science Foundation grant DEB1845682 (to I.J.W.).}
+\acknow{(NOTE: I NEED TO COMPLY WITH FLUXNET (AND AMERIFLUX, IF USED) CITATION REQUIREMENTS!) We thank D. Ackerly, L. Anderegg, A. Bishop, T. Dawson, J. Frederick, N. Graham, M. Kelly, M. Kling, N. Muchhala, P. Papper, A. Turner, E. Westeen, G. Wogan, and M. Yuan for feedback and guidance on various iterations of the simulations presented herein. We thank Berkeley Research Computing for providing access to the Savio computing cluster. Lastly, we thank M. Terasaki Hart, C. Nemec-Hart, G. Hart, J. Hart, and M. Tylka for supporting and encouraging a lifetime of curiosity about nature, and XXXXXXXXXXXXXXXXXX for the good grooves. D.E.T.H. was supported by an Emerging Challenges in Tropical Science Graduate Student Fellowship from the Organization for Tropical Studies, by a Tinker Field Resesarch Grant from the UC Berkeley Center for Latin American Studies, by a research equipment grant from IdeaWild, and by a Berkeley Fellowship (to D.E.T.H.). I.J.W. was supported by a National Science Foundation grant DEB1845682 (to I.J.W.).}
 
 \showacknow{} % Display the acknowledgments section
 
