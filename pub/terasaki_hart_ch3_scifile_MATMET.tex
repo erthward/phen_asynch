@@ -1,132 +1,83 @@
-\documentclass[9pt,twocolumn,twoside,lineno]{pnas-new}
-% Use the lineno option to display guide line numbers if required.
+% Use only LaTeX2e, calling the article.cls class and 12-point type.
 
-% packages
-\usepackage{courier}
+\documentclass[12pt]{article}
 
-\templatetype{pnasresearcharticle} % Choose template 
-% {pnasresearcharticle} = Template for a two-column research article
-% {pnasmathematics} %= Template for a one-column mathematics article
-% {pnasinvited} %= Template for a PNAS invited submission
+% Users of the {thebibliography} environment or BibTeX should use the
+% scicite.sty package, downloadable from *Science* at
+% http://www.sciencemag.org/authors/preparing-manuscripts-using-latex 
+% This package should properly format in-text
+% reference calls and reference-list numbers.
 
-\title{Diversity and spatial asynchrony of phenological and climatic seasonality}
+\usepackage{scicite}
 
-% Use letters for affiliations, numbers to show equal authorship (if applicable) and to indicate the correspond  ing author
-\author[a,1]{Drew E. Terasaki Hart}
-\author[a]{Ian J. Wang}
+\usepackage{times}
 
-\affil[a]{Department of Environmental Science, Policy, and Management, University of California, Berkeley, CA 94720}
-
-% Please give the surname of the lead author for the running footer
-\leadauthor{Terasaki Hart} 
-
-% Please include corresponding author, author contribution and author declaration information
-\authorcontributions{D.E.T.H. conceived, designed and wrote the simulations and analysis, and wrote the manuscript. I.J.W. helped conceive and design the simulations and analysis, and cowrote the manuscript.}
-\authordeclaration{The authors declare no competing interests.}
-\correspondingauthor{\textsuperscript{1}To whom correspondence should be addressed. E-mail: drew.hart@berkeley.edu}
-
-% At least three keywords are required at submission. Please provide three to five keywords, separated by the pipe symbol.
-\keywords{phenology $|$ seasonality $|$ $|$ biogeography $|$ remote sensing $|$ NIR_{V}P} 
-
-\begin{abstract}
-Here, we use a robust, spatially consistent proxy of photosynthetic activity,
-rigorously validated by a second, independent proxy and by global flux-tower derived
-GPP measurements, to globally map diversity and spatial asynchrony in
-the timing of stand-level phenology. We then explore the drivers of phenological
-asynchrony using global maps of spatial averages, variation, and asynchrony
-in bioclimatic variables and landscape phsyiognomy.
-We unveil striking global patterns of phenological asynchrony
-that broadly overlap with continental biodiversity hotspots in
-, both in tropical montane regions and in global Mediterranean and semi-arid cliamtes. We report evidence that global variation in spatial phenological asynchrony is predominantly explained by spatial asynchrony in precipitation, ..., but that the explanatory factors vary from region to region in substantial and interpretable ways. Global mediterranean regions show strong phenological asynchrony, driven by ... that is rooted in the ... BRIEF DESCRIPTION OF CLIMATIC DYNAMICS. Conversely, some tropical montane regions, PARTICULARLY THOSE WITH UNBROKEN MOUNTAIN RANGES RUNNING ORTHOGONAL TO PREDOMINANT EASTERLY TRADEWINDS, show strong phenological asynchrony driven by ... These patterns suggest strong relevance to evolutionary biogeography...
-\end{abstract}
-
-% Please add a significance statement to explain the relevance of your work
-\significancestatement{Authors must submit a 120-word maximum statement about the significance of their research paper written at a level understandable to an undergraduate educated scientist outside their field of speciality. The primary goal of the significance statement is to explain the relevance of the work in broad context to a broad readership. The significance statement appears in the paper itself and is required for all research papers.}
-
-\dates{This manuscript was compiled on \today}
-\doi{\url{www.pnas.org/cgi/doi/10.1073/pnas.XXXXXXXXXX}}
-
-\begin{document}
-
-\maketitle
-\thispagestyle{firststyle}
-\ifthenelse{\boolean{shortarticle}}{\ifthenelse{\boolean{singlecolumn}}{\abscontentformatted}{\abscontent}}{}
-
-\section*{DRAFT CONTENT FOR DISSERTATION INTRO}
-My third chapter departs from microevolutionary modeling to probe a
-hypothesis that attempts to bridge micro- and macro- time scales. It is
-theoretically plausible and conceptually satisfying that some spatially
-structured landscape genetic processes could be stable over long-enough
-timescales to have driven phylogeographic processes and generated
-contemporary biogeographic patterns. Some of the most pronounced such
-patterns (beta diversity patterns in tropical mountain ranges, the
-latitudinal diversity gradient) have enticed hypotheses along these lines,
-attempting to explain current distributions of biodiversity on the basis
-of spatially variable speciation rates driven by predictable and
-persistent environmentally structured processes. INTRODUCE ASH…
-
-\dropcap{N}EED A FIRST SENTENCE HERE!
-- \textit{TODO: REREAD/SKIM PAPERS I'VE COLLECTED FOR THIS CHAPTER, THEN CRAFT WELL-HONED 2-4 PARGRAPH INTRO!}
-- The seasonal timing of photosynthetic activity, and how this varies both regionally and globally, have major implications for evolutionary biogeography. EXPLAIN AHS. OTHER IMPLCIATIONS?
-However, little is known about this understudied field of research,
-making it difficult for hypotheses to be articulated and studied within
-specific species or ecosystems.
-- Over the past 1-2 decades, dramatic improvements in space-based remote sensing of strong proxies of photosynthetic activity have given rise to a number of time series datasets at ecologically relevant spatial scales capable of resolving variation in GPP across ecotones (CITE SUN ET AL SCIENCE 2017).
-- Brief explanation of SIF and NIRv methods, justifications, and caveats.
-
-Here, we use a MODIS-derived NIRv (OR IS IT NIRVP?) time series from 2010-2020 (RIGHT YEARS?) to ...
-
-- 1-2 paragraphs quickly summarizing methods
-
-- Global phenological diversity
-    - discuss map
-    - mention broad similarity to global map of ppt seasonal modality, except in regions with seasonal deep freeze during which temporal distribution of ppt has no immediate effect of photosynthetic activity
-    - mention use of SIF map (and validation of its seasonal patterns within orbital gaps using a second, independent SIF dataset)
-    - mention broad agreement with SIF-based validation map, as well as understandable differences (cite supps)
-- Global climatic seasonal diversity
-    - discuss map and compare to global phenological diversity map
-- validation of fitted phenology
-    - discuss flux-tower validation results
-    - general agreement
-    - largest disagreement in regions of high asnychrony (some Med climates, some tropical locations)
-        - patterns still strong similar, but timing and height of peaks wander
-        - implications for our findings? real or not? think through this more...
-        - ref. fig showing 3 CA sites (and multi sites in Australia maybe?)
-- Global phenological asynchrony
-    - discuss map
-    - generally low asynchrony in temperate regions with prolonged winter freeze
-    - high asynchrony in all major mediterran climate regions
-    - high asynchrony in a number of tropical montane regions, esp. where extensive mountain ranges run approximately orthogonal to prevalent easterly tradewinds
-- global climatic asynchrony
-    - provide maps (at least in supps) and briefly discuss)
-    - what else?
-- global RF model results
-    - initial vars, and those retained in final models
-    - vars of top importance
-- regional RF model results
-    - discuss amount by which most important vars and their relationships to asynch change
-    - highlight key takeaways (and cite results maps in supps)
-    
-
-- Warm and moist tropical locations are sometimes described as being 'aseasonal', and may largely seem so in comparison to the seasonal patterns of vegetation greenness in regions with seasonal deep freeze or severe drought, or from the perspective of human physiological experience, but many organisms in these locations still exhibit annual reproductive phenologies that are likely modulated by some seasonally varying environmental cue (CITE RADIATION STUFF, ETC), however slight in magnitude.
-- In temperatre regions, seasonality is driven by large circannual fluctuation in solar zenith angle and incident radiation, This latitudinal variation in synoptic-scale  by the circannual latitudinal variation in . In Mediterranean climates, this synoptic-scale variation in 
+% The preamble here sets up a lot of new/revised commands and
+% environments.  It's annoying, but please do *not* try to strip these
+% out into a separate .sty file (which could lead to the loss of some
+% information when we convert the file to other formats).  Instead, keep
+% them in the preamble of your main LaTeX source file.
 
 
-\section*{Results}
+% The following parameters seem to provide a reasonable page setup.
+
+\topmargin 0.0cm
+\oddsidemargin 0.2cm
+\textwidth 16cm 
+\textheight 21cm
+\footskip 1.0cm
 
 
-\section*{Discussion}
+%The next command sets up an environment for the abstract to your paper.
 
-- strong agreement with global patterns in precipitation seasonal modality, except in regions with deep winter freeze
-- corroborate striking bimodality in photosynthetic activit in California, USA (cite Turner), and find similarly striking regional patterns in other Mediterranean climate regions (e.g., coastal Chile, South Africa, Australia)
+\newenvironment{sciabstract}{%
+\begin{quote} \bf}
+{\end{quote}}
 
 
 
+% Include your paper's title here
+
+\title{Materials and Methods: The drivers of phenological asynchrony vary globally}
 
 
-\matmethods{
+% Place the author information here.  Please hand-code the contact
+% information and notecalls; do *not* use \footnote commands.  Let the
+% author contact information appear immediately below the author names
+% as shown.  We would also prefer that you don't change the type-size
+% settings shown here.
 
-\sub    section*{NIR_VP and SIF data}
+\author
+{Drew E. Terasaki Hart,$^{1\ast}$ Ian J. Wang,$^{1}$\\
+\\
+\normalsize{$^{1}$Department of Environmental Science, Policy, and Management, University of California,}\\
+\normalsize{Berkeley, CA 94720, USA}\\
+\\
+\normalsize{$^\ast$To whom correspondence should be addressed; E-mail:  drew.hart@berkeley.edu.}
+}
+
+% Include the date command, but leave its argument blank.
+
+\date{}
+
+
+
+%%%%%%%%%%%%%%%%% END OF PREAMBLE %%%%%%%%%%%%%%%%
+
+
+
+\begin{document} 
+
+% Double-space the manuscript.
+
+\baselineskip24pt
+
+% Make the title.
+
+\maketitle 
+
+
+\paragraph*{NIR_VP and SIF data}
 
 Both the NIRVP and SIF datasets were preprocessed on Google Earth Engine
 (GEE; (Gorelick et al., 2017). Our main dataset was MODIS-derived NIRVP …
@@ -165,7 +116,10 @@ variation in the TROPOMI time series. Indeed, we find that the
 correlation between these orbital-gap datasets is XX\% (BREAK DOWN BY
 REALM) (SEE Fig SX; ADD SUPPLEMENTAL FIGURE).
 
-\subsection*{Estimation and validation of seasonal phenology}
+
+
+\paragraph*{Estimation and validation of seasonal phenology}
+
 To estimate the seasonality of stand-level photosynthesis at all pixels,
 we ran a harmonic regression model in which the data values (SIF or
 NIRVP) were predicted as a function of time. We used the following model:
@@ -190,7 +144,7 @@ unjustifiable higher-frequency components.
 
 PARAGRAPH OR TWO EXPLAINING THE FLUXNET VALIDATION PROCEDURE
 
-\subsection*{Data filtering}
+\paragraph*{Data filtering}
 We pushed both the SIF and NIRV datasets through various filtering steps,
 including filtering of invalid land cover types, open water bodies,
 data-deficient pixels, and pixels whose fitted seasonality was not
@@ -226,7 +180,30 @@ permutations, we filtered out of our analysis any pixels for which the
 fraction of permuted R2s greater than the true R2 exceeded our threshold
 for significance (ɑ=0.01).
 
-\subsection*{Calculation of phenological asynchrony}
+\paragraph*{Mapping of phenological diversity}
+To map phenological diversity globally, we ran an empirical orthogonal functions (EOF)
+analysis on a global data cube consisting of the daily, fitted characteristic
+annual phenology time series of phenology at all pixels.
+To avoid modeling two predominant but unimportant sources of variation in our data,
+we used two pre-processing steps: 1.) given our interest in the relative
+timing of phenology between sites, irrespective of the absolute value and amplitude of
+the seasonal variation in our NIRv variable, we normalized each pixel's time series to
+itself; 2.) given our desire to identify like pixel phenologies globally,
+relative to each pixel's solar calendar (i.e., irrespective of the first-order
+but uninteresting control of north-south hemispheric seasonal alternation),
+we ROTATED SOUTHERN HEMISPHERE TIME SERIES BY ..., effectively transforming both
+hemispheres to a common-basis solar calendar (henceforth, 'common-sun time series').
+Then, following common practice, we standardized our pre-processed, input
+array and ran EOF using cosine-latitude weights.
+To visualize our results, we displayed each pixel in RGB colorspace by using
+its [0-1]-normalized eigenvalues for the first three EOFs.
+Finally, to allow interpretation of the RGB-depictiion of phenologies,
+we chose regularly spaced coordinate trios within the colorspace,
+randomly drew 100 global pixels within XXXXX distance of those trios,
+and plotted the common-sun time series of those pixels as line plots annotating
+a HSV-based colorwheel, to serve as a map legend (Figure 3).
+
+\paragraph*{Calculation of phenological asynchrony}
 Google Earth Engine is designed for carrying out a set of common spatial
 analysis operations at scale, but it is not particularly well suited to
 the calculating of a custom and complicated neighborhood metric such as
@@ -275,21 +252,21 @@ TFRecord files was re-ingested into Earth Engine, which automatically
 stitched them back into a global map. 
 
 \subsection*{Calculation of physiographic covariates}
-We used Earth Engine to produce a number of physiographic variables, to
-use as covariates in our global modeling of asynchrony. Cell-center
-latitude and longitude were generated as a pair of images using Earth
+We used Earth Engine to produce a number of neighborhood-based
+physiographic covariates, to
+use as covariates in our global modeling of phenological asynchrony.
+Cell-center latitude and longitude were generated as a pair of images using Earth
 Engine’s Image.pixelLonLat() function. Altitude data were derived from
 the global, hole-filled Shuttle Radar Topography Mission (SRTM) 90-meter
-dataset, loaded from Earth Engine’s data catalogue (Jarvis et al., 2008).
+dataset, loaded from Earth Engine’s data catalogue (Jarvis et al., 2008),
+then used to calculate the vector ruggedness metric (VRM; a measure of
+topographic complexity) within 50-kilometer pixel neighborhoods.
 
-
-SARAH TO INCLUDE TERSE PARAGRAPH EXPLAINING CALCULATION OF VRM
-
-Distance to the nearest major river (DNMR) was derived from the World
+We calculated distance to the nearest major river (DNMR) using the World
 Wildlife Federation (WWF) HydroSHEDS Free Flowing Rivers Network, V1
 dataset, a vectorized feature collection of global river courses and
-pertinent attribute data that was loaded from Earth Engine’s data
-catalogue (Grill et al., 2019; Lehner et al., 2008). We filtered the
+pertinent attribute data that was loaded from the GEE data
+catalog (Grill et al., 2019; Lehner et al., 2008). We filtered the
 dataset to retain only major riverbeds, which we defined as all river
 segments with river order (‘RIV_ORD’) ≤ 4, i.e. all segments with
 long-term average discharge ≥ 100 cubic meters per second (Linke et al.,
@@ -298,8 +275,29 @@ to calculate each pixel’s distance to the nearest segment in this river
 dataset, using a maxError argument of 1000000 (1000 km), to ensure
 accurate calculation for all pixels.
 
-We aggregated all resulting covariates to match the resolution and
-registration of our independent variables (SIF and NIRV), then exported
+We used the Dinerstein et al. (CITE) global biome dataset to
+calculate a global map of distance to the nearest ecotone.
+We loaded this data from the GEE data catalog, rasterized the biome vector data,
+then calculated for each pixel the distance to the nearest pixel within a different
+biome type. For computational tractability, GEE can only calculate this distance
+up to a maximum distance of XXXXXX km, which we adopted as our own maximum distance value
+with which we replaced (using an R script) all missing values in the GEE output raster.
+This creates a spatial variable that is artificially truncated and thus distributionally
+unnatural, but given the potential of the information it includes within the 0-to-XXXX-km range
+and the robustness to non-normal covariates of our downstream random-forest analysis,
+we retained this variable in our overall covariate set.
+
+We also produced a set of neighborhood-based bioclimatic covariates.
+Most of these (precipitation, mean temperature, climatic water deficit...) were derived from the TerraClimate dataset (CITE),
+but cloud cover was derived the MODIS XXXXXX cloud mask, following
+the methods of CITE Wilson and Jetz (2016).
+For all climatic variables, we loaded the data from the GEE data catalog,
+then used the same GEE code used for NIR_{V} and SIF to calculate
+and export global overlapping TFRecord tilesets of the 5 harmonic regression
+coefficients. The terraclimate dataset had a particularly coarse temporal resolution (monthly), but a long temporal extent (43 years), giving us good confidence in our ability to fit a reasonable characteristic curves for the annual seasonality of each variable.
+We then used the same Julia code used for NIR_{V} and SIF data to calculate
+a global map of each variable's spatial seasonal asynchrony.
+
 them as GeoTIFF rasters, for downstream analysis in R (Team, 2020).
 Analysis of physiographic predictors of asynchrony
 Random forest model (provide formula and explain, justify)
@@ -307,7 +305,92 @@ Whatever other models we decide to use (e.g. superlearner model, as
 recommended by Maura?)
 
 
-\subsection*{Analysis}
+\subsection*{Analysis of asynchrony drivers}
+
+To prepare our phenological asynchrony data and covariate data for analysis, we read all
+rasters into R, warped and clipped all covariate rasters to the
+spatial reference system of the phenological asychrony raster, stacked them together,
+then masked out all pixels missing a value for any variable in the stack.
+We then drew a stratified random sample totalling 1\% of our total raster pixels,
+stratified by phenological asynchrony DECILES (to ensure adequate sampling of
+the long right tail of our response variable's distribution), giving us
+a XXXXXXX-pixel dataset (henceforth, our 'RF dataset') that we use to build and validate a pair of global
+and geographically-weighted random forest models.
+
+To build our global random forest model we used the XXXX package in R. We ran
+the model 
+        GIVE FORMULA
+to 70\% of our RF dataset that we randomly sampled as a training dataset.
+We used XXX-fold cross-validation (CV) to carry out conservative and rigorous
+feature selection. GIVE RF PARAMETERS, ETC... We then used the withheld 30\% of our
+RF dataset as test data to carry out model validation. We summarized the resulting model
+and covariate set, using RMSE and percent purity to assess variable
+importance and using partial dependence plots (PDPs; implemented in the XXXXX R package)
+to probe the influence of the most important retained variables.
+
+It is reasonable, on the basis of first principles, to expect that different
+covariates could drive phenological asynchrony in different regions of the globe.
+For example, spatial asynchrony in climatic water deficit and in minimum temperature
+might predominate in Mediterranean climate regions, where lower-altitude sites
+do not experience a deep winter freeze but reach extremes of water stress early
+in the solar year, whereas high-altitude sites experience peak
+water stress later in the year and have a deep freeze the prevents winter
+photosynthesis; however, such influences might not apply in most tropical montane regions,
+where the changing topographic modulation of surface atmospheric flow that changes
+in predominant vector direction during the year could lead to spatial
+asynchrony in precipitation or cloud cover that would control phenological asynchrony.
+To allow for the possibility of spatially-varying covariate importance,
+we used the reduced covariate set from our final global RF model to run a
+geographic (i.e., geographically-weighted) RF model (CITE GEORGANOS), which
+fits local RF models within a gridded global set of overlapping spatial kernels.
+We used the same key parameters here as in our global model (XXX, XXX, XXX),
+and used XXXX=XXXX and XXXX=XXXX to parameterize the spatial kernel to be used
+for the local models. We built the model using the same 70\%-training, 30\%-test split
+in our RF data, and we validated the model using the 30\% test data in the same way
+as for the global model. To explore and interpret the results of this model,
+we map variable importance for each of the XXXXX highest-importance variables
+from our global model.
+
+
+\subsection*{Regional analysis of seasonal vs climatic distance}
+WRITE THIS UP, ONCE DECIDED
+
+
+\paragraph*{Global patterns of phenology}
+
+
+
+
+
+
+
+
+\bibliography{scibib}
+
+\bibliographystyle{Science}
+
+
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,0 +1,218 @@
+% Use only LaTeX2e, calling the article.cls class and 12-point type.
+
+\documentclass[12pt]{article}
+
+% Users of the {thebibliography} environment or BibTeX should use the
+% scicite.sty package, downloadable from *Science* at
+% http://www.sciencemag.org/authors/preparing-manuscripts-using-latex 
+% This package should properly format in-text
+% reference calls and reference-list numbers.
+
+\usepackage{scicite}
+
+\usepackage{times}
+
+% The preamble here sets up a lot of new/revised commands and
+% environments.  It's annoying, but please do *not* try to strip these
+% out into a separate .sty file (which could lead to the loss of some
+% information when we convert the file to other formats).  Instead, keep
+% them in the preamble of your main LaTeX source file.
+
+
+% The following parameters seem to provide a reasonable page setup.
+
+\topmargin 0.0cm
+\oddsidemargin 0.2cm
+\textwidth 16cm 
+\textheight 21cm
+\footskip 1.0cm
+
+
+%The next command sets up an environment for the abstract to your paper.
+
+\newenvironment{sciabstract}{%
+\begin{quote} \bf}
+{\end{quote}}
+
+
+
+% Include your paper's title here
+
+\title{The drivers of phenological asynchrony vary globally}
+
+
+% Place the author information here.  Please hand-code the contact
+% information and notecalls; do *not* use \footnote commands.  Let the
+% author contact information appear immediately below the author names
+% as shown.  We would also prefer that you don't change the type-size
+% settings shown here.
+
+\author
+{Drew E. Terasaki Hart,$^{1\ast}$ Ian J. Wang,$^{1}$\\
+\\
+\normalsize{$^{1}$Department of Environmental Science, Policy, and Management, University of California,}\\
+\normalsize{Berkeley, CA 94720, USA}\\
+\\
+\normalsize{$^\ast$To whom correspondence should be addressed; E-mail:  drew.hart@berkeley.edu.}
+}
+
+% Include the date command, but leave its argument blank.
+
+\date{}
+
+
+
+%%%%%%%%%%%%%%%%% END OF PREAMBLE %%%%%%%%%%%%%%%%
+
+
+
+\begin{document} 
+
+% Double-space the manuscript.
+
+\baselineskip24pt
+
+% Make the title.
+
+\maketitle 
+
+
+% Place your abstract within the special {sciabstract} environment.
+
+\begin{sciabstract}
+    Climatic seasonality varies substantially around the earth,
+    and is the predominant driver of the phenology of most terrestrial vegetation.
+    The spatial distribution and asynchrony of vegetative phenology
+    remain largely unknown and unstudied, despite their
+    major implications for the geography of current
+    and future terrestrial carbon-cycle dynamics and the evolutionary biogeography of
+    functional, genetic, and species diversity.
+    Here, we use time-series analysis of a 10-year archive of a robust, spatially consistent proxy
+    of photosynthetic activity (near-infrared reflectance of vegetation; NIR_{V}),
+    rigorously validated by a second, independent proxy
+    (sun-induced chlorophyll fluorescence; SIF) and by global flux-tower GPP measurements, 
+    to map the global diversity and spatial asynchrony of vegetation canopy phenology.
+    Our maps reveal a striking correlation between phenological asynchrony
+    and continental biodiversity hotspots in tropical montane regions and Mediterranean climate regions.
+    
+    We then present evidence for the bioclimatic and landscape physiographic
+    drivers of phenological asynchrony,
+    showing that spatial asynchrony in precipitation and cloud cover,
+    topographic complexity, and variability in annual mean minimum temperature 
+    are of the largest importance, but that predominant
+    drivers vary spatially in mechanistically interpretable ways.
+    Lastly, we show that divergent seasonal phenology between sites is strongly driven
+    by climatic differences in temperate, high-asynchrony regions,
+    yet has no stronger relationship with climatic difference in tropical high-asynchrony
+    regions than in global low-asynchrony regions,
+    demonstrating that nearby vegetative communities growing in indistinguishable bioclimates
+    can nonetheless exhibit pronounced phenological decoupling, a finding 
+    of potential evolutionary importance, and which
+    we attribute to complex patterns of seasonality in tropical montane
+    regions that result from topoclimatic modulation of synoptic-scale atmospheric flows.
+    Overall, our work provides the first global, macroecological depicition
+    of canopy phenological diversity and variability,
+    and paves the way toward many frutiful future lines of research.
+\end{sciabstract}
+
+
+
+% In setting up this template for *Science* papers, we've used both
+% the \section* command and the \paragraph* command for topical
+% divisions.  Which you use will of course depend on the type of paper
+% you're writing.  Review Articles tend to have displayed headings, for
+% which \section* is more appropriate; Research Articles, when they have
+% formal topical divisions at all, tend to signal them with bold text
+% that runs into the paragraph, for which \paragraph* is the right
+% choice.  Either way, use the asterisk (*) modifier, as shown, to
+% suppress numbering.
+
+\paragraph*{Introduction}
+
+
+\paragraph*{Global patterns of phenology}
+
+
+
+\paragraph*{Patterns and drivers of phenological asynchrony}
+
+
+
+
+% Your references go at the end of the main text, and before the
+% figures.  For this document we've used BibTeX, the .bib file
+% scibib.bib, and the .bst file Science.bst.  The package scicite.sty
+% was included to format the reference numbers according to *Science*
+% style.
+
+%BibTeX users: After compilation, comment out the following two lines and paste in
+% the generated .bbl file. 
+
+\bibliography{scibib}
+
+\bibliographystyle{Science}
+
+
+
+
+
+\section*{Acknowledgments}
+
+(NOTE: I NEED TO COMPLY WITH FLUXNET (AND AMERIFLUX, IF USED) CITATION REQUIREMENTS!) We thank D. Ackerly, L. Anderegg, A. Bishop, T. Dawson, J. Frederick, N. Graham, M. Kelly, M. Kling, N. Muchhala, P. Papper, A. Turner, E. Westeen, G. Wogan, and M. Yuan for feedback and guidance on various iterations of the simulations presented herein. We thank Berkeley Research Computing for providing access to the Savio computing cluster. Lastly, we thank M. Terasaki Hart, C. Nemec-Hart, G. Hart, J. Hart, and M. Tylka for supporting and encouraging a lifetime of curiosity about nature, and XXXXXXXXXXXXXXXXXX for the good grooves. D.E.T.H. was supported by an Emerging Challenges in Tropical Science Graduate Student Fellowship from the Organization for Tropical Studies, by a Tinker Field Resesarch Grant from the UC Berkeley Center for Latin American Studies, by a research equipment grant from IdeaWild, and by a Berkeley Fellowship (to D.E.T.H.). I.J.W. was supported by a National Science Foundation grant DEB1845682 (to I.J.W.).
+
+%Here you should list the contents of your Supplementary Materials -- below is an example. 
+%You should include a list of Supplementary figures, Tables, and any references that appear only in the SM. 
+%Note that the reference numbering continues from the main text to the SM.
+% In the example below, Refs. 4-10 were cited only in the SM.     
+TODO: FINALIZE THIS LIST
+\section*{Supplementary materials}
+Materials and Methods\\
+Supplementary Text\\
+Figs. S1 to S3\\
+Tables S1 to S4\\
+References \textit{(4-10)}
+
+
+% For your review copy (i.e., the file you initially send in for
+% evaluation), you can use the {figure} environment and the
+% \includegraphics command to stream your figures into the text, placing
+% all figures at the end.  For the final, revised manuscript for
+% acceptance and production, however, PostScript or other graphics
+% should not be streamed into your compliled file.  Instead, set
+% captions as simple paragraphs (with a \noindent tag), setting them
+% off from the rest of the text with a \clearpage as shown  below, and
+% submit figures as separate files according to the Art Department's
+% instructions.
+
+
+\clearpage
+
+\noindent {\bf Fig. 1.} EOF results and RGB map with example phenological patterns in a few blown-up regions.
+
+\noindent {\bf Fig. 2.} Flux-tower validation results and example of fitted seasonality across 3 sites in CA (high-asynch region).
+
+\noindent {\bf Fig. 3.} Asynchrony conceptual diagram, global asynch map, global RF results summary, and maps of geoRF importance for key variables.
+
+\noindent {\bf Fig. 4.} Scatterplot and analysis results of seasonal distance as function of climatic and geographic distances.
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

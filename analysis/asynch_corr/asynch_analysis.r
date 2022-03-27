@@ -269,8 +269,8 @@ if (mode %in% c('prep', 'both')){
                       align.to=phn.asy, mask.it=F)
   
   # asynchrony in wind speed
-  wds.asy = read.file('vs', asynch.file=T,
-                      align.to=phn.asy, mask.it=F)
+  #wds.asy = read.file('vs', asynch.file=T,
+  #                    align.to=phn.asy, mask.it=F)
   
   # vector ruggedness metric, ~50km agg med and sd
   # NOTE: CALCULATED AS FIXED PIXELS, NOT MOVING WINDOWS!
@@ -290,8 +290,8 @@ if (mode %in% c('prep', 'both')){
   # NOTE: masking isn't necessary because incomplete rows of the stacked
   #       variables are dropped later on, but makes it easier to inspect
   #       the individual layer now because of the ocean values
-  hab.div = read.file('hab_shannon', asynch.file=F,
-                      align.to=phn.asy, mask.it=T)
+  #hab.div = read.file('hab_shannon', asynch.file=F,
+  #                    align.to=phn.asy, mask.it=T)
   
   # distance from rivers
   # NOTE: INCLUDE? IF SO, NEIGH MEAN AND/OR SD?
@@ -318,8 +318,8 @@ if (mode %in% c('prep', 'both')){
   
   # gather into a stack
   vars = stack(phn.asy, tmp.min.asy, tmp.max.asy, tmp.min.mea,
-               ppt.asy, ppt.sea, def.asy, cld.asy, wds.asy, vrm.med,
-               hab.div, riv.dis, eco.dis)
+               ppt.asy, ppt.sea, def.asy, cld.asy, vrm.med,
+               riv.dis, eco.dis)
 
   # aggregate to coarser res, if working on laptop
   if (on.laptop){
@@ -329,8 +329,8 @@ if (mode %in% c('prep', 'both')){
   # rename all bands 
   names = c('phn.asy', 'tmp.min.asy', 'tmp.max.asy',
             'tmp.min.mea', 'ppt.asy',
-            'ppt.sea', 'def.asy', 'cld.asy', 'wds.asy', 'vrm.med',
-            'hab.div', 'riv.dis', 'eco.dis')
+            'ppt.sea', 'def.asy', 'cld.asy', 'vrm.med',
+            'riv.dis', 'eco.dis')
 
   names(vars) = names
 
@@ -344,7 +344,7 @@ if (mode %in% c('prep', 'both')){
   df = as.data.frame(vars, xy=T)
   
   # TODO: FIGURE OUT WHY WINDSPEED LAYER IS EMPTY, THEN DELETE NEXT LINE
-  df = df[,!names(df)%in%c('wds.asy')]
+  #df = df[,!names(df)%in%c('wds.asy')]
 
   # drop NAs
   df = df[complete.cases(df),]
@@ -381,8 +381,8 @@ if (mode %in% c('analyze', 'both')){
   # rename all bands 
   names = c('phn.asy', 'tmp.min.asy', 'tmp.max.asy',
             'tmp.min.mea', 'ppt.asy',
-            'ppt.sea', 'def.asy', 'cld.asy', 'wds.asy', 'vrm.med',
-            'hab.div', 'riv.dis', 'eco.dis')
+            'ppt.sea', 'def.asy', 'cld.asy', 'vrm.med',
+            'riv.dis', 'eco.dis')
 
   # load rasters of prepped variables
   vars = brick(paste0(data.dir, "/asynch_model_all_vars.tif"))
@@ -562,7 +562,7 @@ if (mode %in% c('analyze', 'both')){
   coords = trn[,1:2]
   grf.model <- grf(formula=phn.asy ~ tmp.min.asy + tmp.max.asy + tmp.min.mea +
                                  ppt.asy + ppt.sea + def.asy + cld.asy + 
-                                 vrm.med + riv.dis + hab.div + eco.dis,
+                                 vrm.med + riv.dis + eco.dis,
                    dframe=trn[, 3:ncol(trn)], 
                    bw=bw.local,
                    kernel="adaptive",
