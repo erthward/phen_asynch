@@ -181,7 +181,7 @@ def gapfill_and_rewrite_raster(rast_filepath, fill_tol=5):
 
 
 def get_raster_info_points(rast_filepath, pts, return_format='vals',
-                           fill_nans=False, fill_tol=5):
+                           standardize=False, fill_nans=False, fill_tol=5):
     """
     takes a raster (e.g. coeffs from the harmonic seasonality regression)
     and an nx2 np.array of n points' x and y (i.e. lon, lat) coordinates,
@@ -230,6 +230,10 @@ def get_raster_info_points(rast_filepath, pts, return_format='vals',
         if 'ts' in return_format:
             ts = np.sum(rast[:, pt_cell_i, pt_cell_j] * design_mat,
                         axis=1)
+            # standardize the ts?
+            if standardize:
+                ts = standardize_array(ts)
+            # store the ts
             ts_mat[row_i, :] = ts
 
         # otherwise, just extract the raster's values

@@ -3,6 +3,7 @@ calc_asynchrony/__pycache__/
 *.tif
 *.csv
 *.xlsx
+*.html
 *.png
 *.gif
 *.mp4

@@ -45,6 +45,9 @@ cntry = gpd.read_file(hf.COUNTRIES_DATA_DIR + 'countries.shp')
 
 n_pts = 1000  # Enter in the number greater than random points you need
 
+# standardize the seasonal time series before calculating their distances?
+standardize_ts = False
+
 # run MMRR tests?
 run_MMRR = True
 
@@ -143,7 +146,8 @@ for reg_poly, reg_pts, reg_col, reg_name in zip(regs,
     clim_dist = hf.calc_pw_clim_dist_mat(pts, nodata_val=nodata_val)
 
     # get points' pairwise ts dists
-    seas_dist = hf.get_raster_info_points(hf.COEFFS_FILE, pts, 'ts_pdm')
+    seas_dist = hf.get_raster_info_points(hf.COEFFS_FILE, pts, 'ts_pdm',
+                                          standardize=standardize_ts)
 
     assert clim_dist.shape[0] == seas_dist.shape[0] == pts.shape[0]
 
