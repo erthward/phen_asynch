@@ -54,8 +54,8 @@ if (strsplit(getwd(), '/')[[1]][2] == 'home'){
 
 # mode (either prep data, or analyze data)
 #mode = 'prep'
-mode = 'analyze'
-#mode = 'both'
+#mode = 'analyze'
+mode = 'both'
 
 # save plots?
 save.plots = T
@@ -550,7 +550,7 @@ if (mode %in% c('analyze', 'both')){
 
   if (save.plots){
      ggsave(global_grrf_main_plots, file='global_grrf_main_plot.png',
-            width=75, height=55, units='cm', dpi=1000)
+            width=75, height=55, units='cm', dpi=500)
     }
   
   
