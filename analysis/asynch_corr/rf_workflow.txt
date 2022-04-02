@@ -1,0 +1,44 @@
+
+
+## RANDOM FOREST WORKFLOW SCRIPT ##
+
+# STEP 1: use ~1% of our total raster of pixels, drawn as a stratified random sample stratified by 
+# asynchrony values, to build the model.
+
+# STEP 2: Use 70% of that as training data and 30% as test data.
+
+# STEP 3: Run random forests
+## STEP 3.1: RUN GLOBAL RFs
+# - standard RF
+# - regularized RF
+# - guided regularized RF
+# - Murphy et al., (2010) RF via rfUtilities::rf.modelSel
+## STEP 3.2: run local RFs
+# - local geographically weighted RF
+
+# STEP 4: Model/feature selection and evaluation
+## STEP 4.1: check global models
+# - extract the 4 models from STEP 3.1 with the features selected by each model
+# - optional: combine all 4 models from STEP 3.1 into an ensemble using rfUtilities::rf.combine, resulting in 5 final models to evaluate.
+#	NOTE: rf.combine requires randomForest objects
+# - optional: check regression fit statistics for all 4 (or 5) models using 
+# rfUtilities::rf.regression.fit
+#	NOTE: rf.regression.fit requires randomForest objects
+# - implement cross validate all 4 (or 5) final models via independent bootstrap as recommended 
+# by Jeff using rfUtilities::rf.crossValidation 
+#	NOTE: rf.crossValidation requires randomForest objects
+# - select the model that performs the best (lowest RMSE, lowest OOBE, etc.)
+# - optional: if 2 or more models perform well, you could combine them into an RF ensemble then 
+# conduct independent bootstrap CV and compare the ensemble to the original model(s) that performed 
+# well
+## STEP 4.2: check local model
+# - select most important features based on MSE, R squared, etc.
+# - optional: check regression fit statistics for local model from STEP 3.2 using 
+# rfUtilities::rf.regression.fit
+# - after feature selection on local model from 3.2, implement cross validation via independent 
+# bootstrap as recommended by Jeff using rfUtilities::rf.crossValidation.  It might be a good idea to 
+# run CV on several local GWRF models with different combinations of important features, and select 
+# the best performing model
+# 	NOTE: rf.crossValidation requires randomForest objects
+ 
+
