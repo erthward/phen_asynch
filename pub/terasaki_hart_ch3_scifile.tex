@@ -123,18 +123,52 @@
 % you're writing.  Review Articles tend to have displayed headings, for
 % which \section* is more appropriate; Research Articles, when they have
 % formal topical divisions at all, tend to signal them with bold text
-% that runs into the paragraph, for which \paragraph* is the right
+% that runs into the paragraph, for which \paragraph* is the rightthe same species could occupy such sites and could be allochronically isolated, leading to exaggerated population divergence and contributing to speciation over long time scales.
 % choice.  Either way, use the asterisk (*) modifier, as shown, to
 % suppress numbering.
 
 \paragraph*{Introduction}
 
+- REPURPOSE AND EXPAND ABSTRACT HERE
 
 \paragraph*{Global patterns of phenology}
 
+- Discuss overall global patterns on the map and interpretability colorwheel
+
+- Particular points of interest
+  - Conformity across Mediterranean climate regions
+    - 'double-peak' pattern that was observed in Turner \textit{et al.} \cite{turner}, in which forest biomes hit peak photosynthesis nearly two months after non-forest biomes, was observed across global mediterranean climate regions. This appears to be driven by early-sping water- and light-availability but early onset of water stress at lower elevantions and in warmer aspects but later escape of freezing temperatures, highlighting the ecophysiological interpretability of cross-biome comparisons of NIRv temporal dynamics.
+
+- Validation:
+  - Strong overall, but weakest in tropical seasonal and rain forest, and in warm-temperate and tropical desert and shrubland/woodland regions, which also happen to be high-asnychrony regions. Further research needed to determine if because of spatial scale mismatch, divergent NIRV-photosynthesis dnyamics, etc
+  - mention and explain the 3-site transect across CA (as an example high-asyncrhony region)
+  - Strongly suggestive correspondence between regions where semi-annual-only model is a better fit (by R2) than annual-only model and regions where precipitation seasonality is strongly bimodal \cite{knoben}.
+
+- Caveats
+  - structural vs physiological information captured by NIRv and SIF; which is it, and does this vary by biome? Despite possibility that structural and functional signal covary (cite that SIF theoretical paper I read in the scifi library years back), focused fieldwork in and between target vegetative communities will be able to best determine this. Also possible that differencing between harmonized SIF and NIRv datasets, eventually likely to be tractable at global extent and ecologically-relevant scale, will help resolve the extent to which dynamics reported here are tied to dynamics of productivity
+  - Similarly, future work will be necessary in order to determine the extent to which other canopy phenologies (e.g., reproductive) and phenologies of other plants and of animals are related to the NIRv-based phenologies presented here. For our phenology data to be directly applicable to the articulation and testing of species-specific microevolutionary hypotheses such as the ASH, a focal species' reproductive phenology of interest at its collection sites need not be in phase with the phenologies presented here, but the phasing of its phenology must display a largely stable relationship to them.
 
 
 \paragraph*{Patterns and drivers of phenological asynchrony}
+
+- Discuss overall global patterns
+
+- WHERE TO MENTION THAT SIF VALIDATION PANNED OUT FINE (cite 0.5R^2, which is high given the inherent noise expected in the asynchrony metric, and given the limited power of the only 3.5 years' worth of ANN-gridded SIF data)
+
+- Discuss the compelling areas that pop out
+  - Mediterranean regions, once again, which are all known for high floristic endemism
+  - A number of compelling areas jump out, including the northeast extreme of Brazil, a portion of the Mata Atlántica known as the Pernambuco Endemism Center; the Pantepui Gran Sabana and the Northern Andean slopes.
+ 
+- Drivers
+  - list top-importance drivers at global scale (with chosen importance metric), and offer some brief mention of their likely reason
+  - discuss GRF maps and interpret the patterns in importance of those features
+
+- Asynchrony is likely to be driven by fundamentally different processes at temperate versus tropical latitudes. In temperate high-asynchrony regions, largely Mediterranean and semi-arid regions, phenologically decoupled sites would be expected to also be climatically distinct, featuring large differences between annual climatological metrics such as mean minimum and maximum temperatures, annual precipitation, etc. To the contrary, if the topographic modulation of surface-atmospheric flow that sits at the foundation of the ASH is correct then topographically-complex high-asychrony regions in the tropics should feature sites that have little difference in climatological means but are nonetheless decoupled in seasonal and thus in phenological phase. To test this, we drew random samples of points in high- and low-asynchrony regions at both temperate latitudes (high-asynchrony: North American montane west; low-asyncrhony North American east coast) and tropical (high-asynchrony: northern Andes; low-asynchrony: southern Amazon basin), then used matrix regression (cite) to test the relationship between pairwise seasonal Euclidean distances and pairwise climatic Euclidean distances (between the standardized set of all 19 Worldclim bioclimatic variables), after accounting for geographic distance. Our results strongly support the logic laid out above, showing that while the relationship is positive in all four regions, the slope of the relationship is three times larger in the temperate high-asynchrony region than in the other three regions in which the relationship is effectively equivalent. This indicates that the high-asynchrony tropical region contains sites in which bioclimate is quite similar yet seasonal distance is relatively large (CITE BOX THAT INDICATES THAT CLOUD OF POINTS WITHIN THE SCATTERPLOT). This suggests that the region is home to forests that are identical according to a common forest typology (e.g., tropical montane rainforest, in the Holdridge life-zone classification) but that are seasonally and phenologically decoupled because of complex topoclimatic processes, heightening the possibility that the same species could occupy such sites and could be allochronically isolated, leading to exaggerated population divergence and contributing to speciation over long time scales.
+
+- Caveats
+  - inherently noisy as a metric (sensitive to outliers)
+  - choice of neighborhood size matters, though overall geographic patterns remain
+  - 
 
 
 
@@ -158,7 +192,7 @@
 
 \section*{Acknowledgments}
 
-(NOTE: I NEED TO COMPLY WITH FLUXNET (AND AMERIFLUX, IF USED) CITATION REQUIREMENTS!) We thank D. Ackerly, L. Anderegg, A. Bishop, T. Dawson, J. Frederick, N. Graham, M. Kelly, M. Kling, N. Muchhala, P. Papper, A. Turner, E. Westeen, G. Wogan, and M. Yuan for feedback and guidance on various iterations of the simulations presented herein. We thank Berkeley Research Computing for providing access to the Savio computing cluster. Lastly, we thank M. Terasaki Hart, C. Nemec-Hart, G. Hart, J. Hart, and M. Tylka for supporting and encouraging a lifetime of curiosity about nature, and XXXXXXXXXXXXXXXXXX for the good grooves. D.E.T.H. was supported by an Emerging Challenges in Tropical Science Graduate Student Fellowship from the Organization for Tropical Studies, by a Tinker Field Resesarch Grant from the UC Berkeley Center for Latin American Studies, by a research equipment grant from IdeaWild, and by a Berkeley Fellowship (to D.E.T.H.). I.J.W. was supported by a National Science Foundation grant DEB1845682 (to I.J.W.).
+(NOTE: I NEED TO COMPLY WITH FLUXNET (AND AMERIFLUX, IF USED) CITATION REQUIREMENTS!) We thank D. Ackerly, L. Anderegg, A. Bishop, T. Dawson, J. Evans, J. Frederick, N. Graham, M. Kelly, M. Kling, N. Knezek, N. Muchhala, P. Papper, A. Turner, E. Westeen, G. Wogan, and M. Yuan for feedback and guidance on various iterations of the simulations presented herein. We thank Berkeley Research Computing for providing access to the Savio computing cluster. Lastly, we thank M. Terasaki Hart, C. Nemec-Hart, G. Hart, J. Hart, and M. Tylka for supporting and encouraging a lifetime of curiosity about nature, and XXXXXXXXXXXXXXXXXX for the good grooves. D.E.T.H. was supported by an Emerging Challenges in Tropical Science Graduate Student Fellowship from the Organization for Tropical Studies, by a Tinker Field Resesarch Grant from the UC Berkeley Center for Latin American Studies, by a research equipment grant from IdeaWild, and by a Berkeley Fellowship (to D.E.T.H.). I.J.W. was supported by a National Science Foundation grant DEB1845682 (to I.J.W.).
 
 %Here you should list the contents of your Supplementary Materials -- below is an example. 
 %You should include a list of Supplementary figures, Tables, and any references that appear only in the SM. 
