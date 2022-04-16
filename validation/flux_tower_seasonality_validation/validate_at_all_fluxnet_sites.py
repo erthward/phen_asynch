@@ -432,7 +432,8 @@ def compare_rs_flux_predicted_vals(zip_filename, coeffs_rast, design_mat,
             ax.set_xlabel("day of year", fontdict={'fontsize':9})
             ax.set_ylabel(("normalized metric of seasonality\n"
                            "'RS'=%s (%s); "
-                           "'FLUX'=GPP ($\mu mol\ CO_2\ m^{-2}\ s{-1}$"
+                           #"'FLUX'=GPP ($\mu mol\ CO_2\ m^{-2}\ s{-1}$"
+                           "'FLUX'=GPP ($g\ C\ m^{-2}\ d{-1}$"
                           ")") % (rs_var, rs_var_units[rs_var]),
                           fontdict={'fontsize':9})
             ax.legend()
@@ -547,7 +548,7 @@ scat = ax1.scatter(results_df['lon'],
                   linewidth=0.75)
 plt.colorbar(scat, cax=cax1)
 fig1.suptitle(('$R^2$ between RS-fitted seasonality '
-              'and FLUXNET GPP seasonality'),
+              'and fitted FLUXNET GPP seasonality'),
              fontdict={'fontsize':20})
 
 
@@ -602,6 +603,6 @@ ax2.set_xlabel('MAT ($^{\circ}C$)',
 ax2.set_ylabel('MAP ($mm$)',
               fontdict={'fontsize': 16})
 fig2.suptitle(('$R^2$ between RS-fitted seasonality '
-              'and FLUXNET GPP seasonality, vs MAT and MAP'))
+              'and fitted FLUXNET GPP seasonality, vs MAT and MAP'))
 
 plt.show()
