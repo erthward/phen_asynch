@@ -1,6 +1,22 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+
+
+# TODO:
+
+    # perhaps I should just be trying to calculate neighborhood multivariate
+    # variance in standardized bioclim variables as a RF covariate (rather
+    # than this inter-point comparison thing)?
+
+    # change this script to sample points in a stratified random way,
+    # then assign regions in some data-driven way
+
+    # account for/avoid spatial autocorrelation in some way?
+
+
+
+
 # py packages
 import geopandas as gpd
 import numpy as np
@@ -13,31 +29,24 @@ import random
 import pyproj
 import numpy as np
 import pandas as pd
+from copy import deepcopy
 from scipy.spatial import KDTree
 import seaborn as sns
 import math
 import itertools
 import rasterio as rio
+import rioxarray as rxr
 import matplotlib.pyplot as plt
 from shapely.ops import unary_union
 from shapely.geometry import Polygon, Point, MultiPolygon
+from scipy import stats
 from scipy.spatial import ConvexHull
+from scipy.spatial import distance
 from collections import Counter as C
 
 # local modules
 import helper_fns as hf
 from MMRR import MMRR
-
-
-# TODO:
-    # perhaps I should just be trying to calculate neighborhood multivariate
-    # variance in standardized bioclim variables as a RF covariate (rather
-    # than this inter-point comparison thing)?
-
-    # change this script to sample points in a stratified random way,
-    # then assign regions in some data-driven way
-
-    # account for/avoid spatial autocorrelation in some way?
 
 
 # load the country boundaries (to use for random point generation)
@@ -49,8 +58,12 @@ n_pts = 1000  # Enter in the number greater than random points you need
 standardize_ts = False
 
 # run MMRR tests?
-run_MMRR = True
+run_MMRR = False
 
+# read in the Köppen data
+kopp = rxr.open_rasterio('./clim_dist/Beck_rewrite_0p0083_5KM_AGG.tif')[0]
+# mask out oceans
+kopp = kopp.where(kopp>0, np.nan)
 
 # define regions for:
 # high asynchrony:
@@ -123,6 +136,7 @@ nodata_val = rio.open(hf.BIOCLIM_INFILEPATHS[0]).nodata
 # columns for pandas DataFrame
 seas_dist_colm = []
 clim_dist_colm = []
+kopp_dist_colm = []
 reg_colm = []
 x1_colm = []
 x2_colm = []
@@ -151,14 +165,26 @@ for reg_poly, reg_pts, reg_col, reg_name in zip(regs,
 
     assert clim_dist.shape[0] == seas_dist.shape[0] == pts.shape[0]
 
+    # get koppen differences for all points
+    # (where 0 = same, 1 = different)
+    kopp_vals = np.array([kopp.sel(x=x, y=y, method='nearest').values for x
+                                                                    ,y in pts])
+
+    kopp_dist = np.int8(distance.squareform(distance.pdist(
+                                            np.atleast_2d(kopp_vals).T))>0)
+
+    assert kopp_dist.shape[0] == clim_dist.shape[0]
+
     # drop clim dists for points without ts dists, and vice versa
     not_missing = np.where(np.nansum(seas_dist, axis=0)>0)[0]
     seas_dist = seas_dist[:, not_missing][not_missing,:]
     clim_dist = clim_dist[:, not_missing][not_missing,:]
+    kopp_dist = kopp_dist[:, not_missing][not_missing,:]
     pts = pts[not_missing, :]
     still_not_missing = np.where(np.nansum(clim_dist, axis=0)>0)[0]
     seas_dist = seas_dist[:, still_not_missing][still_not_missing,:]
     clim_dist = clim_dist[:, still_not_missing][still_not_missing,:]
+    kopp_dist = kopp_dist[:, still_not_missing][still_not_missing,:]
     pts = pts[still_not_missing, :]
 
     print(('\n%i points remain after dropping locations without seasonality '
@@ -188,6 +214,7 @@ for reg_poly, reg_pts, reg_col, reg_name in zip(regs,
 
     seas_dist_vals = seas_dist[indices]
     clim_dist_vals = clim_dist[indices]
+    kopp_dist_vals = kopp_dist[indices]
 
     # scatter 
     ax.scatter(clim_dist_vals, seas_dist_vals, s=1,
@@ -201,12 +228,14 @@ for reg_poly, reg_pts, reg_col, reg_name in zip(regs,
 
     # store the dists
     dist_dict[reg_name] = {'clim': clim_dist_vals,
-                           'seas': seas_dist_vals
+                           'seas': seas_dist_vals,
+                           'kopp': kopp_dist_vals,
                           }
 
     # add to DataFrame columns
     seas_dist_colm.extend(seas_dist_vals)
     clim_dist_colm.extend(clim_dist_vals)
+    kopp_dist_colm.extend(kopp_dist_vals)
     reg_colm.extend([reg_name]*len(seas_dist_vals))
     x1_colm.extend(pts[indices[0],0])
     x2_colm.extend(pts[indices[1],0])
@@ -224,6 +253,7 @@ fig.show()
 # contourplot
 df = pd.DataFrame({'seas_dist': seas_dist_colm,
                    'clim_dist': clim_dist_colm,
+                   'kopp_dist': kopp_dist_colm,
                    'reg': reg_colm,
                    'x1': x1_colm,
                    'x2': x2_colm,
@@ -239,9 +269,47 @@ df['geo_dist'] = dists
 
 # write results to disk
 df.to_csv('clim_dist_results.csv', index=False)
-MMRR_res_df = pd.DataFrame(MMRR_res).T.reset_index()
-MMRR_res_df.columns = ['region']+[*MMRR_res_df.columns][1:]
-MMRR_res_df.to_csv('clim_dist_MMRR_results.csv', index=False)
+if run_MMRR:
+    MMRR_res_df = pd.DataFrame(MMRR_res).T.reset_index()
+    MMRR_res_df.columns = ['region']+[*MMRR_res_df.columns][1:]
+    MMRR_res_df.to_csv('clim_dist_MMRR_results.csv', index=False)
 
 
+# boxplot of same- versus different-Köppen-climate seas distances, by region
+fig_box = plt.figure(figsize=(16,8))
+ax= fig_box.add_subplot(111)
+sns.boxenplot(x='kopp_dist', hue='reg', y='seas_dist', palette=reg_cols, data=df,
+            ax=ax)
+fig_box.subplots_adjust(top=0.96, bottom=0.1, left=0.07, right=0.97)
+fig_box.show()
+fig_box.savefig('kopp_seas_dist_results.png', dpi=700)
+
+# and t-tests
+for lat_region in ['temperate', 'tropical']:
+    same = df[(df['kopp_dist']==0)&(df['reg']=='high asynch: %s' % lat_region)]['seas_dist']
+    diff = df[(df['kopp_dist']==1)&(df['reg']=='high asynch: %s' % lat_region)]['seas_dist']
+    mod = stats.ttest_ind(same, diff)
+    stat = mod.statistic
+    p = mod.pvalue
+    print('\n\nLATITUDINAL REGION: %s\n\n' % lat_region)
+    print('\n\nNUM SAME-KÖPPEN POINTS: %i\n\n' % len(same))
+    print('\n\nNUM DIFF-KÖPPEN POINTS: %i\n\n' % len(diff))
+    print('\n\nTEST RESULTS:\n\t%s\n\n' % str(mod))
+    print('-'*80+'\n\n')
+
+    # do permutations
+    kopp_dist_vals = np.array(deepcopy(kopp_dist_colm))
+    stat_list = []
+    p_list = []
+
+    for i in range(50):
+        np.random.shuffle(kopp_dist_vals)
+        same = df[(kopp_dist_vals==0)&(df['reg']=='high asynch: %s' % lat_region)]['seas_dist']
+        diff = df[(kopp_dist_vals==1)&(df['reg']=='high asynch: %s' % lat_region)]['seas_dist']
+        mod_perm = stats.ttest_ind(same, diff)
+        stat_list.append(mod_perm.statistic)
+        p_list.append(mod_perm.pvalue)
+
+    print('\n\nEMPIRICAL P-VALUE: %0.5e\n\n' % np.mean([np.abs(s)>=np.abs(stat)
+                                                        for s in stat_list]))
 

@@ -19,6 +19,7 @@ analysis/hotspots/
 analysis/data/
 analysis/other_data/
 analysis/data/*
+analysis/clim_dist/*txt
 analysis/data/*.csv
 analysis/phen_dist/results/
 analysis/phen_dist/results/**

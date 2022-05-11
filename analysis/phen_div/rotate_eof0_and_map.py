@@ -7,6 +7,9 @@ import palettable
 import xycmap
 from matplotlib.transforms import Affine2D
 import mpl_toolkits.axisartist.floating_axes as floating_axes
+from matplotlib.colors import LinearSegmentedColormap
+from colorsys import hls_to_rgb
+
 
 
 # TODO:
@@ -21,6 +24,7 @@ eofs = rxr.open_rasterio('../../../results/maps/global_4_EOFs_coswts.tif')
 # rescale each layer 0-1
 for i in range(eofs.shape[0]):
     eofs[i] = (eofs[i]-eofs[i].min())/(eofs[i].max()-eofs[i].min())
+
 # create a vertical vector that's 0 in the far north, 1 in the far south,
 # and progresses from 0 to 1 as a sigmoid function across the tropics
 # back, by cosine, within tropics
@@ -30,7 +34,9 @@ wts = eofs.y*0
 wts[ys<0] = 1
 lats_in_tropics = eofs.sel(y=slice(23.4934, -23.4934)).y.values
 # create sigmoid weighting
-minmax_val = np.e
+# NOTE: MINMAX VAL CHOSEN HEURISTICALLY, TO MINIMIZE NOTICEABLE COLOR-WARPING
+#       ARTEFACTS IN EQUATORIAL REGION 
+minmax_val = 10
 wts_in_tropics = minmax_scale(1/(1 + np.exp(-np.linspace(-minmax_val,
                                                          minmax_val,
                                                          len(lats_in_tropics)))))
@@ -55,14 +61,49 @@ eofs_wt_sum[0] = (wts*(1-eofs[0])) + ((1-wts)*eofs[0])
 
 
 
+# create bivariate colormap within luminance-difference on each of the two
+# axes proportional to the percent variation explained by the two axes' EOFs
+pct_var_eof0 = 0.779
+pct_var_eof1 = 0.115
+# define colors
+eof0_hue = 0.8
+eof0_saturation = 0.7
+eof1_hue = 0.3
+eof1_saturation = 0.7
+eof0_col0 = hls_to_rgb(eof0_hue, 0.2, eof0_saturation)
+eof0_col1 = hls_to_rgb(eof0_hue, 0.9, eof0_saturation)
+eof1_col0 = hls_to_rgb(eof1_hue, 0.2, eof1_saturation)
+eof1_col1 = hls_to_rgb(eof1_hue, 0.2+((pct_var_eof1/pct_var_eof0)*0.7), eof1_saturation)
+f, a = plt.subplots(1,1)
+a.scatter([0,1,0,1], [0,0,1,1], c=[eof0_col0, eof0_col1, eof1_col0, eof1_col1])
+# NOTE: chosen manually
+ur_corner_col = '#a367c2'
+
+
 # bivariate colormap
-fig2, ax = plt.subplots(1,1, figsize=(16,8))
-n = (50, 50)
-#xcmap = palettable.cartocolors.sequential.Peach_3.mpl_colormap
-#xcmap = palettable.colorbrewer.sequential.Oranges_8.mpl_colormap
-#ycmap = palettable.colorbrewer.sequential.PuRd_8.mpl_colormap
+#fig2, ax = plt.subplots(1,1, figsize=(16,8))
+#n = (50, 50)
+#xcolors = ['#fae034', '#dcfa34', '#abfa34', '#52fa34', '#34fa9a', '#34fae0',
+#           '#34cffa', '#3480fa', '#3445fa', '#6f34fa']
+#xcmap = LinearSegmentedColormap.from_list('custom', xcolors)
+#ycolors = ['#000000', '#ffffff']
+#ycmap = LinearSegmentedColormap.from_list('custom', ycolors)
 #cmap = xycmap.mean_xycmap(xcmap=xcmap, ycmap=ycmap, n=n)
+
+# either pretty yellow, blue, and maroon colormap...
 corner_colors = ("#d1d1d1", "#f5e102", "#0098d9", "#87054d")
+
+# or a data-driven colormap based on the code above...
+#corner_colors = (eof0_col0, eof0_col1, eof1_col1, ur_corner_col)
+
+# or a data-driven colormap hand-chosen with Google's hex color picker
+# (with logic displayed in HSL values and arithmetic on luminosity value,
+#  in comments to right)
+#corner_colors = ("#014a46", # HSL = 177deg, 97%, 15%
+#                 "#9df1fa", # HSL = 186deg, 90%, 80%
+#                 "#7d7102", # HSL = 54deg, 96%, 25% (25% = 15% + (.115/.779)*65%)
+#                 "#9ff9c4", # HSL = 145deg, 88%, 80%,
+#                )
 cmap = xycmap.custom_xycmap(corner_colors=corner_colors, n=n)
 
 eof0_vals = eofs_wt_sum[0].values.ravel()
