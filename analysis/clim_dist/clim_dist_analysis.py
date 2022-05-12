@@ -2,19 +2,13 @@
 # coding: utf-8
 
 
-
 # TODO:
 
-    # perhaps I should just be trying to calculate neighborhood multivariate
-    # variance in standardized bioclim variables as a RF covariate (rather
-    # than this inter-point comparison thing)?
+    # do I need to restrict to only clusters whose polygons cover a certain
+    # area, or contain a certain minimum number of points?
 
-    # change this script to sample points in a stratified random way,
-    # then assign regions in some data-driven way
-
-    # account for/avoid spatial autocorrelation in some way?
-
-
+    # decide whether or not I should be standardizing seasonal time series
+    # (or just rerun to compare)
 
 
 # py packages
@@ -29,14 +23,18 @@ import random
 import pyproj
 import numpy as np
 import pandas as pd
+import cartopy.crs as ccrs
 from copy import deepcopy
 from scipy.spatial import KDTree
 import seaborn as sns
 import math
 import itertools
+import alphashape
 import rasterio as rio
 import rioxarray as rxr
 import matplotlib.pyplot as plt
+from descartes import PolygonPatch
+from sklearn import cluster
 from shapely.ops import unary_union
 from shapely.geometry import Polygon, Point, MultiPolygon
 from scipy import stats
@@ -49,61 +47,91 @@ import helper_fns as hf
 from MMRR import MMRR
 
 
+# CLUSTER PARAMS:
+# dbscan params
+dbscan_eps = 3
+dbscan_min_samples_frac_all = 0.5# alpha hull param
+alpha = 1.25
+
+# ANALYSIS PARAMS:
+# standardize the seasonal time series before calculating their distances?
+standardize_ts = True
+# run MMRR tests?
+run_MMRR = True
+
+
+#####################################
+# PART I: CLUSTER HIGH-ASYNCH REGIONS
+#####################################
+
 # load the country boundaries (to use for random point generation)
 cntry = gpd.read_file(hf.COUNTRIES_DATA_DIR + 'countries.shp')
 
+# load asynch data
+asynch = rxr.open_rasterio('../../results/maps/NIRv_global_asynch.tif')[2]
+
+# mask everything below Nth percentile
+pctile = np.nanpercentile(asynch, 95)
+maxes = asynch.where(asynch>=pctile, np.nan).clip(min=1, max=1)
+
+# extract as points
+X, Y = np.meshgrid(maxes.x.values, maxes.y.values)
+coords = np.array([*zip(X.ravel(), Y.ravel())])
+coords = coords[np.where(pd.notnull(maxes.values.ravel()))[0]]
+
+# try out clustering algo
+# NOTE: DBSCAN SEEMED LIKE THE BEST FIT OFF THE BAT,
+#       BASED ON DEPICTION HERE:
+#           https://scikit-learn.org/stable/modules/clustering.html#overview-of-clustering-methods
+#       AND DESCRIPTION HERE:
+#           https://scikit-learn.org/stable/modules/clustering.html#dbscan
+db = cluster.DBSCAN(eps=dbscan_eps,
+        min_samples=dbscan_min_samples_frac_all * maxes.shape[0]).fit(coords)
+
+fig_map = plt.figure(figsize=(16,8))
+ax_map = fig_map.add_subplot(111)
+cntry.to_crs(4326).plot(color='none', edgecolor='k', linewidth=0.25, ax=ax_map)
+ax_map.scatter(coords[:, 0], coords[:, 1], c=db.labels_, cmap='tab20', s=3)
+ax_map.scatter(coords[:, 0], coords[:, 1], c=db.labels_>=0, cmap='Greys_r',
+               alpha=db.labels_<0, s=3)
+
+# get list of regions (i.e., cluster polygons)
+regs = []
+for clust_i in np.unique(db.labels_):
+    # ignore noisy samples
+    if clust_i >= 0:
+        print('\n\nGETTING POLYGON AND MAPPING FOR CLUSTER %i...\n\n' % clust_i)
+        # indices of this cluster's samples
+        inds = np.where(db.labels_==clust_i)[0]
+        # inds = [*set([*np.where(db.labels_==clust_i)[0]]).intersection(
+                 #set(db.core_sample_indices_))]
+        # coords of this cluster's samples
+        clust_coords = coords[inds,:]
+        # get alpha-hull coords
+        alpha_hull = alphashape.alphashape(clust_coords, alpha=alpha)
+        regs.append(alpha_hull)
+        # add to map
+        ax_map.add_patch(PolygonPatch(alpha_hull, alpha=0.2, color='black'))
+        cent = alpha_hull.centroid.coords.xy
+        ax_map.text(cent[0][0], cent[1][0], str(clust_i), color='black',
+                    size=14, weight='bold', alpha=0.85)
+
+# save the map
+fig_map.subplots_adjust(bottom=0.03, top=0.99, left=0.03, right=0.99)
+fig_map.savefig('asynch_cluster_map_multiregion.png', dpi=700)
+
+
+
+####################################
+# PART II: DRAW PTS AND RUN ANALYSIS
+####################################
+
 n_pts = 1000  # Enter in the number greater than random points you need
-
-# standardize the seasonal time series before calculating their distances?
-standardize_ts = False
-
-# run MMRR tests?
-run_MMRR = False
 
 # read in the Köppen data
 kopp = rxr.open_rasterio('./clim_dist/Beck_rewrite_0p0083_5KM_AGG.tif')[0]
 # mask out oceans
 kopp = kopp.where(kopp>0, np.nan)
-
-# define regions for:
-# high asynchrony:
-    # temperate: CA and SW
-ha_tmp = Polygon([[-123.588671875,42.1726562502269],
-                  [-120.951953125,35.75664368702668],
-                  [-109.43828125,31.96275411512188],
-                  [-105.746875,32.03728956520954],
-                  [-106.362109375,43.653059057103164],
-                  [-123.588671875,42.1726562502269]
-                 ])
-    # tropical: N Andes and N SA
-ha_trp = Polygon([[-76.84073042457382,-0.40960685149885684],
-                  [-58.12002729957382,-0.40960685149885684],
-                  [-58.12002729957382,11.466203915130043],
-                  [-76.84073042457382,11.466203915130043],
-                  [-76.84073042457382,-0.40960685149885684]
-                 ])
-#ha_trp = Polygon([[-76,8.5],
-#                  [-76,-1],
-#                  [-58,-1],
-#                  [-58,8.5],
-#                  [-76,8.5]
-#                 ])
-# low asynchrony:
-    # temperate: US South and SE
-la_tmp = Polygon([[-95.39198282257864,30.76200580067661],
-                  [-81.68104532257864,30.76200580067661],
-                  [-81.68104532257864,37.797946552183234],
-                  [-95.39198282257864,37.797946552183234],
-                  [-95.39198282257864,30.76200580067661]
-                 ])
-    # tropical: W Amazon
-la_trp = Polygon([[-72.70987104957382,-11.49384470495583],
-                  [-58.12002729957382,-11.49384470495583],
-                  [-58.12002729957382,-1.9912406261155682],
-                  [-72.70987104957382,-1.9912406261155682],
-                  [-72.70987104957382,-11.49384470495583]
-                 ])
-regs = [ha_tmp, ha_trp, la_tmp, la_trp]
 
 # draw random points for each region
 regs_pts = [hf.generate_random_points_in_polygon(n_pts, reg) for reg in regs]
@@ -114,18 +142,10 @@ fig.suptitle(('seasonal distance vs. climatic distance, '
               'across latitude and asynchrony'), size=20)
 
 # list of region names
-reg_names = ['high asynch: temperate',
-             'high asynch: tropical',
-             'low asynch: temperate',
-             'low asynch: tropical'
-            ]
+reg_names = [str(i+1) for i in range(len(regs))]
 
 # create colors for the 4 regions
-reg_cols = ["#7428ed", # ha_tmp
-            "#18f04a", # ha_trp
-            "#a6a4b3", # la_tmp
-            "#8db08f", # la_trp
-           ]
+reg_cols = [plt.cm.tab20(v/len(regs)) for v in range(len(regs))]
 
 # dict to store the distances
 dist_dict = {}
@@ -268,11 +288,11 @@ for i, row in df.iterrows():
 df['geo_dist'] = dists
 
 # write results to disk
-df.to_csv('clim_dist_results.csv', index=False)
+df.to_csv('clim_dist_results_multiregion.csv', index=False)
 if run_MMRR:
     MMRR_res_df = pd.DataFrame(MMRR_res).T.reset_index()
     MMRR_res_df.columns = ['region']+[*MMRR_res_df.columns][1:]
-    MMRR_res_df.to_csv('clim_dist_MMRR_results.csv', index=False)
+    MMRR_res_df.to_csv('clim_dist_MMRR_results_multiregion.csv', index=False)
 
 
 # boxplot of same- versus different-Köppen-climate seas distances, by region
@@ -282,34 +302,34 @@ sns.boxenplot(x='kopp_dist', hue='reg', y='seas_dist', palette=reg_cols, data=df
             ax=ax)
 fig_box.subplots_adjust(top=0.96, bottom=0.1, left=0.07, right=0.97)
 fig_box.show()
-fig_box.savefig('kopp_seas_dist_results.png', dpi=700)
+fig_box.savefig('kopp_seas_dist_results_multiregion.png', dpi=700)
 
 # and t-tests
-for lat_region in ['temperate', 'tropical']:
-    same = df[(df['kopp_dist']==0)&(df['reg']=='high asynch: %s' % lat_region)]['seas_dist']
-    diff = df[(df['kopp_dist']==1)&(df['reg']=='high asynch: %s' % lat_region)]['seas_dist']
-    mod = stats.ttest_ind(same, diff)
-    stat = mod.statistic
-    p = mod.pvalue
-    print('\n\nLATITUDINAL REGION: %s\n\n' % lat_region)
-    print('\n\nNUM SAME-KÖPPEN POINTS: %i\n\n' % len(same))
-    print('\n\nNUM DIFF-KÖPPEN POINTS: %i\n\n' % len(diff))
-    print('\n\nTEST RESULTS:\n\t%s\n\n' % str(mod))
-    print('-'*80+'\n\n')
-
-    # do permutations
-    kopp_dist_vals = np.array(deepcopy(kopp_dist_colm))
-    stat_list = []
-    p_list = []
-
-    for i in range(50):
-        np.random.shuffle(kopp_dist_vals)
-        same = df[(kopp_dist_vals==0)&(df['reg']=='high asynch: %s' % lat_region)]['seas_dist']
-        diff = df[(kopp_dist_vals==1)&(df['reg']=='high asynch: %s' % lat_region)]['seas_dist']
-        mod_perm = stats.ttest_ind(same, diff)
-        stat_list.append(mod_perm.statistic)
-        p_list.append(mod_perm.pvalue)
-
-    print('\n\nEMPIRICAL P-VALUE: %0.5e\n\n' % np.mean([np.abs(s)>=np.abs(stat)
-                                                        for s in stat_list]))
+#for lat_region in ['temperate', 'tropical']:
+#    same = df[(df['kopp_dist']==0)&(df['reg']=='high asynch: %s' % lat_region)]['seas_dist']
+#    diff = df[(df['kopp_dist']==1)&(df['reg']=='high asynch: %s' % lat_region)]['seas_dist']
+#    mod = stats.ttest_ind(same, diff)
+#    stat = mod.statistic
+#    p = mod.pvalue
+#    print('\n\nLATITUDINAL REGION: %s\n\n' % lat_region)
+#    print('\n\nNUM SAME-KÖPPEN POINTS: %i\n\n' % len(same))
+#    print('\n\nNUM DIFF-KÖPPEN POINTS: %i\n\n' % len(diff))
+#    print('\n\nTEST RESULTS:\n\t%s\n\n' % str(mod))
+#    print('-'*80+'\n\n')
+#
+#    # do permutations
+#    kopp_dist_vals = np.array(deepcopy(kopp_dist_colm))
+#    stat_list = []
+#    p_list = []
+#
+#    for i in range(50):
+#        np.random.shuffle(kopp_dist_vals)
+#        same = df[(kopp_dist_vals==0)&(df['reg']=='high asynch: %s' % lat_region)]['seas_dist']
+#        diff = df[(kopp_dist_vals==1)&(df['reg']=='high asynch: %s' % lat_region)]['seas_dist']
+#        mod_perm = stats.ttest_ind(same, diff)
+#        stat_list.append(mod_perm.statistic)
+#        p_list.append(mod_perm.pvalue)
+#
+#    print('\n\nEMPIRICAL P-VALUE: %0.5e\n\n' % np.mean([np.abs(s)>=np.abs(stat)
+#                                                        for s in stat_list]))
 
