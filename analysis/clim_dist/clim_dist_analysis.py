@@ -54,10 +54,19 @@ dbscan_min_samples_frac_all = 0.5# alpha hull param
 alpha = 1.25
 
 # ANALYSIS PARAMS:
+# a number <= number of random points desired
+n_pts = 1000
 # standardize the seasonal time series before calculating their distances?
 standardize_ts = True
+# file suffix depending on standardization
+if standardize_ts:
+    file_suffix = '_STANDARDIZED'
+else:
+    file_suffix = '_UNSTANDARDIZED'
 # run MMRR tests?
 run_MMRR = True
+# make time series figure?
+plot_ts = False
 
 
 #####################################
@@ -88,18 +97,39 @@ coords = coords[np.where(pd.notnull(maxes.values.ravel()))[0]]
 db = cluster.DBSCAN(eps=dbscan_eps,
         min_samples=dbscan_min_samples_frac_all * maxes.shape[0]).fit(coords)
 
-fig_map = plt.figure(figsize=(16,8))
-ax_map = fig_map.add_subplot(111)
+# NOTE: ADD 1 TO CLUSTER LABELS, SO THAT FIRST CLUSTER == 1, NOT 0
+db.labels_ += 1
+
+# get clusters' mean latitudes (to be able to plot in order, N to S
+clust_mean_lats = {}
+for clust_i in np.unique(db.labels_):
+    if clust_i > 0:
+        mean_lat = np.mean(coords[db.labels_==clust_i,1])
+        clust_mean_lats[clust_i] = mean_lat
+
+# remap cluster labels so that they go in latitudinal order (N->S)
+NtoS_clust_labels = sorted(clust_mean_lats.keys(),
+                           key=lambda k: clust_mean_lats[k])[::-1]
+new_labels_dict = {0:0}
+for i, new_label in enumerate(NtoS_clust_labels):
+    new_labels_dict[new_label] = i+1
+new_labels_list = []
+for label in db.labels_:
+    new_labels_list.append(new_labels_dict[label])
+
+fig_map = plt.figure(figsize=(20,8))
+gs = fig_map.add_gridspec(10, 2, width_ratios=[1,0.25])
+ax_map = fig_map.add_subplot(gs[:,1])
 cntry.to_crs(4326).plot(color='none', edgecolor='k', linewidth=0.25, ax=ax_map)
 ax_map.scatter(coords[:, 0], coords[:, 1], c=db.labels_, cmap='tab20', s=3)
-ax_map.scatter(coords[:, 0], coords[:, 1], c=db.labels_>=0, cmap='Greys_r',
-               alpha=db.labels_<0, s=3)
+ax_map.scatter(coords[:, 0], coords[:, 1], c=db.labels_>0, cmap='Greys_r',
+               alpha=db.labels_==0, s=3)
 
 # get list of regions (i.e., cluster polygons)
 regs = []
 for clust_i in np.unique(db.labels_):
     # ignore noisy samples
-    if clust_i >= 0:
+    if clust_i > 0:
         print('\n\nGETTING POLYGON AND MAPPING FOR CLUSTER %i...\n\n' % clust_i)
         # indices of this cluster's samples
         inds = np.where(db.labels_==clust_i)[0]
@@ -116,17 +146,15 @@ for clust_i in np.unique(db.labels_):
         ax_map.text(cent[0][0], cent[1][0], str(clust_i), color='black',
                     size=14, weight='bold', alpha=0.85)
 
-# save the map
-fig_map.subplots_adjust(bottom=0.03, top=0.99, left=0.03, right=0.99)
-fig_map.savefig('asynch_cluster_map_multiregion.png', dpi=700)
-
 
 
 ####################################
 # PART II: DRAW PTS AND RUN ANALYSIS
 ####################################
 
-n_pts = 1000  # Enter in the number greater than random points you need
+# figure to plot ts for each reg separately
+if plot_ts:
+    fig_ts = plt.figure(figsize=(15,10))
 
 # read in the Köppen data
 kopp = rxr.open_rasterio('./clim_dist/Beck_rewrite_0p0083_5KM_AGG.tif')[0]
@@ -165,7 +193,8 @@ y2_colm = []
 
 if run_MMRR:
     MMRR_res = {}
-
+if plot_ts:
+    reg_ct = 1
 for reg_poly, reg_pts, reg_col, reg_name in zip(regs,
                                                 regs_pts,
                                                 reg_cols,
@@ -176,7 +205,19 @@ for reg_poly, reg_pts, reg_col, reg_name in zip(regs,
     # get points as nx2 numpy array
     pts = np.concatenate([np.array(pt.coords) for pt in reg_pts], axis=0)
 
-    # get points' pairwise clim dists
+    # get and plot the region's time series
+    if plot_ts:
+        tss = hf.get_raster_info_points(hf.COEFFS_FILE, pts, 'ts',
+                                    standardize=standardize_ts)
+        tss = tss[np.sum(np.isnan(tss), axis=1)==0, :]
+        ax_ts = fig_ts.add_subplot(4,4,reg_ct)
+        ax_ts.set_title(reg_name, fontdict={'fontsize': 10})
+        for ts in tss:
+            ax_ts.plot(ts, linestyle='-', color=reg_col, alpha=0.05)
+        ax.set_ylim(np.min(tss), np.max(tss))
+        reg_ct+=1
+
+        # get points' pairwise clim dists
     clim_dist = hf.calc_pw_clim_dist_mat(pts, nodata_val=nodata_val)
 
     # get points' pairwise ts dists
@@ -269,6 +310,11 @@ ax.set_ylabel('seasonal distance (Euclidean)', size=18)
 ax.tick_params(labelsize=16)
 fig.show()
 
+# save the time-series plot grid
+if plot_ts:
+    fig_ts.subplots_adjust(bottom=0.1, top=0.92, left=0.1, right=0.92)
+    fig_ts.savefig('time_series_plot_grid%s.png' % file_suffix, dpi=700)
+
 
 # contourplot
 df = pd.DataFrame({'seas_dist': seas_dist_colm,
@@ -288,21 +334,24 @@ for i, row in df.iterrows():
 df['geo_dist'] = dists
 
 # write results to disk
-df.to_csv('clim_dist_results_multiregion.csv', index=False)
+df.to_csv('clim_dist_results_multiregion%s.csv' % file_suffix, index=False)
 if run_MMRR:
     MMRR_res_df = pd.DataFrame(MMRR_res).T.reset_index()
     MMRR_res_df.columns = ['region']+[*MMRR_res_df.columns][1:]
-    MMRR_res_df.to_csv('clim_dist_MMRR_results_multiregion.csv', index=False)
+    MMRR_res_df.to_csv('clim_dist_MMRR_results_multiregion%s.csv' % file_suffix, index=False)
 
 
 # boxplot of same- versus different-Köppen-climate seas distances, by region
-fig_box = plt.figure(figsize=(16,8))
-ax= fig_box.add_subplot(111)
-sns.boxenplot(x='kopp_dist', hue='reg', y='seas_dist', palette=reg_cols, data=df,
-            ax=ax)
-fig_box.subplots_adjust(top=0.96, bottom=0.1, left=0.07, right=0.97)
-fig_box.show()
-fig_box.savefig('kopp_seas_dist_results_multiregion.png', dpi=700)
+ax_plot = fig_map.add_subplot(gs[2:8, 1])
+sns.violinplot(x='kopp_dist', hue='reg', y='seas_dist', palette=reg_cols, data=df,
+              orient='h', ax=ax_plot)
+fig_map.subplots_adjust(top=0.96, bottom=0.1, left=0.07, right=0.97)
+fig_map.show()
+fig_map.savefig('kopp_seas_dist_results_multiregion%s.png' % file_suffix, dpi=700)
+
+# save the map
+fig_map.subplots_adjust(bottom=0.03, top=0.99, left=0.03, right=0.99)
+fig_map.savefig('asynch_cluster_map_multiregion%s.png' % file_suffix, dpi=700)
 
 # and t-tests
 #for lat_region in ['temperate', 'tropical']:
