@@ -18,6 +18,7 @@ import glob
 import json
 import time
 import os
+import re
 #from osgeo import gdal
 import random
 import pyproj
@@ -52,8 +53,9 @@ from MMRR import MMRR
 
 # CLUSTER PARAMS:
 # dbscan params
-dbscan_eps = 2
-dbscan_min_samples_frac_all = 0.1# alpha hull param
+dbscan_eps = 4
+dbscan_min_samples_frac_all = 0.6
+# alpha hull param
 alpha = 1.25
 
 # ANALYSIS PARAMS:
@@ -86,9 +88,8 @@ cntry = gpd.read_file(hf.COUNTRIES_DATA_DIR + 'countries.shp')
 asynch = rxr.open_rasterio('../../results/maps/NIRv_global_asynch.tif')[2]
 
 # mask everything below Nth percentile
-pctile = np.nanpercentile(asynch, 95)
+pctile = np.nanpercentile(asynch, 96)
 maxes = asynch.where(asynch>=pctile, np.nan).clip(min=1, max=1)
-
 # extract as points
 X, Y = np.meshgrid(maxes.x.values, maxes.y.values)
 coords = np.array([*zip(X.ravel(), Y.ravel())])
@@ -102,17 +103,14 @@ coords = coords[np.where(pd.notnull(maxes.values.ravel()))[0]]
 #           https://scikit-learn.org/stable/modules/clustering.html#dbscan
 db = cluster.DBSCAN(eps=dbscan_eps,
         min_samples=dbscan_min_samples_frac_all * maxes.shape[0]).fit(coords)
-
 # NOTE: ADD 1 TO CLUSTER LABELS, SO THAT FIRST CLUSTER == 1, NOT 0
 db.labels_ += 1
-
 # get clusters' mean latitudes (to be able to plot in order, N to S
 clust_mean_lats = {}
 for clust_i in np.unique(db.labels_):
     if clust_i > 0:
         mean_lat = np.mean(coords[db.labels_==clust_i,1])
         clust_mean_lats[clust_i] = mean_lat
-
 # remap cluster labels so that they go in latitudinal order (N->S)
 NtoS_clust_labels = sorted(clust_mean_lats.keys(),
                            key=lambda k: clust_mean_lats[k])[::-1]
@@ -122,7 +120,7 @@ for i, new_label in enumerate(NtoS_clust_labels):
 new_labels_list = []
 for label in db.labels_:
     new_labels_list.append(new_labels_dict[label])
-
+# make map
 fig_map = plt.figure(figsize=(20,8))
 gs = fig_map.add_gridspec(10, 2, width_ratios=[1,0.25])
 if make_boxplot:
@@ -147,10 +145,28 @@ for clust_i in np.unique(db.labels_):
         # coords of this cluster's samples
         clust_coords = coords[inds,:]
         # get alpha-hull coords
-        alpha_hull = alphashape.alphashape(clust_coords, alpha=alpha)
+        # NOTE: looping the alphashape function and adding 0.25 to alpha each
+        # time because I ran into some weird issues with the function where for
+        # certain point sets (e.g., South African cape one specific time) it
+        # returned an empty GeometryCollection rather than a Poly or
+        # MultiPoly...
+        alpha_hull = None
+        ct = 0
+        while not (isinstance(alpha_hull, Polygon) or isinstance(alpha_hull,
+                                                                 MultiPolygon)):
+            alpha_hull = alphashape.alphashape(clust_coords,
+                                               alpha=alpha+(0.25*ct))
+            ct+=1
+        # coerce to MultiPolygon, if necessary
+        if isinstance(alpha_hull, MultiPolygon):
+            pass
+        else:
+            alpha_hull = MultiPolygon([alpha_hull])
+        # save the MultiPolygon
         regs.append(alpha_hull)
-        # add to map
-        ax_map.add_patch(PolygonPatch(alpha_hull, alpha=0.2, color='black'))
+        # add all constituent polygons to map
+        for p in alpha_hull.geoms:
+            ax_map.add_patch(PolygonPatch(p, alpha=0.2, color='black'))
         cent = alpha_hull.centroid.coords.xy
         ax_map.text(cent[0][0], cent[1][0], str(clust_i), color='black',
                     size=14, weight='bold', alpha=0.85)
@@ -275,66 +291,67 @@ for reg_poly, reg_pts, reg_col, reg_name in zip(regs,
 
     print(('\n%i points remain after dropping locations without seasonality '
           'data\n' % seas_dist.shape[0]))
+    if seas_dist.shape[0]>=2:
 
-    # run MMRR, if requested
-    if run_MMRR:
-        g = pyproj.Geod(ellps='WGS84')
-        # get pw geo dist matrix of points
-        geo_dist = np.ones([pts.shape[0]]*2) * np.nan
-        for i in range(geo_dist.shape[0]):
-            for j in range(i, geo_dist.shape[1]):
-                lon1, lat1 = pts[i,:]
-                lon2, lat2 = pts[j,:]
-                (az12, az21, dist) = g.inv(lon1, lat1, lon2, lat2)
-                geo_dist[i, j] = dist
-                geo_dist[j, i] = dist
-        # run model
-        res = MMRR(seas_dist, [clim_dist, geo_dist], ['clim_dist', 'geo_dist'])
-        # print and store results
-        for k, v in res.items():
-            print('\n\t%s: %s' % (k, str(v)))
-        MMRR_res[reg_name] = res
+        # run MMRR, if requested
+        if run_MMRR:
+            g = pyproj.Geod(ellps='WGS84')
+            # get pw geo dist matrix of points
+            geo_dist = np.ones([pts.shape[0]]*2) * np.nan
+            for i in range(geo_dist.shape[0]):
+                for j in range(i, geo_dist.shape[1]):
+                    lon1, lat1 = pts[i,:]
+                    lon2, lat2 = pts[j,:]
+                    (az12, az21, dist) = g.inv(lon1, lat1, lon2, lat2)
+                    geo_dist[i, j] = dist
+                    geo_dist[j, i] = dist
+            # run model
+            res = MMRR(seas_dist, [clim_dist, geo_dist], ['clim_dist', 'geo_dist'])
+            # print and store results
+            for k, v in res.items():
+                print('\n\t%s: %s' % (k, str(v)))
+            MMRR_res[reg_name] = res
 
-    # extract the lower triangular values and scatter them
-    indices = np.tril_indices(seas_dist.shape[0])
+        # extract the lower triangular values and scatter them
+        indices = np.tril_indices(seas_dist.shape[0])
 
-    seas_dist_vals = seas_dist[indices]
-    clim_dist_vals = clim_dist[indices]
-    kopp_dist_vals = kopp_dist[indices]
+        seas_dist_vals = seas_dist[indices]
+        clim_dist_vals = clim_dist[indices]
+        kopp_dist_vals = kopp_dist[indices]
 
-    # scatter 
-    ax.scatter(clim_dist_vals, seas_dist_vals, s=1,
-               c=reg_col, alpha=0.2, label=reg_name)
+        # scatter 
+        ax.scatter(clim_dist_vals, seas_dist_vals, s=1,
+                   c=reg_col, alpha=0.2, label=reg_name)
 
-    # add the convex hull
-    hull_pts = np.array((clim_dist_vals, seas_dist_vals)).T
-    hull = ConvexHull(hull_pts)
-    for simplex in hull.simplices:
-        ax.plot(hull_pts[simplex, 0], hull_pts[simplex, 1], color=reg_col)
+        # add the convex hull
+        hull_pts = np.array((clim_dist_vals, seas_dist_vals)).T
+        hull = ConvexHull(hull_pts)
+        for simplex in hull.simplices:
+            ax.plot(hull_pts[simplex, 0], hull_pts[simplex, 1], color=reg_col)
 
-    # store the dists
-    dist_dict[reg_name] = {'clim': clim_dist_vals,
-                           'seas': seas_dist_vals,
-                           'kopp': kopp_dist_vals,
-                          }
+        # store the dists
+        dist_dict[reg_name] = {'clim': clim_dist_vals,
+                               'seas': seas_dist_vals,
+                               'kopp': kopp_dist_vals,
+                              }
 
-    # add to DataFrame columns
-    seas_dist_colm.extend(seas_dist_vals)
-    clim_dist_colm.extend(clim_dist_vals)
-    kopp_dist_colm.extend(kopp_dist_vals)
-    reg_colm.extend([reg_name]*len(seas_dist_vals))
-    x1_colm.extend(pts[indices[0],0])
-    x2_colm.extend(pts[indices[1],0])
-    y1_colm.extend(pts[indices[0],1])
-    y2_colm.extend(pts[indices[1],1])
+        # add to DataFrame columns
+        seas_dist_colm.extend(seas_dist_vals)
+        clim_dist_colm.extend(clim_dist_vals)
+        kopp_dist_colm.extend(kopp_dist_vals)
+        reg_colm.extend([reg_name]*len(seas_dist_vals))
+        x1_colm.extend(pts[indices[0],0])
+        x2_colm.extend(pts[indices[1],0])
+        y1_colm.extend(pts[indices[0],1])
+        y2_colm.extend(pts[indices[1],1])
 
-    # store the region's mean latitude and mean ppt
-    mean_lat = [*reg_poly.centroid.coords.xy[1]][0]
-    mean_ppt = float(np.mean(ppt.rio.clip(reg_poly)).values)
-    mean_tmp = float(np.mean(tmp.rio.clip(reg_poly)).values)
-    mean_lats.append(mean_lat)
-    mean_ppts.append(mean_ppt)
-    mean_tmps.append(mean_tmp)
+        # store the region's mean latitude and mean ppt
+        mean_lat = [*reg_poly.centroid.coords.xy[1]][0]
+        mean_ppt = float(np.mean(ppt.rio.clip(reg_poly)).values)
+        mean_tmp = float(np.mean(tmp.rio.clip(reg_poly)).values)
+        mean_lats.append(mean_lat)
+        mean_ppts.append(mean_ppt)
+        mean_tmps.append(mean_tmp)
 
 
 ax.legend(fontsize=16)
@@ -394,7 +411,7 @@ fig_map.savefig('asynch_cluster_map_multiregion%s.png' % file_suffix, dpi=700)
 
 
 # plot clim_dist MMRR coeff as a function of mean lat and mean ppt
-fig_mmrr = plt.figure(figsize=(8,8))
+fig_mmrr = plt.figure(figsize=(16,8))
 ax_lat = fig_mmrr.add_subplot(1,2,1)
 ax_lat.plot(MMRR_res_df['clim_dist'],
             MMRR_res_df['mean_lat'],
@@ -407,7 +424,7 @@ for r,x,y in zip(MMRR_res_df['region'].values,
                  MMRR_res_df['mean_lat'].values):
     ax_lat.text(x, y, r, size=16, alpha=0.5)
 ax_lat.axhline(y=0, color='red', linestyle=':')
-ax_lat.set_xlabel('MMRR climate distance coefficient', fontdict={'fontsize': 18})
+ax_lat.set_xlabel('MMRR climate-distance coefficient', fontdict={'fontsize': 18})
 ax_lat.set_ylabel('mean latitude (degrees)', fontdict={'fontsize': 18})
 ax_lat.tick_params(labelsize=14)
 
@@ -460,13 +477,26 @@ for r,x,y in zip(MMRR_res_df['region'].values,
 
 scat = ax2.scatter(MMRR_res_df['mean_tmp'], MMRR_res_df['mean_ppt'],
                    c=MMRR_res_df['clim_dist'],
-                   cmap='plasma_r')
+                   cmap='plasma_r', s=45, alpha=0.85, edgecolor='k',
+                   linewidth=1)
 
-plt.colorbar(scat, cax=cax2)
+cbar = plt.colorbar(scat, cax=cax2)
+cbar.set_label('MMRR climate-distance coefficient',
+               fontdict={'fontsize': 18})
+
 ax2.set_xlabel('MAT ($^{\circ}C$)',
               fontdict={'fontsize': 18})
 ax2.set_ylabel('MAP ($mm$)',
               fontdict={'fontsize': 18})
 ax2.tick_params(labelsize=14)
 
-plt.show()
+fig_mmrr.show()
+
+fig_mmrr.subplots_adjust(bottom=0.08,
+                         top=0.98,
+                         left=0.06,
+                         right=0.95,
+                         wspace=0.3,
+                        )
+
+fig_mmrr.savefig('MMRR_results_by_lat_mat_map%s.png' % file_suffix, dpi=700)
