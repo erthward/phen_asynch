@@ -1,15 +1,19 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-
+################################################################################
 # TODO:
 
-    # do I need to restrict to only clusters whose polygons cover a certain
-    # area, or contain a certain minimum number of points?
+    #1. loop over param values and summarize
 
-    # decide whether or not I should be standardizing seasonal time series
-    # (or just rerun to compare)
+        # clean up and streamline script, get rid of cruft
 
+
+
+    #2. plot as climate-distance coeff against absolute lat (with trendline)
+
+        # color by cluster number, to pair with map
+################################################################################
 
 # py packages
 import geopandas as gpd
@@ -45,6 +49,7 @@ from scipy import stats
 from scipy.spatial import ConvexHull
 from scipy.spatial import distance
 from collections import Counter as C
+import itertools
 
 # local modules
 import helper_fns as hf
@@ -53,10 +58,10 @@ from MMRR import MMRR
 
 # CLUSTER PARAMS:
 # dbscan params
-dbscan_eps = 4
-dbscan_min_samples_frac_all = 0.6
+dbscan_eps_vals = [2, 4, 6]
+dbscan_minsamp_vals = [1.0, 0.6, 0.2]
 # alpha hull param
-alpha = 1.25
+alpha_vals = [0.25, 0.75, 1.25]
 
 # ANALYSIS PARAMS:
 # a number <= number of random points desired
@@ -75,6 +80,8 @@ run_MMRR = True
 plot_ts = False
 # make the boxplot?
 make_boxplot = False
+# plot Whittaker biomes?
+plot_whittaker = False
 
 
 #####################################
@@ -87,416 +94,421 @@ cntry = gpd.read_file(hf.COUNTRIES_DATA_DIR + 'countries.shp')
 # load asynch data
 asynch = rxr.open_rasterio('../../results/maps/NIRv_global_asynch.tif')[2]
 
-# mask everything below Nth percentile
-pctile = np.nanpercentile(asynch, 96)
-maxes = asynch.where(asynch>=pctile, np.nan).clip(min=1, max=1)
-# extract as points
-X, Y = np.meshgrid(maxes.x.values, maxes.y.values)
-coords = np.array([*zip(X.ravel(), Y.ravel())])
-coords = coords[np.where(pd.notnull(maxes.values.ravel()))[0]]
+# run analysis looped over param vals
+for (dbscan_eps,
+     dbscan_minsamp,
+     alpha_vals) in itertools.product(dbscan_eps_vals,
+                                      dbscan_minsamp_vals,
+                                      alpha_vals):
 
-# try out clustering algo
-# NOTE: DBSCAN SEEMED LIKE THE BEST FIT OFF THE BAT,
-#       BASED ON DEPICTION HERE:
-#           https://scikit-learn.org/stable/modules/clustering.html#overview-of-clustering-methods
-#       AND DESCRIPTION HERE:
-#           https://scikit-learn.org/stable/modules/clustering.html#dbscan
-db = cluster.DBSCAN(eps=dbscan_eps,
-        min_samples=dbscan_min_samples_frac_all * maxes.shape[0]).fit(coords)
-# NOTE: ADD 1 TO CLUSTER LABELS, SO THAT FIRST CLUSTER == 1, NOT 0
-db.labels_ += 1
-# get clusters' mean latitudes (to be able to plot in order, N to S
-clust_mean_lats = {}
-for clust_i in np.unique(db.labels_):
-    if clust_i > 0:
-        mean_lat = np.mean(coords[db.labels_==clust_i,1])
-        clust_mean_lats[clust_i] = mean_lat
-# remap cluster labels so that they go in latitudinal order (N->S)
-NtoS_clust_labels = sorted(clust_mean_lats.keys(),
-                           key=lambda k: clust_mean_lats[k])[::-1]
-new_labels_dict = {0:0}
-for i, new_label in enumerate(NtoS_clust_labels):
-    new_labels_dict[new_label] = i+1
-new_labels_list = []
-for label in db.labels_:
-    new_labels_list.append(new_labels_dict[label])
-# make map
-fig_map = plt.figure(figsize=(20,8))
-gs = fig_map.add_gridspec(10, 2, width_ratios=[1,0.25])
-if make_boxplot:
-    ax_map = fig_map.add_subplot(gs[:,1])
-else:
-    ax_map = fig_map.add_subplot(gs[:,:])
-cntry.to_crs(4326).plot(color='none', edgecolor='k', linewidth=0.25, ax=ax_map)
-ax_map.scatter(coords[:, 0], coords[:, 1], c=db.labels_, cmap='tab20', s=3)
-ax_map.scatter(coords[:, 0], coords[:, 1], c=db.labels_>0, cmap='Greys_r',
-               alpha=db.labels_==0, s=3)
+    # mask everything below Nth percentile
+    pctile = np.nanpercentile(asynch, 96)
+    maxes = asynch.where(asynch>=pctile, np.nan).clip(min=1, max=1)
+    # extract as points
+    X, Y = np.meshgrid(maxes.x.values, maxes.y.values)
+    coords = np.array([*zip(X.ravel(), Y.ravel())])
+    coords = coords[np.where(pd.notnull(maxes.values.ravel()))[0]]
 
-# get list of regions (i.e., cluster polygons)
-regs = []
-for clust_i in np.unique(db.labels_):
-    # ignore noisy samples
-    if clust_i > 0:
-        print('\n\nGETTING POLYGON AND MAPPING FOR CLUSTER %i...\n\n' % clust_i)
-        # indices of this cluster's samples
-        inds = np.where(db.labels_==clust_i)[0]
-        # inds = [*set([*np.where(db.labels_==clust_i)[0]]).intersection(
-                 #set(db.core_sample_indices_))]
-        # coords of this cluster's samples
-        clust_coords = coords[inds,:]
-        # get alpha-hull coords
-        # NOTE: looping the alphashape function and adding 0.25 to alpha each
-        # time because I ran into some weird issues with the function where for
-        # certain point sets (e.g., South African cape one specific time) it
-        # returned an empty GeometryCollection rather than a Poly or
-        # MultiPoly...
-        alpha_hull = None
-        ct = 0
-        while not (isinstance(alpha_hull, Polygon) or isinstance(alpha_hull,
-                                                                 MultiPolygon)):
-            alpha_hull = alphashape.alphashape(clust_coords,
-                                               alpha=alpha+(0.25*ct))
-            ct+=1
-        # coerce to MultiPolygon, if necessary
-        if isinstance(alpha_hull, MultiPolygon):
-            pass
-        else:
-            alpha_hull = MultiPolygon([alpha_hull])
-        # save the MultiPolygon
-        regs.append(alpha_hull)
-        # add all constituent polygons to map
-        for p in alpha_hull.geoms:
-            ax_map.add_patch(PolygonPatch(p, alpha=0.2, color='black'))
-        cent = alpha_hull.centroid.coords.xy
-        ax_map.text(cent[0][0], cent[1][0], str(clust_i), color='black',
-                    size=14, weight='bold', alpha=0.85)
-# coerce all to MultiPolygons (to be able to use for raster clipping
-regs = [reg if isinstance(reg, MultiPolygon) else MultiPolygon([reg]) for reg in regs]
+    # try out clustering algo
+    # NOTE: DBSCAN SEEMED LIKE THE BEST FIT OFF THE BAT,
+    #       BASED ON DEPICTION HERE:
+    #           https://scikit-learn.org/stable/modules/clustering.html#overview-of-clustering-methods
+    #       AND DESCRIPTION HERE:
+    #           https://scikit-learn.org/stable/modules/clustering.html#dbscan
+    db = cluster.DBSCAN(eps=dbscan_eps,
+            min_samples=dbscan_minsamp * maxes.shape[0]).fit(coords)
+    # NOTE: ADD 1 TO CLUSTER LABELS, SO THAT FIRST CLUSTER == 1, NOT 0
+    db.labels_ += 1
+    # get clusters' mean latitudes (to be able to plot in order, N to S
+    clust_mean_lats = {}
+    for clust_i in np.unique(db.labels_):
+        if clust_i > 0:
+            mean_lat = np.mean(coords[db.labels_==clust_i,1])
+            clust_mean_lats[clust_i] = mean_lat
+    # remap cluster labels so that they go in latitudinal order (N->S)
+    NtoS_clust_labels = sorted(clust_mean_lats.keys(),
+                               key=lambda k: clust_mean_lats[k])[::-1]
+    new_labels_dict = {0:0}
+    for i, new_label in enumerate(NtoS_clust_labels):
+        new_labels_dict[new_label] = i+1
+    new_labels_list = []
+    for label in db.labels_:
+        new_labels_list.append(new_labels_dict[label])
+    # make map
+    fig = plt.figure(figsize=(20,8))
+    gs = fig.add_gridspec(10, 2, width_ratios=[1,0.25])
+    ax_map = fig.add_subplot(gs[:,0])
+    cntry.to_crs(4326).plot(color='none', edgecolor='k', linewidth=0.25, ax=ax_map)
+    ax_map.scatter(coords[:, 0], coords[:, 1], c=db.labels_, cmap='tab20', s=3)
+    ax_map.scatter(coords[:, 0], coords[:, 1], c=db.labels_>0, cmap='Greys_r',
+                   alpha=db.labels_==0, s=3)
 
-
-####################################
-# PART II: DRAW PTS AND RUN ANALYSIS
-####################################
-
-# figure to plot ts for each reg separately
-if plot_ts:
-    fig_ts = plt.figure(figsize=(15,10))
-
-# read in the Köppen data
-kopp = rxr.open_rasterio('./clim_dist/Beck_rewrite_0p0083_5KM_AGG.tif')[0]
-# mask out oceans
-kopp = kopp.where(kopp>0, np.nan)
-
-# draw random points for each region
-regs_pts = [hf.generate_random_points_in_polygon(n_pts, reg) for reg in regs]
-
-# create the figure
-fig, ax = plt.subplots(1,1)
-fig.suptitle(('seasonal distance vs. climatic distance, '
-              'across latitude and asynchrony'), size=20)
-
-# list of region names
-reg_names = [str(i+1) for i in range(len(regs))]
-
-# create colors for the 4 regions
-reg_cols = [plt.cm.tab20(v/len(regs)) for v in range(len(regs))]
-
-# dict to store the distances
-dist_dict = {}
-
-# get the nodata val
-nodata_val = rio.open(hf.BIOCLIM_INFILEPATHS[0]).nodata
-
-# columns for pandas DataFrame
-seas_dist_colm = []
-clim_dist_colm = []
-kopp_dist_colm = []
-reg_colm = []
-x1_colm = []
-x2_colm = []
-y1_colm = []
-y2_colm = []
-
-if run_MMRR:
-    MMRR_res = {}
-if plot_ts:
-    reg_ct = 1
-
-ppt_file =  [f for f in hf.BIOCLIM_INFILEPATHS if 'bio_12.tif' in f]
-assert len(ppt_file) == 1
-ppt_file = ppt_file[0]
-ppt = rxr.open_rasterio(ppt_file, masked=True)[0]
-
-tmp_file =  [f for f in hf.BIOCLIM_INFILEPATHS if 'bio_1.tif' in f]
-assert len(tmp_file) == 1
-tmp_file = tmp_file[0]
-tmp = rxr.open_rasterio(tmp_file, masked=True)[0]
+    # get list of regions (i.e., cluster polygons)
+    regs = []
+    for clust_i in np.unique(db.labels_):
+        # ignore noisy samples
+        if clust_i > 0:
+            print('\n\nGETTING POLYGON AND MAPPING FOR CLUSTER %i...\n\n' % clust_i)
+            # indices of this cluster's samples
+            inds = np.where(db.labels_==clust_i)[0]
+            # inds = [*set([*np.where(db.labels_==clust_i)[0]]).intersection(
+                     #set(db.core_sample_indices_))]
+            # coords of this cluster's samples
+            clust_coords = coords[inds,:]
+            # get alpha-hull coords
+            # NOTE: looping the alphashape function and adding 0.25 to alpha each
+            # time because I ran into some weird issues with the function where for
+            # certain point sets (e.g., South African cape one specific time) it
+            # returned an empty GeometryCollection rather than a Poly or
+            # MultiPoly...
+            alpha_hull = None
+            ct = 0
+            while not (isinstance(alpha_hull, Polygon) or isinstance(alpha_hull,
+                                                                     MultiPolygon)):
+                alpha_hull = alphashape.alphashape(clust_coords,
+                                                   alpha=alpha+(0.25*ct))
+                ct+=1
+            # coerce to MultiPolygon, if necessary
+            if isinstance(alpha_hull, MultiPolygon):
+                pass
+            else:
+                alpha_hull = MultiPolygon([alpha_hull])
+            # save the MultiPolygon
+            regs.append(alpha_hull)
+            # add all constituent polygons to map
+            for p in alpha_hull.geoms:
+                ax_map.add_patch(PolygonPatch(p, alpha=0.2, color='black'))
+            cent = alpha_hull.centroid.coords.xy
+            ax_map.text(cent[0][0], cent[1][0], str(clust_i), color='black',
+                        size=14, weight='bold', alpha=0.85)
+    # coerce all to MultiPolygons (to be able to use for raster clipping
+    regs = [reg if isinstance(reg, MultiPolygon) else MultiPolygon([reg]) for reg in regs]
 
 
-mean_lats = []
-mean_ppts = []
-mean_tmps = []
-for reg_poly, reg_pts, reg_col, reg_name in zip(regs,
-                                                regs_pts,
-                                                reg_cols,
-                                                reg_names):
+    ####################################
+    # PART II: DRAW PTS AND RUN ANALYSIS
+    ####################################
 
-    print('\ngetting distance matrices for region: %s\n' % reg_name)
-
-    # get points as nx2 numpy array
-    pts = np.concatenate([np.array(pt.coords) for pt in reg_pts], axis=0)
-
-    # get and plot the region's time series
+    # figure to plot ts for each reg separately
     if plot_ts:
-        tss = hf.get_raster_info_points(hf.COEFFS_FILE, pts, 'ts',
-                                    standardize=standardize_ts)
-        tss = tss[np.sum(np.isnan(tss), axis=1)==0, :]
-        ax_ts = fig_ts.add_subplot(4,4,reg_ct)
-        ax_ts.set_title(reg_name, fontdict={'fontsize': 10})
-        for ts in tss:
-            ax_ts.plot(ts, linestyle='-', color=reg_col, alpha=0.05)
-        ax.set_ylim(np.min(tss), np.max(tss))
-        reg_ct+=1
+        fig_ts = plt.figure(figsize=(15,10))
 
-        # get points' pairwise clim dists
-    clim_dist = hf.calc_pw_clim_dist_mat(pts, nodata_val=nodata_val)
+    # read in the Köppen data
+    kopp = rxr.open_rasterio('./clim_dist/Beck_rewrite_0p0083_5KM_AGG.tif')[0]
+    # mask out oceans
+    kopp = kopp.where(kopp>0, np.nan)
 
-    # get points' pairwise ts dists
-    seas_dist = hf.get_raster_info_points(hf.COEFFS_FILE, pts, 'ts_pdm',
-                                          standardize=standardize_ts)
+    # draw random points for each region
+    regs_pts = [hf.generate_random_points_in_polygon(n_pts, reg) for reg in regs]
 
-    assert clim_dist.shape[0] == seas_dist.shape[0] == pts.shape[0]
+    # list of region names
+    reg_names = [str(i+1) for i in range(len(regs))]
 
-    # get koppen differences for all points
-    # (where 0 = same, 1 = different)
-    kopp_vals = np.array([kopp.sel(x=x, y=y, method='nearest').values for x
-                                                                    ,y in pts])
+    # create colors for the 4 regions
+    reg_cols = [plt.cm.tab20(v/len(regs)) for v in range(len(regs))]
 
-    kopp_dist = np.int8(distance.squareform(distance.pdist(
-                                            np.atleast_2d(kopp_vals).T))>0)
+    # dict to store the distances
+    dist_dict = {}
 
-    assert kopp_dist.shape[0] == clim_dist.shape[0]
+    # get the nodata val
+    nodata_val = rio.open(hf.BIOCLIM_INFILEPATHS[0]).nodata
 
-    # drop clim dists for points without ts dists, and vice versa
-    not_missing = np.where(np.nansum(seas_dist, axis=0)>0)[0]
-    seas_dist = seas_dist[:, not_missing][not_missing,:]
-    clim_dist = clim_dist[:, not_missing][not_missing,:]
-    kopp_dist = kopp_dist[:, not_missing][not_missing,:]
-    pts = pts[not_missing, :]
-    still_not_missing = np.where(np.nansum(clim_dist, axis=0)>0)[0]
-    seas_dist = seas_dist[:, still_not_missing][still_not_missing,:]
-    clim_dist = clim_dist[:, still_not_missing][still_not_missing,:]
-    kopp_dist = kopp_dist[:, still_not_missing][still_not_missing,:]
-    pts = pts[still_not_missing, :]
+    # columns for pandas DataFrame
+    seas_dist_colm = []
+    clim_dist_colm = []
+    kopp_dist_colm = []
+    reg_colm = []
+    x1_colm = []
+    x2_colm = []
+    y1_colm = []
+    y2_colm = []
 
-    print(('\n%i points remain after dropping locations without seasonality '
-          'data\n' % seas_dist.shape[0]))
-    if seas_dist.shape[0]>=2:
+    if run_MMRR:
+        MMRR_res = {}
+    if plot_ts:
+        reg_ct = 1
 
-        # run MMRR, if requested
-        if run_MMRR:
-            g = pyproj.Geod(ellps='WGS84')
-            # get pw geo dist matrix of points
-            geo_dist = np.ones([pts.shape[0]]*2) * np.nan
-            for i in range(geo_dist.shape[0]):
-                for j in range(i, geo_dist.shape[1]):
-                    lon1, lat1 = pts[i,:]
-                    lon2, lat2 = pts[j,:]
-                    (az12, az21, dist) = g.inv(lon1, lat1, lon2, lat2)
-                    geo_dist[i, j] = dist
-                    geo_dist[j, i] = dist
-            # run model
-            res = MMRR(seas_dist, [clim_dist, geo_dist], ['clim_dist', 'geo_dist'])
-            # print and store results
-            for k, v in res.items():
-                print('\n\t%s: %s' % (k, str(v)))
-            MMRR_res[reg_name] = res
+    ppt_file =  [f for f in hf.BIOCLIM_INFILEPATHS if 'bio_12.tif' in f]
+    assert len(ppt_file) == 1
+    ppt_file = ppt_file[0]
+    ppt = rxr.open_rasterio(ppt_file, masked=True)[0]
 
-        # extract the lower triangular values and scatter them
-        indices = np.tril_indices(seas_dist.shape[0])
-
-        seas_dist_vals = seas_dist[indices]
-        clim_dist_vals = clim_dist[indices]
-        kopp_dist_vals = kopp_dist[indices]
-
-        # scatter 
-        ax.scatter(clim_dist_vals, seas_dist_vals, s=1,
-                   c=reg_col, alpha=0.2, label=reg_name)
-
-        # add the convex hull
-        hull_pts = np.array((clim_dist_vals, seas_dist_vals)).T
-        hull = ConvexHull(hull_pts)
-        for simplex in hull.simplices:
-            ax.plot(hull_pts[simplex, 0], hull_pts[simplex, 1], color=reg_col)
-
-        # store the dists
-        dist_dict[reg_name] = {'clim': clim_dist_vals,
-                               'seas': seas_dist_vals,
-                               'kopp': kopp_dist_vals,
-                              }
-
-        # add to DataFrame columns
-        seas_dist_colm.extend(seas_dist_vals)
-        clim_dist_colm.extend(clim_dist_vals)
-        kopp_dist_colm.extend(kopp_dist_vals)
-        reg_colm.extend([reg_name]*len(seas_dist_vals))
-        x1_colm.extend(pts[indices[0],0])
-        x2_colm.extend(pts[indices[1],0])
-        y1_colm.extend(pts[indices[0],1])
-        y2_colm.extend(pts[indices[1],1])
-
-        # store the region's mean latitude and mean ppt
-        mean_lat = [*reg_poly.centroid.coords.xy[1]][0]
-        mean_ppt = float(np.mean(ppt.rio.clip(reg_poly)).values)
-        mean_tmp = float(np.mean(tmp.rio.clip(reg_poly)).values)
-        mean_lats.append(mean_lat)
-        mean_ppts.append(mean_ppt)
-        mean_tmps.append(mean_tmp)
+    tmp_file =  [f for f in hf.BIOCLIM_INFILEPATHS if 'bio_1.tif' in f]
+    assert len(tmp_file) == 1
+    tmp_file = tmp_file[0]
+    tmp = rxr.open_rasterio(tmp_file, masked=True)[0]
 
 
-ax.legend(fontsize=16)
+    mean_lats = []
+    mean_ppts = []
+    mean_tmps = []
+    for reg_poly, reg_pts, reg_col, reg_name in zip(regs,
+                                                    regs_pts,
+                                                    reg_cols,
+                                                    reg_names):
 
-ax.set_xlabel('climate distance (Euclidean)', size=18)
-ax.set_ylabel('seasonal distance (Euclidean)', size=18)
-ax.tick_params(labelsize=16)
-fig.show()
+        print('\ngetting distance matrices for region: %s\n' % reg_name)
 
-# save the time-series plot grid
-if plot_ts:
-    fig_ts.subplots_adjust(bottom=0.1, top=0.92, left=0.1, right=0.92)
-    fig_ts.savefig('time_series_plot_grid%s.png' % file_suffix, dpi=700)
+        # get points as nx2 numpy array
+        pts = np.concatenate([np.array(pt.coords) for pt in reg_pts], axis=0)
+
+        # get and plot the region's time series
+        if plot_ts:
+            tss = hf.get_raster_info_points(hf.COEFFS_FILE, pts, 'ts',
+                                        standardize=standardize_ts)
+            tss = tss[np.sum(np.isnan(tss), axis=1)==0, :]
+            ax_ts = fig_ts.add_subplot(4,4,reg_ct)
+            ax_ts.set_title(reg_name, fontdict={'fontsize': 10})
+            for ts in tss:
+                ax_ts.plot(ts, linestyle='-', color=reg_col, alpha=0.05)
+            ax_ts.set_ylim(np.min(tss), np.max(tss))
+            reg_ct+=1
+
+            # get points' pairwise clim dists
+        clim_dist = hf.calc_pw_clim_dist_mat(pts, nodata_val=nodata_val)
+
+        # get points' pairwise ts dists
+        seas_dist = hf.get_raster_info_points(hf.COEFFS_FILE, pts, 'ts_pdm',
+                                              standardize=standardize_ts)
+
+        assert clim_dist.shape[0] == seas_dist.shape[0] == pts.shape[0]
+
+        # get koppen differences for all points
+        # (where 0 = same, 1 = different)
+        kopp_vals = np.array([kopp.sel(x=x, y=y, method='nearest').values for x
+                                                                        ,y in pts])
+
+        kopp_dist = np.int8(distance.squareform(distance.pdist(
+                                                np.atleast_2d(kopp_vals).T))>0)
+
+        assert kopp_dist.shape[0] == clim_dist.shape[0]
+
+        # drop clim dists for points without ts dists, and vice versa
+        not_missing = np.where(np.nansum(seas_dist, axis=0)>0)[0]
+        seas_dist = seas_dist[:, not_missing][not_missing,:]
+        clim_dist = clim_dist[:, not_missing][not_missing,:]
+        kopp_dist = kopp_dist[:, not_missing][not_missing,:]
+        pts = pts[not_missing, :]
+        still_not_missing = np.where(np.nansum(clim_dist, axis=0)>0)[0]
+        seas_dist = seas_dist[:, still_not_missing][still_not_missing,:]
+        clim_dist = clim_dist[:, still_not_missing][still_not_missing,:]
+        kopp_dist = kopp_dist[:, still_not_missing][still_not_missing,:]
+        pts = pts[still_not_missing, :]
+
+        print(('\n%i points remain after dropping locations without seasonality '
+              'data\n' % seas_dist.shape[0]))
+        if seas_dist.shape[0]>=2:
+
+            # run MMRR, if requested
+            if run_MMRR:
+                g = pyproj.Geod(ellps='WGS84')
+                # get pw geo dist matrix of points
+                geo_dist = np.ones([pts.shape[0]]*2) * np.nan
+                for i in range(geo_dist.shape[0]):
+                    for j in range(i, geo_dist.shape[1]):
+                        lon1, lat1 = pts[i,:]
+                        lon2, lat2 = pts[j,:]
+                        (az12, az21, dist) = g.inv(lon1, lat1, lon2, lat2)
+                        geo_dist[i, j] = dist
+                        geo_dist[j, i] = dist
+                # run model
+                res = MMRR(seas_dist, [clim_dist, geo_dist], ['clim_dist', 'geo_dist'])
+                # print and store results
+                for k, v in res.items():
+                    print('\n\t%s: %s' % (k, str(v)))
+                MMRR_res[reg_name] = res
+
+            # extract the lower triangular values and scatter them
+            indices = np.tril_indices(seas_dist.shape[0])
+
+            seas_dist_vals = seas_dist[indices]
+            clim_dist_vals = clim_dist[indices]
+            kopp_dist_vals = kopp_dist[indices]
+
+            # scatter 
+            ax.scatter(clim_dist_vals, seas_dist_vals, s=1,
+                       c=reg_col, alpha=0.2, label=reg_name)
+
+            # add the convex hull
+            hull_pts = np.array((clim_dist_vals, seas_dist_vals)).T
+            hull = ConvexHull(hull_pts)
+            for simplex in hull.simplices:
+                ax.plot(hull_pts[simplex, 0], hull_pts[simplex, 1], color=reg_col)
+
+            # store the dists
+            dist_dict[reg_name] = {'clim': clim_dist_vals,
+                                   'seas': seas_dist_vals,
+                                   'kopp': kopp_dist_vals,
+                                  }
+
+            # add to DataFrame columns
+            seas_dist_colm.extend(seas_dist_vals)
+            clim_dist_colm.extend(clim_dist_vals)
+            kopp_dist_colm.extend(kopp_dist_vals)
+            reg_colm.extend([reg_name]*len(seas_dist_vals))
+            x1_colm.extend(pts[indices[0],0])
+            x2_colm.extend(pts[indices[1],0])
+            y1_colm.extend(pts[indices[0],1])
+            y2_colm.extend(pts[indices[1],1])
+
+            # store the region's mean latitude and mean ppt
+            mean_lat = [*reg_poly.centroid.coords.xy[1]][0]
+            mean_ppt = float(np.mean(ppt.rio.clip(reg_poly)).values)
+            mean_tmp = float(np.mean(tmp.rio.clip(reg_poly)).values)
+            mean_lats.append(mean_lat)
+            mean_ppts.append(mean_ppt)
+            mean_tmps.append(mean_tmp)
 
 
-# contourplot
-df = pd.DataFrame({'seas_dist': seas_dist_colm,
-                   'clim_dist': clim_dist_colm,
-                   'kopp_dist': kopp_dist_colm,
-                   'reg': reg_colm,
-                   'x1': x1_colm,
-                   'x2': x2_colm,
-                   'y1': y1_colm,
-                   'y2': y2_colm,
-                  })
+    ax.legend(fontsize=16)
 
-dists = []
-for i, row in df.iterrows():
-    dist = hf.calc_euc_dist(row[['x1', 'y1']].values, row[['x2', 'y2']].values)
-    dists.append(dist)
-df['geo_dist'] = dists
+    ax.set_xlabel('climate distance (Euclidean)', size=18)
+    ax.set_ylabel('seasonal distance (Euclidean)', size=18)
+    ax.tick_params(labelsize=16)
+    fig.show()
 
-# write results to disk
-df.to_csv('clim_dist_results_multiregion%s.csv' % file_suffix, index=False)
-if run_MMRR:
-    MMRR_res_df = pd.DataFrame(MMRR_res).T.reset_index()
-    MMRR_res_df.columns = ['region']+[*MMRR_res_df.columns][1:]
-    # add the mean latitude and mean ppt columns
-    MMRR_res_df['mean_lat'] = mean_lats
-    MMRR_res_df['mean_ppt'] = mean_ppts
-    MMRR_res_df['mean_tmp'] = mean_tmps
-    MMRR_res_df.to_csv('clim_dist_MMRR_results_multiregion%s.csv' % file_suffix, index=False)
+    # save the time-series plot grid
+    if plot_ts:
+        fig_ts.subplots_adjust(bottom=0.1, top=0.92, left=0.1, right=0.92)
+        fig_ts.savefig('time_series_plot_grid%s.png' % file_suffix, dpi=700)
 
 
-# boxplot of same- versus different-Köppen-climate seas distances, by region
-if make_boxplot:
-    ax_plot = fig_map.add_subplot(gs[2:8, 1])
-    sns.violinplot(x='kopp_dist', hue='reg', y='seas_dist', palette=reg_cols, data=df,
-                   orient='h', ax=ax_plot)
-    fig_map.subplots_adjust(top=0.96, bottom=0.1, left=0.07, right=0.97)
-    fig_map.show()
-    fig_map.savefig('kopp_seas_dist_results_multiregion%s.png' % file_suffix, dpi=700)
+    # Whittaker plot
+    df = pd.DataFrame({'seas_dist': seas_dist_colm,
+                       'clim_dist': clim_dist_colm,
+                       'kopp_dist': kopp_dist_colm,
+                       'reg': reg_colm,
+                       'x1': x1_colm,
+                       'x2': x2_colm,
+                       'y1': y1_colm,
+                       'y2': y2_colm,
+                      })
 
-# save the map
-fig_map.subplots_adjust(bottom=0.03, top=0.99, left=0.03, right=0.99)
-fig_map.savefig('asynch_cluster_map_multiregion%s.png' % file_suffix, dpi=700)
+    dists = []
+    for i, row in df.iterrows():
+        dist = hf.calc_euc_dist(row[['x1', 'y1']].values, row[['x2', 'y2']].values)
+        dists.append(dist)
+    df['geo_dist'] = dists
+
+    # write results to disk
+    #df.to_csv('clim_dist_results_multiregion%s_eps%0.2f_minsamp%0.2f_alpha*0.2f.csv'
+    #          % (file_suffix, dbscan_eps, dbscan_minsamp, alpha), index=False)
+    if run_MMRR:
+        MMRR_res_df = pd.DataFrame(MMRR_res).T.reset_index()
+        MMRR_res_df.columns = ['region']+[*MMRR_res_df.columns][1:]
+        # add the mean latitude and mean ppt columns
+        MMRR_res_df['mean_lat'] = mean_lats
+        MMRR_res_df['mean_ppt'] = mean_ppts
+        MMRR_res_df['mean_tmp'] = mean_tmps
+        #MMRR_res_df.to_csv('clim_dist_MMRR_results_multiregion%s_eps%0.2f_minsamp%0.2f_alpha*0.2f.csv'
+        #          % (file_suffix, dbscan_eps, dbscan_minsamp, alpha), index=False)
+    i
 
 
-# plot clim_dist MMRR coeff as a function of mean lat and mean ppt
-fig_mmrr = plt.figure(figsize=(16,8))
-ax_lat = fig_mmrr.add_subplot(1,2,1)
-ax_lat.plot(MMRR_res_df['clim_dist'],
-            MMRR_res_df['mean_lat'],
-            linewidth=2,
-            color='black',
-            alpha=0.9,
-            )
-for r,x,y in zip(MMRR_res_df['region'].values,
-                 MMRR_res_df['clim_dist'].values,
-                 MMRR_res_df['mean_lat'].values):
-    ax_lat.text(x, y, r, size=16, alpha=0.5)
-ax_lat.axhline(y=0, color='red', linestyle=':')
-ax_lat.set_xlabel('MMRR climate-distance coefficient', fontdict={'fontsize': 18})
-ax_lat.set_ylabel('mean latitude (degrees)', fontdict={'fontsize': 18})
-ax_lat.tick_params(labelsize=14)
+    # boxplot of same- versus different-Köppen-climate seas distances, by region
+    if make_boxplot:
+        ax_plot = fig_map.add_subplot(gs[2:8, 1])
+        sns.violinplot(x='kopp_dist', hue='reg', y='seas_dist', palette=reg_cols, data=df,
+                       orient='h', ax=ax_plot)
+        fig_map.subplots_adjust(top=0.96, bottom=0.1, left=0.07, right=0.97)
+        fig_map.show()
+        fig_map.savefig('kopp_seas_dist_results_multiregion%s.png' % file_suffix, dpi=700)
+
+    # save the map
+    fig_map.subplots_adjust(bottom=0.03, top=0.99, left=0.03, right=0.99)
+    fig_map.savefig('asynch_cluster_map_multiregion%s.png' % file_suffix, dpi=700)
 
 
-# plot on biomes
-whittaker = pd.read_csv('./clim_dist/whittaker_biomes.csv', sep=';')
+    # plot clim_dist MMRR coeff as a function of mean lat and mean ppt
+    fig_mmrr = plt.figure(figsize=(16,8))
+    ax_scat = fig.add_subplot(gs[:, 1])
+    ax_scat.plot(np.abs(MMRR_res_df['mean_lat']),
+                 MMRR_res_df['clim_dist'],
+                 linewidth=2,
+                 color='black',
+                 alpha=0.9,
+                 )
+    for r,x,y in zip(MMRR_res_df['region'].values,
+                     MMRR_res_df['clim_dist'].values,
+                     MMRR_res_df['mean_lat'].values):
+        ax_scat.text(x, y, r, size=16, alpha=0.5)
+    ax_scat.axhline(y=0, color='red', linestyle=':')
+    ax_scat.set_xlabel('MMRR climate-distance coefficient', fontdict={'fontsize': 18})
+    ax_scat.set_ylabel('mean latitude (degrees)', fontdict={'fontsize': 18})
+    ax_scat.tick_params(labelsize=14)
 
-whittaker['temp_c'] = whittaker['temp_c'].apply(lambda x:
-                                            float(x.replace(',', '.')))
-whittaker['precp_mm'] = whittaker['precp_cm'].apply(lambda x:
-                                            float(x.replace(',', '.'))*10)
-biomes = []
-centroids = []
-patches = []
 
-for biome in whittaker['biome'].unique():
-    subwhit = whittaker[whittaker.biome == biome].loc[:, ['temp_c', 'precp_mm']].values
-    centroids.append(np.mean(subwhit, axis=0))
-    poly = mplPolygon(subwhit, True)
-    patches.append(poly)
-    biomes.append(re.sub('/', '/\n', biome))
+    # plot on biomes
+    if plot_whittaker:
+        whittaker = pd.read_csv('./clim_dist/whittaker_biomes.csv', sep=';')
 
-#colors = ['#80fffd', # tundra
-#          '#2b422f', # boreal forest
-#          '#ebe157', # temperate grassland/desert
-#          '#ab864b', # woodland/shrubland
-#          '#17a323', # temperate seasonal forest
-#          '#13916b', # temperate rain forest
-#          '#00a632', # tropical rain forest
-#          '#c2d69a', # tropical seasonal forest/savanna
-#          '#e3a107', # subtropical desert
-#         ]
-#colors = np.array(colors)
+        whittaker['temp_c'] = whittaker['temp_c'].apply(lambda x:
+                                                    float(x.replace(',', '.')))
+        whittaker['precp_mm'] = whittaker['precp_cm'].apply(lambda x:
+                                                    float(x.replace(',', '.'))*10)
+        biomes = []
+        centroids = []
+        patches = []
 
-colors = 255 * np.linspace(0, 1, len(patches))
-p = PatchCollection(patches, alpha=0.4, edgecolor='k', cmap='Pastel1')
-p.set_array(colors)
-ax2 = fig_mmrr.add_subplot(1,2,2)
-divider = make_axes_locatable(ax2)
-cax2 = divider.append_axes('right', size='5%', pad=0.1)
-ax2.add_collection(p)
+        for biome in whittaker['biome'].unique():
+            subwhit = whittaker[whittaker.biome == biome].loc[:, ['temp_c', 'precp_mm']].values
+            centroids.append(np.mean(subwhit, axis=0))
+            poly = mplPolygon(subwhit, True)
+            patches.append(poly)
+            biomes.append(re.sub('/', '/\n', biome))
 
-for b,c in zip(biomes, centroids):
-    ax2.text(c[0], c[1], b)
+        #colors = ['#80fffd', # tundra
+        #          '#2b422f', # boreal forest
+        #          '#ebe157', # temperate grassland/desert
+        #          '#ab864b', # woodland/shrubland
+        #          '#17a323', # temperate seasonal forest
+        #          '#13916b', # temperate rain forest
+        #          '#00a632', # tropical rain forest
+        #          '#c2d69a', # tropical seasonal forest/savanna
+        #          '#e3a107', # subtropical desert
+        #         ]
+        #colors = np.array(colors)
 
-for r,x,y in zip(MMRR_res_df['region'].values,
-                 MMRR_res_df['mean_tmp'].values,
-                 MMRR_res_df['mean_ppt'].values):
-    ax2.text(x, y, r, size=16, alpha=0.5)
+        colors = 255 * np.linspace(0, 1, len(patches))
+        p = PatchCollection(patches, alpha=0.4, edgecolor='k', cmap='Pastel1')
+        p.set_array(colors)
+        ax2 = fig_mmrr.add_subplot(1,2,2)
+        divider = make_axes_locatable(ax2)
+        cax2 = divider.append_axes('right', size='5%', pad=0.1)
+        ax2.add_collection(p)
 
-scat = ax2.scatter(MMRR_res_df['mean_tmp'], MMRR_res_df['mean_ppt'],
-                   c=MMRR_res_df['clim_dist'],
-                   cmap='plasma_r', s=45, alpha=0.85, edgecolor='k',
-                   linewidth=1)
+        for b,c in zip(biomes, centroids):
+            ax2.text(c[0], c[1], b)
 
-cbar = plt.colorbar(scat, cax=cax2)
-cbar.set_label('MMRR climate-distance coefficient',
-               fontdict={'fontsize': 18})
+        for r,x,y in zip(MMRR_res_df['region'].values,
+                         MMRR_res_df['mean_tmp'].values,
+                         MMRR_res_df['mean_ppt'].values):
+            ax2.text(x, y, r, size=16, alpha=0.5)
 
-ax2.set_xlabel('MAT ($^{\circ}C$)',
-              fontdict={'fontsize': 18})
-ax2.set_ylabel('MAP ($mm$)',
-              fontdict={'fontsize': 18})
-ax2.tick_params(labelsize=14)
+        scat = ax2.scatter(MMRR_res_df['mean_tmp'], MMRR_res_df['mean_ppt'],
+                           c=MMRR_res_df['clim_dist'],
+                           cmap='plasma_r', s=45, alpha=0.85, edgecolor='k',
+                           linewidth=1)
 
-fig_mmrr.show()
+        cbar = plt.colorbar(scat, cax=cax2)
+        cbar.set_label('MMRR climate-distance coefficient',
+                       fontdict={'fontsize': 18})
 
-fig_mmrr.subplots_adjust(bottom=0.08,
-                         top=0.98,
-                         left=0.06,
-                         right=0.95,
-                         wspace=0.3,
-                        )
+        ax2.set_xlabel('MAT ($^{\circ}C$)',
+                      fontdict={'fontsize': 18})
+        ax2.set_ylabel('MAP ($mm$)',
+                      fontdict={'fontsize': 18})
+        ax2.tick_params(labelsize=14)
 
-fig_mmrr.savefig('MMRR_results_by_lat_mat_map%s.png' % file_suffix, dpi=700)
+        fig_mmrr.show()
+
+        fig_mmrr.subplots_adjust(bottom=0.08,
+                                 top=0.98,
+                                 left=0.06,
+                                 right=0.95,
+                                 wspace=0.3,
+                                )
+
+    fig_mmrr.savefig('MMRR_results_by_lat_mat_map%s_eps%0.2f_minsamp%0.2f_alpha%0.2f.png'
+                     % (file_suffix, dbscan_eps, dbscan_minsamp,
+                        alpha), dpi=700)
