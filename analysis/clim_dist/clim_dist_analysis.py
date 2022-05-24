@@ -335,8 +335,6 @@ for (dbscan_eps, dbscan_minsamp, alpha) in loop_vals:
 
         # make results df
 
-        print('\n\n\tPOINT 0\n\n')
-
         df = pd.DataFrame({'seas_dist': seas_dist_colm,
                            'clim_dist': clim_dist_colm,
                            'geo_dist': geo_dist_colm,
@@ -347,14 +345,10 @@ for (dbscan_eps, dbscan_minsamp, alpha) in loop_vals:
                            'y2': y2_colm,
                           })
 
-        print('\n\n\tPOINT 1\n\n')
-
         # write results to disk
         if save_all_results:
             df.to_csv('clim_dist_results_multiregion%s_eps%0.2f_minsamp%0.2f_alpha*0.2f.csv'
                       % (file_suffix, dbscan_eps, dbscan_minsamp, alpha), index=False)
-
-        print('\n\n\tPOINT 2\n\n')
 
         if run_MMRR:
             MMRR_res_df = pd.DataFrame(MMRR_res).T.reset_index()
