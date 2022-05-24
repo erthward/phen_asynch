@@ -4,11 +4,6 @@
 ################################################################################
 # TODO:
 
-    # need to standardize climate dists (and all other vals) within each MMRR
-    # model? (otherwise, if clim dist is characteristically lower in tropics
-    # than clim_dist coeff should also be smaller, but that reflects nothing
-    # meaningful!)
-
 ################################################################################
 
 # py packages
