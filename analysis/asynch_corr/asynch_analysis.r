@@ -1,6 +1,6 @@
+library(sp)                   # spatial data
 library(raster)               # raster data
 library(terra)                # newer raster data
-library(sp)                   # spatial data
 library(sf)                   # newer spatial data
 library(spdep)                # spatial autocorrelation
 library(randomForest)         # global RFs
@@ -22,6 +22,8 @@ library(RColorBrewer)         # colors
 library(cmocean)              # cmocean palettes
 #library(wesanderson)          # wes palettes
 library(dplyr)                # reshaping dfs
+library(caret)                # Recursive Feature selection
+library(rfUtilities)          # Jeff Evans R package for model selection
 
 # TODO:
 # 2. if runtime is slow then use ranger instead (but then have to figure out how to not make range::importance clobber randomForest::importance that grf depends on!)
@@ -49,16 +51,18 @@ if (strsplit(getwd(), '/')[[1]][2] == 'home'){
 } else {
        on.laptop=F
        data.dir = '/global/scratch/users/drewhart/seasonality/'
+       # data.dir = '/global/home/groups/fc_landgen/' # directory for Lauren 
+       # analysis.dir = '/global/home/users/ldimaggio/ondemand/' # directory for Lauren 
        analysis.dir = '/global/scratch/users/drewhart/seasonality/'
 }
 
 # mode (either prep data, or analyze data)
 #mode = 'prep'
-#mode = 'analyze'
-mode = 'both'
+mode = 'analyze'
+# mode = 'both'
 
 # save plots?
-save.plots = T
+save.plots = F
 
 # seed
 seed.num = 12345
@@ -444,9 +448,21 @@ if (mode %in% c('analyze', 'both')){
 
   
   # take a look at the results
-  print(rf)
-  print(rrf)
+  # standard RF
+  print(rf) 
+    # Mean of squared residuals: 0.7034528
+      # low MSE
+    # % Var explained: 29.76
+  # regularized RF
+  print(rrf) 
+    # Mean of squared residuals: 0.7073498
+      # low MSE
+    # % Var explained: 29.38
+  # guided regularized RF
   print(grrf)
+    # Mean of squared residuals: 0.6945594
+      # slightly lower MSE
+    # % Var explained: 30.65
   
   # quick assessment plots
   par(mfrow=c(1,2))
@@ -455,6 +471,7 @@ if (mode %in% c('analyze', 'both')){
   p2 = ggplot() +
      geom_point(aes(x=trn$phn.asy, y=predict(grrf)), alpha=0.2) +
      geom_abline(intercept = 0, slope = 1)
+  # error below
   quick_assess_grob = grid.arrange(p1, p2, ncol=2)
   plot(quick_assess_grob)
 
@@ -464,9 +481,11 @@ if (mode %in% c('analyze', 'both')){
   }
   
   # partial dependence plots
+  # ppt.asy vs ppt.sea
   pdp12 = make.pdp(grrf, trn, 'phn.asy', 1, 2, seed.num=seed.num)
   plot(pdp12)
   
+  #
   pdp13 = make.pdp(grrf, trn, 'phn.asy', 1, 3, seed.num=seed.num)
   plot(pdp13)
   
@@ -560,7 +579,7 @@ if (mode %in% c('analyze', 'both')){
   
   # code adapted from https://zia207.github.io/geospatial-r-github.io/geographically-wighted-random-forest.html
   coords = trn[,1:2]
-  grf.model <- grf(formula=phn.asy ~ tmp.min.asy + tmp.max.asy + tmp.min.mea +
+  grf.model <- SpatialML::grf(formula=phn.asy ~ tmp.min.asy + tmp.max.asy + tmp.min.mea +
                                  ppt.asy + ppt.sea + def.asy + cld.asy + 
                                  vrm.med + riv.dis + eco.dis,
                    dframe=trn[, 3:ncol(trn)], 
@@ -652,3 +671,181 @@ if (mode %in% c('analyze', 'both')){
   # and should I use K-fold CV or bootstrapping? does this choice matter much?
   
 }
+  # gather response and predictors for training and test data 
+    # response - training
+    y_trn = trn$phn.asy
+
+    # features - training
+    x_trn = trn[,4:ncol(trn)]
+
+    # response - test
+    ytest = tst$phn.asy
+
+    # features - test
+    xtest = tst[,4:(ncol(tst)-1)]
+
+
+  #
+  # FINE TUNE THE MODEL GLOBAL MODEL
+  # 
+
+  # FIRST FIND THE OPTIMAL ntree VALUE
+    # SET mtry TO THE DEFAULT VALUE floor(p/3)
+
+    # get the number of predictors
+    nvars = ncol(x_trn)
+
+    # set the default mtry value to floor(p/3)
+    mtry.default = floor(nvars/3)
+    
+    # set max ntree value to try 
+    max.ntree = 75
+    
+    # look at plot of error vs different ntree values to determine which ntree values to test
+    test.ntree.grrf <- RRF(phn.asy ~ .,
+                           data=trn[,3:ncol(trn)],
+                           xtest = xtest,
+                           ytest = ytest,
+                           ntree = max.ntree,
+                           mtry=mtry.default,
+                           coefReg=coefReg,
+                           flagReg=1)
+      # Generate an error plot for the different ntree values
+      ntree.err.plot.grrf = plot(test.ntree.grrf)
+        # based on the plot, ntree values ranging from 50 to 75 appear to have the lowest error 
+
+    # create a vector of different ntree values to test
+    grrf.ntree.vals <- c(seq(ntree, max.ntree, 5))
+
+    # Test Different ntree values
+      # create empty df to store MSE and R-squared values 
+      grrf.ntree.stats <- as.data.frame(matrix(nrow = length(grrf.ntree.vals), ncol = 2,
+                                    dimnames = list(grrf.ntree.vals, # ntree values
+                                                    c('MSE', "RSQ") 
+                                                    )
+                                    )
+                                  )
+
+      # test with different ntree values
+      for (i in 1:length(grrf.ntree.vals)) {
+        grrf.test.ntree.model <- RRF(phn.asy ~ .,
+                          data=trn[,3:ncol(trn)],
+                          xtest = xtest,
+                          ytest = ytest,
+                          ntree = grrf.ntree.vals[i],
+                          mtry=mtry.default,
+                          coefReg=coefReg,
+                          flagReg=1)
+          # gather mse & r-squared values from models with different ntree values into a df
+          grrf.ntree.stats[i,1] <- grrf.test.ntree.model$mse[length(grrf.test.ntree.model$mse)]
+          grrf.ntree.stats[i,2] <- grrf.test.ntree.model$rsq[length(grrf.test.ntree.model$rsq)]
+        }
+      # select the model whose ntree value gives the largest r-squared and lowest MSE
+        # select the max r-squared since MSE typically decreases as ntree increases
+        opt.ntree.grrf = as.numeric(rownames(grrf.ntree.stats[which.max(grrf.ntree.stats[ ,2]), ]))
+          # it looks like the MSE & RSQ stabilizes at ntree = 75 
+          # the accuracy improves by 0.00124 from ntree = 70 to ntree = 75
+
+
+
+  # FINDING THE OPTIMAL mtry VALUE 
+
+    # number of times to run a test that searches for the optimal mtry value
+    ntests.mtry = 50
+
+    # run test to find optimal mtry value
+      # store the mtry values in an empty df
+      grrf.mtry.vals <- as.data.frame(matrix(nrow = ntests.mtry, ncol=1,
+                                             dimnames = list(
+                                                        c(paste("test", as.character(1:ntests.mtry),sep="_")), # test number
+                                                        'mtry.value'
+                                                        )
+                                             )
+                                      )
+
+      # tune the RRF model for the optimal mtry value
+      for (i in 1:ntests.mtry) {
+        # find optimal mtry value
+        grrf.tune.mtry <- tuneRRF(x = x_trn,
+                                  y = y_trn,
+                                  mtryStart = mtry.default, #floor(nvars/2)
+                                  ntreeTry = opt.ntree.grrf,
+                                  stepFactor = 1,
+                                  improve = 0.0001, # amount of improvement in OOB error required to continue searching for better mtry values
+                                  trace = F,
+                                  plot = F)
+        # pull the mtry values from the 50 simulations with the smallest OOB error and store in df 
+        grrf.mtry.vals[i, ] = grrf.tune.mtry[grrf.tune.mtry[, 2] == min(grrf.tune.mtry[, 2]), 1]
+      }
+
+      # find the frequency of mtry values to determine which value was selected the most
+      grrf.mtry.val.freq <- as.data.frame(table(grrf.mtry.vals), stringsAsFactors = F)
+
+      # find the mtry value with the largest frequency (AKA the optimal mtry value)
+      opt.mtry.grrf = as.numeric(grrf.mtry.val.freq[which.max(grrf.mtry.val.freq[ ,2]), 1])
+
+
+  # Run GRRF with optimal mtry and ntree values
+      opt.grrf <- RRF(phn.asy ~ .,
+                      data = trn[,3:ncol(trn)],
+                      xtest = xtest,
+                      ytest = ytest,
+                      ntree = opt.ntree.grrf,
+                      mtry = opt.mtry.grrf,
+                      coefReg=coefReg,
+                      flagReg=1, 
+                      importance = T)
+      # Mean of squared residuals: 0.6893117
+      # % Var explained: 30.76  
+
+
+
+
+
+
+  # VARIABLE SELECTION FOR GLOBAL MODEL
+      
+      # look at variable importance plots for the parameter optimized GRRF model defined above 
+      RRF::varImpPlot(opt.grrf)
+      importance(opt.grrf, type = 1)
+
+    ## K-FOLD CV
+
+      # adapted from https://towardsdatascience.com/effective-feature-selection-recursive-feature-elimination-using-r-148ff998e4f7#:~:text=Recursive%20Feature%20Elimination%C2%B2%2C%20or%20shortly,the%20optimal%20combination%20of%20features. 
+
+      # Define the control using a random forest selection function
+      control <- rfeControl(functions = rfFuncs, # random forest
+                            method = "repeatedcv", # repeated cv
+                            repeats = 10, # number of repeats 
+                            # 10 is sufficient according to https://www.listendata.com/2014/11/random-forest-with-r.html
+                            number = 10) # number of folds
+      
+
+      # Run RFE (recursive feature selection) 
+        # ISSUE: mtry defaults to floor(p/3) and I cannot find a way to change this.  I'm not sure if this impacts the eature selection results
+      rfe.results <- rfe(x = x_trn, 
+                         y = y_trn, 
+                         sizes = c(8:10), # number of features to try for each fold
+                         rfeControl = control)
+
+      # list the chosen features
+      predictors(rfe.results)
+      # plot the results
+      plot(rfe.results, type=c("g", "o"))
+      
+      # variable importance plot
+      randomForest::varImpPlot(rfe.results$fit)
+
+
+
+    ## Murphy et al., (2010) RF MODEL SELECTION (JEFF EVANS R PACKAGE)
+      rf_model_sel <- rf.modelSel(xdata = x_trn, 
+                                  ydata = y_trn, 
+                                  final.model = T, 
+                                  seed = seed.num, 
+                                  ntree = opt.ntree.grrf, 
+                                  mtry = opt.mtry.grrf)
+      rf_model_sel
+
+      # variable importance plot
+      randomForest::varImpPlot(rf_model_sel$rf.final)
