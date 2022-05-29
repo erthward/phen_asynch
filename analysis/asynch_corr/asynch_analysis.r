@@ -3,6 +3,7 @@ library(raster)               # raster data
 library(terra)                # newer raster data
 library(sf)                   # newer spatial data
 library(spdep)                # spatial autocorrelation
+library(rsample)              # function for stratified random sampling
 library(randomForest)         # global RFs
 library(RRF)                  # fast RF var selection (w/ conservative results in Bag et al. 2022)
 #library(ranger)               # faster RFs
@@ -24,6 +25,8 @@ library(cmocean)              # cmocean palettes
 library(dplyr)                # reshaping dfs
 library(caret)                # Recursive Feature selection
 library(rfUtilities)          # Jeff Evans R package for model selection
+
+
 
 # TODO:
 # 2. if runtime is slow then use ranger instead (but then have to figure out how to not make range::importance clobber randomForest::importance that grf depends on!)
@@ -59,7 +62,7 @@ if (strsplit(getwd(), '/')[[1]][2] == 'home'){
 # mode (either prep data, or analyze data)
 #mode = 'prep'
 mode = 'analyze'
-# mode = 'both'
+#mode = 'both'
 
 # save plots?
 save.plots = F
@@ -71,17 +74,16 @@ set.seed(seed.num)
 # number of strata and proportion of each stratum
 # to use for stratified random sampling
 n.strata = 5
-strat.samp.prop = 0.1
-# NOTE: full raster should have ~15925248 pixels, so
-#       this would use ~1/15th of the full dataset
-strat.samp.n = 1000000/n.strata 
+strat.samp.prop = 0.25
 
 # training data fraction
-train.frac = 0.3 # use 70% for training, 30% for testing
+# NOTE: use 60% for training, 40% for testing, which should be plenty,
+#       given how large a dataset we have
+train.frac = 0.6
 
 
 # global RF params
-ntree = 50
+ntree = 75
 mtry = 5
 
 # local RF params
@@ -99,10 +101,10 @@ align.rast.x.to.y = function(rast.x, rast.y, mask.it=F){
    rast.x.resamp = raster::resample(rast.x, rast.y, "bilinear")
    # crop
    ext = extent(rast.y)
-   rast.x.out = crop(rast.x.resamp, ext)
+   rast.x.out = raster::crop(rast.x.resamp, ext)
    # mask?
    if (mask.it){
-      rast.x.out = mask(rast.x.out, rast.y)
+      rast.x.out = raster::mask(rast.x.out, rast.y)
    }
    return(rast.x.out)
 }
@@ -247,14 +249,6 @@ if (mode %in% c('prep', 'both')){
   tmp.min.mea = read.file('CHELSA_bio6', asynch.file=F,
                       align.to=phn.asy, mask.it=F)
   
-  # mean daily max temp, warmest month
-  # NOTE: CALC AS NEIGH MEAN AND/OR SD?
-  # NOTE: STRONGLY CORRELATED (0.82) WITH tmp.min.mea,
-  #       SO KEEPING ONLY THAT ONE (WHICH I THINK IS MORE
-  #       MORE MECHANSTICALLY DEFENSIBLE)
-  #tmp.max.mea = read.file('CHELSA_bio5', asynch.file=F,
-  #                    align.to=phn.asy, mask.it=F)
-  
   # asynchrony in precipitation
   ppt.asy = read.file('pr', asynch.file=T,
                       align.to=phn.asy, mask.it=F)
@@ -272,10 +266,6 @@ if (mode %in% c('prep', 'both')){
   cld.asy = read.file('cloud', asynch.file=T,
                       align.to=phn.asy, mask.it=F)
   
-  # asynchrony in wind speed
-  #wds.asy = read.file('vs', asynch.file=T,
-  #                    align.to=phn.asy, mask.it=F)
-  
   # vector ruggedness metric, ~50km agg med and sd
   # NOTE: CALCULATED AS FIXED PIXELS, NOT MOVING WINDOWS!
   # NOTE: masking isn't necessary because incomplete rows of the stacked
@@ -284,18 +274,6 @@ if (mode %in% c('prep', 'both')){
   #       surrounding continents in their dataset
   vrm.med = read.file('vrm_50KMmd', asynch.file=F,
                       align.to=phn.asy, mask.it=T)
-  
-  # neighborhood Shannon entropy of land cover
-  # NOTE: CALCULATE THIS!
-  #lc.ent = read.file('MODIS_IGBP', asynch.file=F,
-                      #align.to=phn.asy, mask.it=F)
-  # NOTE: for now, using 25km dissimilarity of EVI between neigh pixels
-  # from earthenv.org instead
-  # NOTE: masking isn't necessary because incomplete rows of the stacked
-  #       variables are dropped later on, but makes it easier to inspect
-  #       the individual layer now because of the ocean values
-  #hab.div = read.file('hab_shannon', asynch.file=F,
-  #                    align.to=phn.asy, mask.it=T)
   
   # distance from rivers
   # NOTE: INCLUDE? IF SO, NEIGH MEAN AND/OR SD?
@@ -312,7 +290,7 @@ if (mode %in% c('prep', 'both')){
   # NOTE: backfill NAs with max val
   eco.dis[is.na(eco.dis)] = cellStats(eco.dis, max)
   # then mask to other datasets
-  eco.dis = mask(eco.dis, phn.asy)
+  eco.dis = raster::mask(eco.dis, phn.asy)
   
   
   
@@ -346,12 +324,12 @@ if (mode %in% c('prep', 'both')){
   
   # coerce to a data.frame
   df = as.data.frame(vars, xy=T)
-  
-  # TODO: FIGURE OUT WHY WINDSPEED LAYER IS EMPTY, THEN DELETE NEXT LINE
-  #df = df[,!names(df)%in%c('wds.asy')]
 
   # drop NAs
   df = df[complete.cases(df),]
+  
+  # scale variables
+  df[,3:ncol(df)] = scale(df[,3:ncol(df)])
   
   # take a stratified random sample, stratifying by phn.asy values
   # (it has a somewhat right-skewed distribution, and at any rate,
@@ -359,15 +337,10 @@ if (mode %in% c('prep', 'both')){
   df.strat = df %>%
      mutate(strata = base::cut(phn.asy, breaks=n.strata, labels=seq(n.strata))) %>%
      group_by(strata) %>%
-     slice_sample(n=strat.samp.n) %>%
+     slice_sample(prop=strat.samp.prop) %>%
      ungroup() %>%
      as.data.frame()
   df.strat = df.strat[, !colnames(df.strat) %in% c('strata')]
-  
-  
-  # scale variables
-  df[,3:ncol(df)] = scale(df[,3:ncol(df)])
-  df.strat[,3:ncol(df.strat)] = scale(df.strat[,3:ncol(df.strat)])
   
   # write data.frame to file (for reload in 'analyze' mode),
   write.csv(df, paste0(data.dir, "/asynch_model_all_vars_prepped.csv"), row.names=F)
@@ -394,7 +367,7 @@ if (mode %in% c('analyze', 'both')){
 
   # load data frames of prepped variables
   df = read.csv(paste0(data.dir, "/asynch_model_all_vars_prepped.csv"))
-  df.strat = read.csv(paste0(data.dir, "/asynch_model_all_vars_prepped_strat.csv"))
+  #df.strat = read.csv(paste0(data.dir, "/asynch_model_all_vars_prepped_strat.csv"))
  
   # load countries polygons (for use as a simple basemap)
   world = map_data('world')
@@ -405,8 +378,13 @@ if (mode %in% c('analyze', 'both')){
   #####################
   
   
-  # get training and test data
-  trn.indices = sample(1:nrow(df.strat), size = round(train.frac * nrow(df.strat)))
+  # get training and test data, using a stratified random sample
+  
+  split_strat  <- initial_split(df, prop = train.frac, 
+                                strata = "phn.asy")
+  
+  trn  <- training(split_strat)
+  tst  <- testing(split_strat)
   trn = df.strat[trn.indices,]
   tst = df.strat[-trn.indices,]
 
@@ -423,7 +401,7 @@ if (mode %in% c('analyze', 'both')){
            mtry=mtry,
            importance=T,
            flagReg=0)
-
+  
   # regularized RF
   rrf = RRF(phn.asy ~ .,
            data=trn[,3:ncol(trn)],
