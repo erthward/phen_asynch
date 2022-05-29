@@ -686,7 +686,7 @@ if (mode %in% c('analyze', 'both')){
 
 
   #
-  # FINE TUNE THE MODEL GLOBAL MODEL
+  # FINE TUNE THE GLOBAL MODEL
   # 
 
   # FIRST FIND THE OPTIMAL ntree VALUE
