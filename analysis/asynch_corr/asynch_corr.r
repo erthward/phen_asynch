@@ -80,11 +80,6 @@ save.plots = F
 seed.num = 12345
 set.seed(seed.num)
 
-# number of strata and proportion of each stratum
-# to use for stratified random sampling
-n.strata = 5
-strat.samp.prop = 0.25
-
 # training data fraction
 # NOTE: use 60% for training, 40% for testing, which should be plenty,
 #       given how large a dataset we have
@@ -213,6 +208,7 @@ world = map_data('world')
 #####################
 
 
+# get training and test data, using a stratified random sample
 # get training and test data, using a stratified random sample
 
 split_strat  <- initial_split(df, prop = train.frac, 
