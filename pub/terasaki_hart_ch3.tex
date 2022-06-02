@@ -309,6 +309,17 @@ recommended by Maura?)
 
 \subsection*{Analysis}
 
+NOTE: INSERT AND USE TABLE OF COVARS WITH JUSTIFICATION/HYPOTH, SOURCE, AND RESULTS
+- stack response and all covars, then extract values at all non-NA cells
+- XX pct withheld as independent test dataset (stratified random sample, stratified by response var, because of long-tailed distribution in which high values are of prime interest)
+- explain subsampling of remaining data (whatever method I decide on, either stratified or semivar range-based)
+- use boruta for RF feature selection ('all relevant' method that will not drop redundant/collinear covariates)
+- global RFs fitted with fixed param values (bootstrap frac == XX pct, to reduce tree correlation; ...)
+- ntree and mtry tuned using loop across reasonable values, chosen as XXX, YYY
+- global model produced, then assessed using XX pct withheld test data
+- model used to predict at all pixels, and residuals mapped and assessed
+- top N vars from that model used to map SHAP values and locally-weighted RF coeffs, to better understand spatial patterns in the key predictors of asynchrony
+
 
 
 } % end matmethods

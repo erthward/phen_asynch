@@ -8,6 +8,7 @@ library(randomForest)         # global RFs
 library(RRF)                  # fast RF var selection (w/ conservative results in Bag et al. 2022)
 #library(ranger)               # faster RFs
 #library(h2o)                  # distributed RFs (on cloud)
+library(Boruta)               # feature selection w/ boruta algo (i.e., shadow features)
 library(SpatialML)            # GWRFs
 library(GWmodel)              # GW models
 library(vip)                  # var importance plots
@@ -29,24 +30,22 @@ library(rfUtilities)          # Jeff Evans R package for model selection
 
 
 # TODO:
-# 2. if runtime is slow then use ranger instead (but then have to figure out how to not make range::importance clobber randomForest::importance that grf depends on!)
-# 4. get running top to bottom
-# 5. set up to run on Savio, then run it
+# 1. if runtime is slow then use ranger instead (but then have to figure out how to not make range::importance clobber randomForest::importance that grf depends on!)
+# 2. check that no factor/non-numeric variables being fed into RF
 
 
 
-# workflow:
-# 1. draw subsample
-# 2. check that it's small enough that independent bootstraps can be drawn from it (how??)
-# 3. RF model (or GB?)
-# 4. boruta to select vars
-# 5. rerun parsimonious model
-# 6. Lauren's approach to tune params?
-# 7. plot and assess var importance
-# 8. map SHAP values (and how to get globally integrated ones??)
-# 9. run geo-weighted RF and map top vars
+# WORKFLOW:
 
-
+# X. draw subsample (COMPARE RUNNNING WITH AND WITHOUT, LATER)
+  # X. check that it's small enough that independent bootstraps can be drawn from it (how??) (OR IS IT JUST MEASURE VARIANCE ACROSS BOOTSTRAPS?)
+# 1. RF model (or GB?)
+  #1.5 MAYBE LATER CONSIDER GRADIENT-BOOSTING AS WELL/INSTEAD?
+# 2. boruta to select vars
+# 3. rerun parsimonious model (use Lauren's and HOML approach to choosing reasonable starting param values and to tuning)
+# 4. plot and assess var importance
+# 5. map SHAP values (and how to get globally integrated ones??)
+# 6. run geo-weighted RF and map top vars
 
 
 
@@ -68,17 +67,25 @@ if (strsplit(getwd(), '/')[[1]][2] == 'home'){
 } else {
        on.laptop=F
        data.dir = '/global/scratch/users/drewhart/seasonality/'
+       analysis.dir = '/global/scratch/users/drewhart/seasonality/'
        # data.dir = '/global/home/groups/fc_landgen/' # directory for Lauren 
        # analysis.dir = '/global/home/users/ldimaggio/ondemand/' # directory for Lauren 
-       analysis.dir = '/global/scratch/users/drewhart/seasonality/'
 }
 
 # save plots?
 save.plots = F
 
+# verbose?
+verbose = F
+
 # seed
 seed.num = 12345
 set.seed(seed.num)
+
+# subset the data before building the RF?
+subset = F
+subset.by.range = F
+subset.frac = 0.025
 
 # training data fraction
 # NOTE: use 60% for training, 40% for testing, which should be plenty,
@@ -87,18 +94,73 @@ train.frac = 0.6
 
 
 # global RF params
-ntree = 75
+ntree = 100
 mtry = 5
+replace = T
+rf.samp.frac = 0.75
 
 # local RF params
 bw.local = 150
 ntree.local = ntree
 mtry.local = mtry
+replace.local = replace
+rf.samp.frac.local = rf.samp.frac
 
 
 ############
 # HELPER FNS
 ############
+
+# Function to buffer points in XY space:
+
+# TAKEN FROM https://davidrroberts.wordpress.com/2015/09/25/spatial-buffering-of-points-in-r-while-retaining-maximum-sample-size/
+
+# Returns the original data table with buffered points removed.
+# Runs numerous iterations, as the random point selection can result in more/fewer output points.
+# 1) Randomly select a single point
+# 2) Remove points within 50km of that point
+# 3) Randomly select of the remaining points
+# 4) ...
+# foo - a data.frame to select from with columns x, y
+# buffer - the minimum distance between output points
+# reps - the number of repetitions for the points selection
+buffer.f <- function(foo, buffer, reps){
+     # Make list of suitable vectors
+     suitable <- list()
+  for(k in 1:reps){
+         # Make the output vector
+         outvec <- as.numeric(c())
+      # Make the vector of dropped (buffered out) points
+      dropvec <- c()
+          for(i in 1:nrow(foo)){
+                   # Stop running when all points exhausted
+                   if(length(dropvec)<nrow(foo)){
+                              # Set the rows to sample from
+                              if(i>1){
+                                           rowsleft <- (1:nrow(foo))[-c(dropvec)]
+              } else {
+                           rowsleft <- 1:nrow(foo)
+                      }
+              # Randomly select point
+              outpoint <- as.numeric(sample(as.character(rowsleft),1))
+                      outvec[i] <- outpoint
+                      # Remove points within buffer
+                      outcoord <- foo[outpoint,c("x","y")]
+                              dropvec <- c(dropvec, which(sqrt((foo$x-outcoord$x)^2 + (foo$y-outcoord$y)^2)<buffer))
+                              # Remove unnecessary duplicates in the buffered points
+                              dropvec <- dropvec[!duplicated(dropvec)]
+                                    } 
+          } 
+          # Populate the suitable points list
+          suitable[[k]] <- outvec
+            }
+    # Go through the iterations and pick a list with the most data
+    best <- unlist(suitable[which.max(lapply(suitable,length))])
+    foo[best,]
+}
+
+
+
 
 # function to make partial dependence plot
 # (adapted from: https://zia207.github.io/geospatial-r-github.io/geographically-wighted-random-forest.html)
@@ -182,8 +244,17 @@ make.pdp = function(rf, trn, response, varn1, varn2, seed.num=NA){
 
 
 
+
 ##########################################################################
 # ANALYSIS 
+
+
+######################
+# LOAD AND SUBSET DATA
+######################
+
+# load countries polygons (for use as a simple basemap)
+world = map_data('world')
 
 # rename all bands 
 names = c('phn.asy', 'tmp.min.asy', 'tmp.max.asy',
@@ -195,12 +266,61 @@ names = c('phn.asy', 'tmp.min.asy', 'tmp.max.asy',
 vars = brick(paste0(data.dir, "/asynch_model_all_vars.tif"))
 names(vars) = names
 
-# load data frames of prepped variables
+# load data frame of prepped variables
 df = read.csv(paste0(data.dir, "/asynch_model_all_vars_prepped.csv"))
 #df.strat = read.csv(paste0(data.dir, "/asynch_model_all_vars_prepped_strat.csv"))
 
-# load countries polygons (for use as a simple basemap)
-world = map_data('world')
+# subset the data, if necessary
+if (subset){
+   if (subset.by.range){
+      # get cell coordinates in global equal-area projected CRS
+      xy = df[, c('x', 'y')]
+      coordinates(xy) = c('x', 'y')
+      xy_proj = spTransform(xy, proj4str='+init=epsg:8857')
+      # select a subset with all points >= 150km from other points
+      # (based on my previous estimation of the range of the spatial autocorrelation in the data)
+      subset = buffer.f(as.data.frame(xy_proj@coords), buffer=150000, reps=1)
+   }
+   else {
+      # take a stratified random sample, stratified by the response var
+      split_subset  <- initial_split(df, prop = subset.frac, strata = "phn.asy")
+      subset = training(split_subset)
+   }
+}
+
+# get training and test data, using a stratified random sample
+split_strat  <- initial_split(df, prop = train.frac, 
+                              strata = "phn.asy")
+trn  <- training(split_strat)
+tst  <- testing(split_strat)
+trn = df.strat[trn.indices,]
+tst = df.strat[-trn.indices,]
+print(paste0('TRAINING DATA: ', nrow(trn), ' ROWS'))
+print(paste0('TEST DATA: ', nrow(tst), ' ROWS'))
+
+
+##############################
+# RUN BORUTA FEATURE SELECTION
+##############################
+
+bor_res = Boruta(phn.asy ~ .,
+                 data=trn[,3:ncol(trn)],
+                 do.trace=verbose * 3,
+                 )
+print(attStats(bor_res))
+
+if (verbose){
+   jpeg(paste0(data.dir, '/boruta_boxplot.jpg'),
+        width=900,
+        height=400,
+        units='px',
+        quality=90,
+        )
+   par(mfrow=c(1,2))
+   plot(bor_res)
+   plotImpHistory(bor_res)
+   dev.off()
+}
 
 
 #####################
@@ -208,80 +328,39 @@ world = map_data('world')
 #####################
 
 
-# get training and test data, using a stratified random sample
-# get training and test data, using a stratified random sample
-
-split_strat  <- initial_split(df, prop = train.frac, 
-                              strata = "phn.asy")
-
-trn  <- training(split_strat)
-tst  <- testing(split_strat)
-trn = df.strat[trn.indices,]
-tst = df.strat[-trn.indices,]
-
-print(paste0('TRAINING DATA: ', nrow(trn), ' ROWS'))
-print(paste0('TEST DATA: ', nrow(tst), ' ROWS'))
-
-# build the model
-# NOTE: leaving lat and lon out of model
-
-# standard RF
-rf = RRF(phn.asy ~ .,
-         data=trn[,3:ncol(trn)],
-         ntree=ntree,
-         mtry=mtry,
-         importance=T,
-         flagReg=0)
-
-# regularized RF
-rrf = RRF(phn.asy ~ .,
-         data=trn[,3:ncol(trn)],
-         ntree=ntree,
-         mtry=mtry,
-         importance=T,
-         flagReg=1,
-         )
-
-# guided regularized RF
-impRF <- rf$importance[,"IncNodePurity"]
-imp <- impRF/(max(impRF))#normalize the importance score
-gamma <- 0.5
-coefReg <- (1-gamma)+gamma*imp #weighted average
-grrf <- RRF(phn.asy ~ .,
-            data=trn[,3:ncol(trn)],
-            ntree=ntree,
-            mtry=mtry,
-            importance=T,
-            coefReg=coefReg,
-            flagReg=1)
-
+# build the RF
+rf_purity = ranger(phn.asy ~ .,
+                   data=trn[,3:ncol(trn)],
+                   num.trees=ntree,
+                   mtry=mtry,
+                   importance='purity',
+                   verbose=verbose,
+                   replace=replace,
+                   sample.fraction=rf.samp.frac,
+)
+rf_permut = ranger(phn.asy ~ .,
+                   data=trn[,3:ncol(trn)],
+                   num.trees=ntree,
+                   mtry=mtry,
+                   importance='permutation',
+                   verbose=verbose,
+                   replace=replace,
+                   sample.fraction=rf.samp.frac,
+)
 
 # take a look at the results
-# standard RF
-print(rf) 
-  # Mean of squared residuals: 0.7034528
-    # low MSE
-  # % Var explained: 29.76
-# regularized RF
-print(rrf) 
-  # Mean of squared residuals: 0.7073498
-    # low MSE
-  # % Var explained: 29.38
-# guided regularized RF
-print(grrf)
-  # Mean of squared residuals: 0.6945594
-    # slightly lower MSE
-  # % Var explained: 30.65
+print(rf_purity) 
+print(rf_permut) 
 
 # quick assessment plots
 par(mfrow=c(1,2))
-p1 = varImpPlot(grrf)
-# TODO: WHY STRANGE VERTICAL SUDDENLY SHOWED UP IN FOLLOWING PLOT?
-p2 = ggplot() +
-   geom_point(aes(x=trn$phn.asy, y=predict(grrf)), alpha=0.2) +
+p1 = varImpPlot(rf_purity)
+p2 = varImpPlot(rf_permut)
+p3 = ggplot() +
+   geom_point(aes(x=trn$phn.asy, y=predict(rf_permut)), alpha=0.2) +
    geom_abline(intercept = 0, slope = 1)
 # error below
-quick_assess_grob = grid.arrange(p1, p2, ncol=2)
+quick_assess_grob = grid.arrange(p1, p2, p3, ncol=2)
 plot(quick_assess_grob)
 
 if (save.plots){
@@ -291,14 +370,14 @@ if (save.plots){
 
 # partial dependence plots
 # ppt.asy vs ppt.sea
-pdp12 = make.pdp(grrf, trn, 'phn.asy', 1, 2, seed.num=seed.num)
+pdp12 = make.pdp(rf_permut, trn, 'phn.asy', 1, 2, seed.num=seed.num)
 plot(pdp12)
 
 #
-pdp13 = make.pdp(grrf, trn, 'phn.asy', 1, 3, seed.num=seed.num)
+pdp13 = make.pdp(rf_permut, trn, 'phn.asy', 1, 3, seed.num=seed.num)
 plot(pdp13)
 
-pdp23 = make.pdp(grrf, trn, 'phn.asy', 2, 3, seed.num=seed.num)
+pdp23 = make.pdp(rf?permut, trn, 'phn.asy', 2, 3, seed.num=seed.num)
 plot(pdp23)
 
 if (save.plots){
@@ -311,8 +390,8 @@ if (save.plots){
 }
 
 
-# make predictions
-preds = predict(grrf, tst[,3:ncol(tst)])
+# assess model externally using withheld test data
+preds = predict(rf_permut, tst[,3:ncol(tst)])
 #preds = predict(rf, tst)
 tst$err = preds - tst[,'phn.asy'] 
 preds_plot = ggplot(tst) +
@@ -330,7 +409,7 @@ if (save.plots){
 
 
 # make predicitions for full dataset (to map as raster)
-full_preds = predict(grrf, df[,3:ncol(df)])
+full_preds = predict(rf_permut, df[,3:ncol(df)])
 df.res = df %>% mutate(preds = full_preds, err = full_preds - df[,'phn.asy'])
 dfrast <- rasterFromXYZ(df.res[, c('x', 'y', 'phn.asy', 'preds', 'err')])
 re_df = as.data.frame(dfrast, xy=T)
@@ -658,3 +737,4 @@ if (save.plots){
 
     # variable importance plot
       randomForest::varImpPlot(rf_model_sel$rf.final)
+

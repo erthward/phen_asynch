@@ -29,6 +29,7 @@ analysis/data/gen_dist/**
 analysis/data/gen_dist/
 analysis/data/kling_gendata/**
 analysis/data/kling_gendata/
+analysis/asynch_corr/*jpg
 validation/flux_tower_seasonality_validation/AU/*
 validation/flux_tower_seasonality_validation/BR/*
 validation/flux_tower_seasonality_validation/US/*
