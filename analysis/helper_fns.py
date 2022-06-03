@@ -90,12 +90,14 @@ def make_design_matrix():
     return design_mat
 
 
-def calc_time_series(patch, i, j, design_mat):
+def calc_time_series(design_mat, coeffs=None, i=None, j=None, patch=None):
     """
     Calculates the time series at pixel i,j, using the coefficients for the
     constant and the sin and cosine terms of the annual and semiannual
     harmonic components. Returns the time series as a numpy array.
     """
+    assert ((i is not None and j is not None and patch is not None and coeffs is None) or
+            (coeffs is not None and i is None and j is None and patch is None))
     # multiply the pixel's set of coefficients by the design mat, then sum
     # all the regression terms
     # NOTE: the coeffs are a numpy array of shape (5,);
@@ -104,7 +106,10 @@ def calc_time_series(patch, i, j, design_mat):
     #       row, returning a new (365, 5) array that, when summed across the
     #       columns (i.e. the regression's linear terms) gives a (365,) vector
     #       of fitted daily values for the pixel
-    ts = np.sum(patch[:, i, j] * design_mat, axis=1)
+    if patch is None:
+        ts = np.sum(coeffs * design_mat, axis=1)
+    else:
+        ts = np.sum(patch[:, i, j] * design_mat, axis=1)
     return ts
 
 
