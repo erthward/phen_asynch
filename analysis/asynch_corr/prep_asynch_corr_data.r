@@ -134,19 +134,17 @@ tmp.min.asy = read.file('tmmn', asynch.file=T,
 tmp.max.asy = read.file('tmmx', asynch.file=T,
                     align.to=phn.asy, mask.it=F)
 
-# mean daily min temp, coldest month
-# NOTE: CALC AS NEIGH MEAN AND/OR SD?
-tmp.min.mea = read.file('CHELSA_bio6', asynch.file=F,
-                    align.to=phn.asy, mask.it=F)
+# 50km neighborhood mean daily min temp, coldest month
+tmp.min.nmn = read.file('CHELSA_bio6_1981-2010_V.2.1_5km_10CELLRAD_NEIGHMEAN',
+                        asynch.file=F, align.to=phn.asy, mask.it=F)
 
 # asynchrony in precipitation
 ppt.asy = read.file('pr', asynch.file=T,
                     align.to=phn.asy, mask.it=F)
 
-# precipitation seasonality
-# NOTE: CALC AS NEIGH MEAN AND/OR SD?
-ppt.sea = read.file('CHELSA_bio15', asynch.file=F,
-                    align.to=phn.asy, mask.it=F)
+# 50km neighborhood standard deviation in precipitation seasonality
+ppt.sea.nsd = read.file('CHELSA_bio15_1981-2010_V.2.1_5km_10CELLRAD_NEIGHSD',
+                    asynch.file=F, align.to=phn.asy, mask.it=F)
 
 # asynchrony in climatic water deficit
 def.asy = read.file('def', asynch.file=T,
@@ -189,8 +187,8 @@ eco.dis = raster::mask(eco.dis, phn.asy)
 ###########
 
 # gather into a stack
-vars = stack(phn.asy, tmp.min.asy, tmp.max.asy, tmp.min.mea,
-             ppt.asy, ppt.sea, def.asy, cld.asy, vrm.med,
+vars = stack(phn.asy, tmp.min.asy, tmp.max.asy, tmp.min.nmn,
+             ppt.asy, ppt.sea.nsd, def.asy, cld.asy, vrm.med,
              riv.dis, eco.dis)
 
 # aggregate to coarser res, if working on laptop
@@ -200,17 +198,16 @@ if (on.laptop){
 
 # rename all bands 
 names = c('phn.asy', 'tmp.min.asy', 'tmp.max.asy',
-          'tmp.min.mea', 'ppt.asy',
-          'ppt.sea', 'def.asy', 'cld.asy', 'vrm.med',
+          'tmp.min.nmn', 'ppt.asy',
+          'ppt.sea.nsd', 'def.asy', 'cld.asy', 'vrm.med',
           'riv.dis', 'eco.dis')
 
 names(vars) = names
 
-# write stack to file (for reload in 'analyze' mode),
-#raster::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars.tif"), overwrite=T)
+# write stack to file
+raster::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars.tif"), overwrite=T)
 #vars = rast(vars)
-
-terra::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars.tif"), overwrite=T)
+#terra::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars.tif"), overwrite=T)
 
 # coerce to a data.frame
 df = as.data.frame(vars, xy=T)

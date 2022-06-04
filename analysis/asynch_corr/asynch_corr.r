@@ -1,14 +1,15 @@
 library(sp)                   # spatial data
 library(raster)               # raster data
-library(terra)                # newer raster data
+#library(terra)                # newer raster data
 library(sf)                   # newer spatial data
 library(spdep)                # spatial autocorrelation
 library(rsample)              # function for stratified random sampling
-library(randomForest)         # global RFs
 library(RRF)                  # fast RF var selection (w/ conservative results in Bag et al. 2022)
-#library(ranger)               # faster RFs
+library(ranger)               # faster RFs
+library(randomForest)         # regular RFs
 #library(h2o)                  # distributed RFs (on cloud)
 library(Boruta)               # feature selection w/ boruta algo (i.e., shadow features)
+library(fastshap)             # SHAP values 
 library(SpatialML)            # GWRFs
 library(GWmodel)              # GW models
 library(vip)                  # var importance plots
@@ -73,38 +74,29 @@ if (strsplit(getwd(), '/')[[1]][2] == 'home'){
 }
 
 # save plots?
-save.plots = F
+save.plots = T
+save.rasters = T
 
 # verbose?
-verbose = F
+verbose = T
 
 # seed
 seed.num = 12345
 set.seed(seed.num)
 
 # subset the data before building the RF?
-subset = F
+subset = T
 subset.by.range = F
-subset.frac = 0.025
+subset.fracs = c(0.005, 0.05)
 
 # training data fraction
 # NOTE: use 60% for training, 40% for testing, which should be plenty,
 #       given how large a dataset we have
 train.frac = 0.6
 
-
-# global RF params
-ntree = 100
-mtry = 5
-replace = T
-rf.samp.frac = 0.75
-
-# local RF params
-bw.local = 150
-ntree.local = ntree
-mtry.local = mtry
-replace.local = replace
-rf.samp.frac.local = rf.samp.frac
+# include geo coords in RF?
+# (if so, will be incorporated as 3rd-order polynom of projected coords)
+include.coords = T
 
 
 ############
@@ -160,6 +152,20 @@ buffer.f <- function(foo, buffer, reps){
 }
 
 
+# function to plot variable importance for a ranger RF object
+plot.ranger.import = function(ranger_rf){
+  import = as.data.frame(ranger::importance(ranger_rf))
+  import$var = rownames(import)
+  colnames(import) = c('import', 'var')
+  imp_plot = ggplot(import, aes(x=reorder(var,import), y=import, fill=import))+ 
+    geom_bar(stat="identity", position="dodge")+ coord_flip()+
+    ylab("Variable Importance")+
+    xlab("")+
+    ggtitle("Information Value Summary")+
+    guides(fill="none")+
+    scale_fill_gradient(low="red", high="blue")
+  return(imp_plot)
+}
 
 
 # function to make partial dependence plot
@@ -172,11 +178,11 @@ make.pdp = function(rf, trn, response, varn1, varn2, seed.num=NA){
    # custom prediction functions
    pred <- function(object, newdata)  {
         results <- as.vector(predict(object, newdata))
-     return(results)
+     return(results$predictions)
        }
    pdp_pred <- function(object, newdata)  { 
       results <- mean(as.vector(predict(object, newdata))) 
-      return(results) 
+      return(results$predictions) 
    }              
    # get variable imporatnce (by % inc MSE when removed)
    per.var.imp<-vip( 
@@ -200,7 +206,7 @@ make.pdp = function(rf, trn, response, varn1, varn2, seed.num=NA){
                           train = trn,
                           pred.var = var_1, 
                           pred.fun = pdp_pred, 
-                          parallel = F,
+                          parallel = T,
                           grid.resolution = 10 
    )
    pd_var_2<- pdp::partial(
@@ -208,7 +214,7 @@ make.pdp = function(rf, trn, response, varn1, varn2, seed.num=NA){
                           train = trn,
                           pred.var = var_2, 
                           pred.fun = pdp_pred, 
-                          parallel = F,
+                          parallel = T,
                           grid.resolution = 10 
    )
    # create their autoplots
@@ -245,9 +251,6 @@ make.pdp = function(rf, trn, response, varn1, varn2, seed.num=NA){
 
 
 
-##########################################################################
-# ANALYSIS 
-
 
 ######################
 # LOAD AND SUBSET DATA
@@ -256,7 +259,7 @@ make.pdp = function(rf, trn, response, varn1, varn2, seed.num=NA){
 # load countries polygons (for use as a simple basemap)
 world = map_data('world')
 
-# rename all bands 
+# get band names
 names = c('phn.asy', 'tmp.min.asy', 'tmp.max.asy',
           'tmp.min.mea', 'ppt.asy',
           'ppt.sea', 'def.asy', 'cld.asy', 'vrm.med',
@@ -267,78 +270,196 @@ vars = brick(paste0(data.dir, "/asynch_model_all_vars.tif"))
 names(vars) = names
 
 # load data frame of prepped variables
-df = read.csv(paste0(data.dir, "/asynch_model_all_vars_prepped.csv"))
-#df.strat = read.csv(paste0(data.dir, "/asynch_model_all_vars_prepped_strat.csv"))
+df_full_unproj = read.csv(paste0(data.dir, "/asynch_model_all_vars_prepped.csv"))
 
-# subset the data, if necessary
-if (subset){
-   if (subset.by.range){
+# transform to projected coordinate system, then add cols for polynomial of coords
+#df_full_unproj_sf = st_as_sf(df_full_unproj, coords=c('x', 'y'), crs=4326)
+#df_full_proj_sf = st_transform(df_full_unproj_sf, 8857)
+#TODO: GET TRANSFORMED X AND Y VALS AS COLUMNS AGAIN
+#df_full = df_full_proj_sf
+#df_full['x2'] = df_full['x']^2
+#df_full['y2'] = df_full['y']^2
+#df_full['x3'] = df_full['x']^3
+#df_full['y3'] = df_full['y']^3
+
+# TODO: FIX BROKEN SOFTWARE THAT CAN'T FIND GDAL_DATA SO CAN'T ASSIGN CRS!!!
+#       IN MEANTIME, JUST OMITTING COORDS...
+df_full = df_full_unproj
+
+
+
+
+
+
+#########################################
+# TUNE HYPERPARAMETERS OF GLOBAL RF MODEL
+#########################################
+
+# NOTE: ADAPTED FROM https://bradleyboehmke.github.io/HOML/random-forest.html#hyperparameters
+
+n.features = (ncol(df_full)-3)
+
+# for each of two subset fractions:
+for (subset.frac in subset.fracs){
+  cat('=============\n')
+  cat('SUBSET FRAC: ', subset.frac, '\n\n')
+  # subset the data
+  if (subset.by.range){
+      # TODO: DEBUG, IF USING
       # get cell coordinates in global equal-area projected CRS
-      xy = df[, c('x', 'y')]
+      xy = df_full[, c('x', 'y')]
       coordinates(xy) = c('x', 'y')
       xy_proj = spTransform(xy, proj4str='+init=epsg:8857')
       # select a subset with all points >= 150km from other points
       # (based on my previous estimation of the range of the spatial autocorrelation in the data)
-      subset = buffer.f(as.data.frame(xy_proj@coords), buffer=150000, reps=1)
-   }
-   else {
+      df = buffer.f(as.data.frame(xy_proj@coords), buffer=150000, reps=1)
+  }
+  else {
       # take a stratified random sample, stratified by the response var
-      split_subset  <- initial_split(df, prop = subset.frac, strata = "phn.asy")
-      subset = training(split_subset)
-   }
+      split_subset  <- initial_split(df_full, prop = subset.frac, strata = "phn.asy")
+      df = training(split_subset)
+  }
+  # get training and test data, using a stratified random sample
+  split_strat  <- initial_split(df, prop = train.frac, 
+                                strata = "phn.asy")
+  trn  <- training(split_strat)
+  tst  <- testing(split_strat)
+    #build a default ranger model
+  default.fit <- ranger(
+    formula = phn.asy ~ ., 
+    data = trn[, 3:ncol(trn)],
+    mtry = floor(n.features / 3),
+    respect.unordered.factors = "order",
+    seed = 123
+  )
+  # and get its OOB and test-set RMSEs
+  default.rmse <- sqrt(default.fit$prediction.error)
+  default.preds = predict(default.fit, tst[,3:ncol(tst)])$predictions
+  default.errs = default.preds - tst[,'phn.asy'] 
+  default.tst.rmse = sqrt(mean(default.errs^2))
+  hyper_grid <- expand.grid(
+    mtry = floor(n.features * c(.05, .25, .4)),
+    ntree = c(150, 200, 250, 300),
+    min.node.size = c(1, 3, 5, 10), 
+    replace = c(TRUE, FALSE),        
+    sample.fraction = c(.3, .55, .8),                       
+    rmse = NA,
+    tst.rmse = NA
+  )
+  for(i in seq_len(nrow(hyper_grid))) {
+      # fit model for ith hyperparameter combination
+    fit <- ranger(
+      formula         = phn.asy ~ ., 
+      data            = trn[, 3:ncol(trn)], 
+      num.trees       = hyper_grid$ntree[i],
+      mtry            = hyper_grid$mtry[i],
+      min.node.size   = hyper_grid$min.node.size[i],
+      replace         = hyper_grid$replace[i],
+      sample.fraction = hyper_grid$sample.fraction[i],
+      verbose         = FALSE,
+      seed            = 123,
+      respect.unordered.factors = 'order',
+    )
+    hyper_grid$rmse[i] <- sqrt(fit$prediction.error)
+    preds = predict(fit, tst[,3:ncol(tst)])$predictions
+    errs = preds - tst[,'phn.asy'] 
+    tst.rmse = sqrt(mean(errs^2))
+    hyper_grid$tst.rmse[i] = tst.rmse
+    if (i%%60 == 0){
+      cat(i/nrow(hyper_grid)*100, '% complete...\n')
+    }
+  }
+  hyper_grid_complete = hyper_grid %>%
+    arrange(rmse) %>%
+    mutate(perc_gain = (default.rmse - rmse) / default.rmse * 100,
+           #perc_tst_gain = (default.tst.rmse - tst.rmse) / default.tst.rmse * 100,
+           )
+  cat(head(hyper_grid_complete, 50))
+  hyper_grids[[subset.frac]] = hyper_grid_complete
 }
 
+
+# choose global RF params based on output above
+ntree = 100
+replace = T
+rf.samp.frac = 0.75
+mtry = round(n.features/3)
+
+# and subset data based on output above
+subset.frac = 0.05
+if (subset.by.range){
+  # TODO: DEBUG, IF USING
+  # get cell coordinates in global equal-area projected CRS
+  xy = df_full[, c('x', 'y')]
+  coordinates(xy) = c('x', 'y')
+  xy_proj = spTransform(xy, proj4str='+init=epsg:8857')
+  # select a subset with all points >= 150km from other points
+  # (based on my previous estimation of the range of the spatial autocorrelation in the data)
+  df = buffer.f(as.data.frame(xy_proj@coords), buffer=150000, reps=1)
+} else {
+  # take a stratified random sample, stratified by the response var
+  split_subset  <- initial_split(df_full, prop = subset.frac, strata = "phn.asy")
+  df = training(split_subset)
+}
 # get training and test data, using a stratified random sample
 split_strat  <- initial_split(df, prop = train.frac, 
                               strata = "phn.asy")
 trn  <- training(split_strat)
 tst  <- testing(split_strat)
-trn = df.strat[trn.indices,]
-tst = df.strat[-trn.indices,]
 print(paste0('TRAINING DATA: ', nrow(trn), ' ROWS'))
 print(paste0('TEST DATA: ', nrow(tst), ' ROWS'))
 
+# scatter the training and test datasets
+scat_trn = ggplot(tst) +
+  geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
+  geom_point(data=trn, aes(x=x, y=y), col='blue', alpha=0.05, size=0.1)
+scat_tst = ggplot(tst) +
+  geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
+  geom_point(data=tst, aes(x=x, y=y), col='red', alpha=0.05, size=0.1)
+grid.arrange(scat_trn, scat_tst)
 
-##############################
-# RUN BORUTA FEATURE SELECTION
-##############################
+
+
+
+##########################
+# BORUTA FEATURE SELECTION
+##########################
 
 bor_res = Boruta(phn.asy ~ .,
                  data=trn[,3:ncol(trn)],
-                 do.trace=verbose * 3,
-                 )
+                 doTrace=verbose * 3,
+                 num.trees=ntree,
+                 mtry=mtry,
+                 replace=replace,
+                 sample.fraction=rf.samp.frac
+)
 print(attStats(bor_res))
 
-if (verbose){
-   jpeg(paste0(data.dir, '/boruta_boxplot.jpg'),
-        width=900,
-        height=400,
-        units='px',
-        quality=90,
-        )
-   par(mfrow=c(1,2))
-   plot(bor_res)
-   plotImpHistory(bor_res)
-   dev.off()
+if (save.plots){
+  jpeg(paste0(data.dir, '/boruta_boxplot.jpg'),
+       width=900,
+       height=400,
+       units='px',
+       quality=90,
+  )
+  par(mfrow=c(1,2))
+  plot(bor_res)
+  plotImpHistory(bor_res)
+  dev.off()
 }
+par(mfrow=c(1,1))
+
+# remove any vars rejected by boruta
+# from trn, tst, df, and df_full
+
+# ...
 
 
-#####################
-# RUN GLOBAL RF MODEL
-#####################
+###########################################
+# BUILD TUNED, PARSIMONIOUS GLOBAL RF MODEL
+###########################################
 
-
-# build the RF
-rf_purity = ranger(phn.asy ~ .,
-                   data=trn[,3:ncol(trn)],
-                   num.trees=ntree,
-                   mtry=mtry,
-                   importance='purity',
-                   verbose=verbose,
-                   replace=replace,
-                   sample.fraction=rf.samp.frac,
-)
-rf_permut = ranger(phn.asy ~ .,
+rf_global = ranger(phn.asy ~ .,
                    data=trn[,3:ncol(trn)],
                    num.trees=ntree,
                    mtry=mtry,
@@ -349,54 +470,59 @@ rf_permut = ranger(phn.asy ~ .,
 )
 
 # take a look at the results
-print(rf_purity) 
-print(rf_permut) 
+print(rf_global) 
 
-# quick assessment plots
-par(mfrow=c(1,2))
-p1 = varImpPlot(rf_purity)
-p2 = varImpPlot(rf_permut)
-p3 = ggplot() +
-   geom_point(aes(x=trn$phn.asy, y=predict(rf_permut)), alpha=0.2) +
-   geom_abline(intercept = 0, slope = 1)
-# error below
-quick_assess_grob = grid.arrange(p1, p2, p3, ncol=2)
-plot(quick_assess_grob)
+# var importance plots, with permutation based metric...
+p_imp_permut = plot.ranger.import(rf_permut)
+pfun <- function(object, newdata) {
+  predict(object, data = newdata)$predictions
+}
+# ... and with SHAP values
+shap <- fastshap::explain(rf_permut, X = df[, 4:ncol(df)], pred_wrapper = pfun, nsim = 10)
+shap_imp <- data.frame(
+  Variable = names(shap),
+  Importance = apply(shap, MARGIN = 2, FUN = function(x) sum(abs(x)))
+)
+p_imp_shap = ggplot(shap_imp, aes(reorder(Variable, Importance), Importance)) +
+  geom_col() +
+  coord_flip() +
+  xlab("") +
+  ylab("mean(|Shapley value|)")
+varimp_grob = grid.arrange(shap_imp, permut_imp, ncol=2)
 
 if (save.plots){
-   ggsave(quick_assess_grob, file='quick_assess_plots.png',
-          width=45, height=35, units='cm', dpi=1000)
+   ggsave(varimp_grop, file='var_import_plots_permut_and_SHAP.png',
+          width=45, height=35, units='cm', dpi=600)
 }
 
 # partial dependence plots
 # ppt.asy vs ppt.sea
-pdp12 = make.pdp(rf_permut, trn, 'phn.asy', 1, 2, seed.num=seed.num)
-plot(pdp12)
+#pdp12 = make.pdp(rf_permut, trn, 'phn.asy', 1, 2, seed.num=seed.num)
+#plot(pdp12)
 
 #
-pdp13 = make.pdp(rf_permut, trn, 'phn.asy', 1, 3, seed.num=seed.num)
-plot(pdp13)
+#pdp13 = make.pdp(rf_permut, trn, 'phn.asy', 1, 3, seed.num=seed.num)
+#plot(pdp13)
 
-pdp23 = make.pdp(rf?permut, trn, 'phn.asy', 2, 3, seed.num=seed.num)
-plot(pdp23)
+#pdp23 = make.pdp(rf?permut, trn, 'phn.asy', 2, 3, seed.num=seed.num)
+#plot(pdp23)
 
-if (save.plots){
-   ggsave(pdp12, file='pdp12.png',
-          width=22, height=12, units='cm', dpi=500)
-   ggsave(pdp13, file='pdp13.png',
-          width=22, height=12, units='cm', dpi=500)
-   ggsave(pdp23, file='pdp23.png',
-          width=22, height=12, units='cm', dpi=500)
-}
+#if (save.plots){
+#   ggsave(pdp12, file='pdp12.png',
+#          width=22, height=12, units='cm', dpi=500)
+#   ggsave(pdp13, file='pdp13.png',
+#          width=22, height=12, units='cm', dpi=500)
+#   ggsave(pdp23, file='pdp23.png',
+#          width=22, height=12, units='cm', dpi=500)
+#}
 
 
 # assess model externally using withheld test data
-preds = predict(rf_permut, tst[,3:ncol(tst)])
-#preds = predict(rf, tst)
+preds = predict(rf_permut, tst[,3:ncol(tst)])$predictions
 tst$err = preds - tst[,'phn.asy'] 
 preds_plot = ggplot(tst) +
     geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
-    geom_point(aes(x=x, y=y, col=err), size=1) +
+    geom_point(aes(x=x, y=y, col=err, alpha=abs(err)/max(abs(err))), size=1) +
     scale_color_gradient2(low='#cc003d', mid='#dbdbdb', high='#009e64') +
     #coord_map() + 
     theme_bw()
@@ -409,8 +535,8 @@ if (save.plots){
 
 
 # make predicitions for full dataset (to map as raster)
-full_preds = predict(rf_permut, df[,3:ncol(df)])
-df.res = df %>% mutate(preds = full_preds, err = full_preds - df[,'phn.asy'])
+full_preds = predict(rf_permut, df_full[,3:ncol(df_full)])$predictions
+df.res = df_full %>% mutate(preds = full_preds, err = full_preds - df_full[,'phn.asy'])
 dfrast <- rasterFromXYZ(df.res[, c('x', 'y', 'phn.asy', 'preds', 'err')])
 re_df = as.data.frame(dfrast, xy=T)
 colnames(re_df) = c('x', 'y', 'phn.asy', 'preds', 'err')
@@ -452,21 +578,64 @@ err_map = ggplot() +
 obs_vs_pred = ggplot() +
         geom_point(data=re_df, aes(x=phn.asy, y=preds), alpha=0.05) +
         geom_abline(intercept=0, slope=1)
-global_grrf_main_plots = cowplot::plot_grid(obs_map, preds_map, err_map, obs_vs_pred, nrow=2, ncol=2)
-global_grrf_main_plots
+global_main_plots = cowplot::plot_grid(obs_map, preds_map, err_map, obs_vs_pred, nrow=2, ncol=2)
+global_main_plots
 
 if (save.plots){
    ggsave(global_grrf_main_plots, file='global_grrf_main_plot.png',
           width=75, height=55, units='cm', dpi=500)
   }
+if (save.rasters){
+  writeRaster(dfrast,
+              paste0(data.dir, '\global_rf_map_results.tif'),
+              'GTiff',
+              overwrite = T
+  )
+}
 
+
+# plot SHAP values
+p1 <- autoplot(shap)
+p2 <- autoplot(shap, type = "dependence", feature = "ppt.asy", X = df[,3:ncol(df)], alpha = 0.5,
+               color_by = "ppt.sea", smooth = TRUE, smooth_color = "black") +
+  scale_color_viridis_c()
+gridExtra::grid.arrange(p1, p2, nrow = 1)
+p2 <- autoplot(shap, type = "dependence", feature = "tmp.min.asy", X = df[,3:ncol(df)], alpha = 0.5,
+               color_by = "tmp.min.mea", smooth = TRUE, smooth_color = "black") +
+  scale_color_viridis_c()
+gridExtra::grid.arrange(p1, p2, nrow = 1)
+
+# map SHAP values
+shap_full = fastshap::explain(rf_permut, X = df_full[, 4:ncol(df_full)], pred_wrapper = pfun, nsim = 10)
+df_shap_full = cbind(df_full[,c('x', 'y')], shap_full)
+df_shap_full_rast <- rasterFromXYZ(df_shap_full)
+names(df_shap_full_rast) = colnames(df_shap_full)[3:ncol(df_shap_full)]
+
+if (save.rasters){
+  for (lyr in names(df_shap_rast_full)){
+    writeRaster(df_shap_full_rast,
+                paste0(data.dir, '\rf_SHAP_vals_', lyr, '.tif'),
+                'GTiff',
+                overwrite = T
+    )
+  }
+}
 
 ######################
 # RUN LOCAL GWRF MODEL
 ######################
 
 # code adapted from https://zia207.github.io/geospatial-r-github.io/geographically-wighted-random-forest.html
-coords = trn[,1:2]
+
+# local RF params
+bw.local = 150
+ntree.local = ntree
+replace.local = replace
+rf.samp.frac.local = rf.samp.frac
+mtry.local = mtry
+
+coords = trn[,c('x', 'y')]
+
 grf.model <- SpatialML::grf(formula=phn.asy ~ tmp.min.asy + tmp.max.asy + tmp.min.mea +
                                ppt.asy + ppt.sea + def.asy + cld.asy + 
                                vrm.med + riv.dis + eco.dis,
@@ -476,10 +645,12 @@ grf.model <- SpatialML::grf(formula=phn.asy ~ tmp.min.asy + tmp.max.asy + tmp.mi
                  ntree=ntree.local,
                  mtry=mtry.local,
                  forests = TRUE,
-                 coords=coords)
+                 coords=coords,
+                 importance = TRUE
+                 )
 
 # global model summary
-glob.imp = as.data.frame(importance(grf.model$Global.Model, type=1)) # %IncMSE
+glob.imp = as.data.frame(randomForest::importance(grf.model$Global.Model, type=1)) # %IncMSE
 colnames(glob.imp) = c('pct.inc.mse')
 glob.imp = glob.imp %>% arrange(desc(pct.inc.mse))
 
@@ -512,8 +683,7 @@ plots = lapply(seq(nrow(glob.imp)), function(n){
 local_rf_main_plots = grid.arrange(plots[[1]], plots[[2]], plots[[3]],
              plots[[4]], plots[[5]], plots[[6]], 
              plots[[7]], plots[[8]], plots[[9]],
-             plots[[10]], plots[[11]], plots[[12]],
-             plots[[13]], plots[[14]], plots[[15]], plots[[16]],
+             plots[[10]],
              ncol=4)
 
 if (save.plots){
@@ -541,8 +711,8 @@ plots = lapply(seq(ncol(gof.loc)), function(n){
   return(p)
 })
 local_rf_gof_plots = grid.arrange(plots[[1]], plots[[2]], plots[[3]],
-             plots[[4]], plots[[5]], plots[[6]], plots[[7]], 
-             ncol=3)
+             plots[[4]], plots[[5]], plots[[6]], plots[[7]],
+             ncol=4)
 
 if (save.plots){
    ggsave(local_rf_main_plots, file='local_rf_gof_plot.png',
@@ -719,22 +889,4 @@ if (save.plots){
     # list the chosen features
     predictors(rfe.results)
     # plot the results
-    plot(rfe.results, type=c("g", "o"))
-    
-    # variable importance plot
-    randomForest::varImpPlot(rfe.results$fit)
-
-
-
-  ## Murphy et al., (2010) RF MODEL SELECTION (JEFF EVANS R PACKAGE)
-    rf_model_sel <- rf.modelSel(xdata = x_trn, 
-                                ydata = y_trn, 
-                                final.model = T, 
-                                seed = seed.num, 
-                                ntree = opt.ntree.grrf, 
-                                mtry = opt.mtry.grrf)
-    rf_model_sel
-
-    # variable importance plot
-      randomForest::varImpPlot(rf_model_sel$rf.final)
-
+    plot(rfe.re
