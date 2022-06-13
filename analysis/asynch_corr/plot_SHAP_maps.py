@@ -4,7 +4,8 @@ import rioxarray as rxr
 import numpy as np
 import os, re
 
-countries = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
+countries = gpd.read_file(('/home/deth/Desktop/CAL/research/projects/'
+                           'seasonality/results/maps/NewWorldFile_2020.shp'))
 
 data_dir = '/media/deth/SLAB/seasonality/results/'
 files = [f for f in os.listdir(data_dir) if re.search('_SHAP_vals', f)]

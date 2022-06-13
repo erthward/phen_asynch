@@ -23,3 +23,11 @@ ggplot() +
    scale_color_viridis(option = "plasma")
 
 dev.off()
+
+# build regression model of goodness of fit
+mod = lm(sqrt(r2) ~ lon + lat + mat + map + cell_dist, data=df)
+print(summary(mod))
+
+mod_reduced = lm(sqrt(r2) ~ cell_dist, data=df)
+print(summary(mod_reduced))
+
