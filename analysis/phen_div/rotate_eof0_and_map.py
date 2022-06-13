@@ -1,6 +1,7 @@
 import rioxarray as rxr
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 from copy import deepcopy
 import geopandas as gpd
 import palettable
@@ -54,19 +55,22 @@ countries = gpd.read_file(('/home/deth/Desktop/CAL/research/projects/seasonality
 
 # load the coeffs
 coeffs = rxr.open_rasterio(('/home/deth/Desktop/CAL/research/projects/'
-                            'seasonality/results/maps/NIRv_global_coeffs.tif'))
+        'seasonality/results/maps/NIRv_global_coeffs.tif'))
 
 # load the EOFs
 eofs = rxr.open_rasterio(('/home/deth/Desktop/CAL/research/projects/'
-                          'seasonality/results/maps/global_4_EOFs_coswts.tif'))
+    'seasonality/results/maps/global_4_EOFs_coswts.tif'))[:3]
+
+# EOF percentages of variance explained
+eofs_pcts = [70, 17, 8]
 
 # define focal region bounding bboxes
 reg_bboxes = {
+          'CA': [-1.06e7, 4.6e6, -0.985e7, 2.87e6], # CA Mediterranean and Baja
           'QU': [1.32e7, -1.38e6, 1.373e7, -2.55e6], # N. Queensland peninsula
-          'AM': [-6.7e6, 0.5e6, -5.7e6, -8e6], # upper Amazon river basin
-          'AD': [-7e6, 3.5e6, -5.4e6, -2.15e6], # NE Arc of Deforestation
-          'FL': [-7.525e6, 3.6e6, -7.25e6, 3.13e6], # South Florida
-          'CA': [-1.07e7, 5.7e6, -0.94e7, 2.7e6], # CA Mediterranean and Baja
+          'AM': [-6.3e6, -2e5, -5.8e6, -5.5e5], # upper Amazon river basin
+          'AD': [-5.47e6, 3e5, -4.6e6, -6.35e5], # NE Arc of Deforestation
+          'FL': [-7.525e6, 3.53e6, -7.25e6, 3.13e6], # South Florida
           #'CH': [-6.6e6, -3.6e6, -4.75e6, -5.75e6], # Chile Mediterranean
           #'SA': [1.3e6, -3.35e6, 2.7e6, -3.8e6], # S. Africa Mediterranean
           #'ME': [-1.5e6, 5.65e6, 7e6, -2.5e6], # actual Mediterranean
@@ -74,18 +78,27 @@ reg_bboxes = {
          }
 # define focal region gridspec indices
 # NOTE: [[i_min, i_max], [j_min, j_max]]
-reg_gsinds = {'QU': [[70, 100], [175, 200]],
-              'AM': [[50, 70], [0, 30]],
-              'AD': [[70, 100], [10, 40]],
-              'FL': [[40, 70], [160, 180]],
-              'CA': [[30, 60], [0, 30]],
+reg_gsinds = {'QU': [[60, 90], [175, 195]],
+              'AM': [[40, 60], [10, 30]],
+              'AD': [[60, 90], [35, 55]],
+              'FL': [[30, 60], [160, 180]],
+              'CA': [[0, 30], [0, 30]],
              }
-reg_gsinds_lines = {'QU': [[60, 70], [180, 195]],
-                    'AM': [[50, 70], [0, 30]],
-                    'AD': [[70, 100], [10, 40]],
-                    'FL': [[40, 70], [160, 180]],
-                    'CA': [[30, 60], [0, 30]],
+reg_gsinds_lines = {'QU': [[90, 100], [175, 195]],
+                    'AM': [[60, 70], [10, 30]],
+                    'AD': [[90, 100], [35, 55]],
+                    'FL': [[60, 70], [160, 180]],
+                    'CA': [[30, 40], [5, 25]],
                    }
+# NOTE: K VALUES WERE DETERMINED BY MANUAL INSPECTION OF SCREE PLOTS
+#       USING THE run_kmeans_clust FN WITH scree=True
+reg_K_vals = {'QU': 3,
+          'AM': 4,
+          'AD': 3,
+          'FL': 3,
+          'CA': 4,
+         }
+
 # rescale each layer 0-1
 for i in range(eofs.shape[0]):
     eofs[i] = (eofs[i]-eofs[i].min())/(eofs[i].max()-eofs[i].min())
@@ -146,15 +159,29 @@ dims = (20, 10)
 fig_main = plt.figure(figsize=(20,10))
 gs = fig_main.add_gridspec(*[10*dim for dim in dims[::-1]]) # NOTE: REV ORDER OF FIGSIZE
 # maps EOFS 1 (lat-weighted sum), 2, and 3
-eofs_cols = [[0, 60], [70, 130], [140,200]]
-for i in range(3):
-    ax_eof = fig_main.add_subplot(gs[:30, eofs_cols[i][0]:eofs_cols[i][1]])
-    eofs_wt_sum_for_map[i].plot.imshow(ax=ax_eof,
-                                       cmap='coolwarm',
-                                       add_colorbar=False,
-                                       alpha=1,
-                                       zorder=0,
-                                      )
+eofs_rows = [[0, 30], [0, 15], [15, 30]]
+eofs_cols = [[30, 100], [100, 170], [100,170]]
+for i, rows, cols in zip(range(3), eofs_rows, eofs_cols):
+    ax_eof = fig_main.add_subplot(gs[rows[0]:rows[1], cols[0]:cols[1]])
+    if i == 0:
+        eofs_for_map = eofs.rio.write_crs(4326)
+        eofs_for_map = eofs_for_map.rio.reproject(8857)
+        eofs_for_map[0] = eofs_for_map[0].where(
+                eofs_for_map[0] < 2*eofs[0].max(), np.nan)
+        eofs_for_map[i].plot.imshow(ax=ax_eof,
+                                    cmap='coolwarm',
+                                    add_colorbar=False,
+                                    alpha=1,
+                                    zorder=0,
+                                   )
+        del eofs_for_map
+    else:
+        eofs_wt_sum_for_map[i].plot.imshow(ax=ax_eof,
+                                           cmap='coolwarm',
+                                           add_colorbar=False,
+                                           alpha=1,
+                                           zorder=0,
+                                          )
     countries.plot(color='none',
                    linewidth=0.5,
                    edgecolor='black',
@@ -165,10 +192,12 @@ for i in range(3):
     strip_axes(ax_eof)
     ax_eof.set_xlim(global_xlim)
     ax_eof.set_ylim(eofs_wt_sum_for_map.rio.bounds()[1::2])
-    ax_eof.set_title('EOF %i' % i, fontdict={'fontsize': 22})
+    ax_eof.text(0.92*ax_eof.get_xlim()[0], 0.92*ax_eof.get_ylim()[0],
+                'EOF %i\n%0.1f%%' % (i, eofs_pcts[i]),
+                fontdict={'fontsize': 14})
 # plot the RGB map of EOFs 1-3 together
 ax_rgb = fig_main.add_subplot(gs[35:, 35:165])
-eofs_wt_sum_for_map[:3].plot.imshow(ax=ax_rgb,
+eofs_wt_sum_for_map.plot.imshow(ax=ax_rgb,
                                     add_colorbar=False,
                                     alpha=1,
                                     zorder=0,
@@ -189,10 +218,14 @@ ax_rgb.set_ylim(eofs_wt_sum_for_map.rio.bounds()[1::2])
 # PLOT FOCAL REGIONS
 #################### 
 
-def run_kmeans_clust(eofs_rast, coeffs_rast, reg, k=None,
-                     k_max = 12, batch_size=40, n_clust_neighs=100,
+def run_kmeans_clust(eofs_rast, coeffs_rast, reg,
+                     k=None, k_max=12,
+                     batch_size=40, n_init=10, max_no_improvement=10, seed=None,
+                     n_clust_neighs=50,
                      plot_scree=False,
                      map_clusters=False, ax_lines=None):
+    if seed is not None:
+        np.random.seed(seed)
     if plot_scree:
         k = [*range(1, k_max+1)]
     else:
@@ -201,7 +234,7 @@ def run_kmeans_clust(eofs_rast, coeffs_rast, reg, k=None,
             assert ax_lines is not None, ("axes must be provided if clustered "
                                     "time series line plot is to be generated")
     # prep EOFs vals for K-means clustering
-    eofs_vals = eofs_rast[:3].values.swapaxes(0,1).swapaxes(1,2)
+    eofs_vals = eofs_rast.values.swapaxes(0,1).swapaxes(1,2)
     eofs_X = eofs_vals.reshape([np.product(eofs_vals.shape[:2]), 3])
     eofs_non_nans = np.where(np.sum(np.isnan(eofs_X), axis=1) == 0)[0]
     eofs_X_sub = eofs_X[eofs_non_nans, :]
@@ -216,8 +249,8 @@ def run_kmeans_clust(eofs_rast, coeffs_rast, reg, k=None,
                 init="k-means++",
                 n_clusters=k_val,
                 batch_size=batch_size,
-                n_init=10,
-                max_no_improvement=10,
+                n_init=n_init,
+                max_no_improvement=max_no_improvement,
                 verbose=0,
              )
             mbk.fit(eofs_X_sub)
@@ -234,8 +267,8 @@ def run_kmeans_clust(eofs_rast, coeffs_rast, reg, k=None,
                 init="k-means++",
                 n_clusters=k,
                 batch_size=batch_size,
-                n_init=10,
-                max_no_improvement=10,
+                n_init=n_init,
+                max_no_improvement=max_no_improvement,
                 verbose=0,
              )
         mbk.fit(eofs_X_sub)
@@ -301,20 +334,25 @@ def run_kmeans_clust(eofs_rast, coeffs_rast, reg, k=None,
                       linestyle=':')
 
 
-# num clusters and batch size for mini-batch K-means
-K_max = 12
-batch_size = 40
+def plot_bbox_rectangle(bounds, ax):
+    xmin = bounds[0]
+    ymin = bounds[3]
+    width = bounds[2] - xmin
+    height = ymin - bounds[1]
+    rect = Rectangle((xmin, ymin),
+                     width, -height,
+                     facecolor='none',
+                     edgecolor='black',
+                     linewidth=2)
+    ax.add_patch(rect)
 
-# NOTE: K VALUES WERE DETERMINED BY MANUAL INSPECTION OF SCREE PLOTS
-#       USING THE run_kmeans_clust FN WITH scree=True
-K_vals = {'QU': 3,
-          'AM': 4,
-          'AD': 4,
-          'FL': 3,
-          'CA': 4,
-         }
+
+# try to help manage memory usage
+del eofs
+del eofs_wt_sum
 
 for reg, bbox in reg_bboxes.items():
+    print('now plotting region: %s' % reg)
     # plot the focal region
     gsi = reg_gsinds[reg]
     gsi_lines = reg_gsinds_lines[reg]
@@ -323,10 +361,11 @@ for reg, bbox in reg_bboxes.items():
                                 gsi[1][0]:gsi[1][1]])
     ax_lines = fig_main.add_subplot(gs[gsi_lines[0][0]:gsi_lines[0][1],
                                   gsi_lines[1][0]:gsi_lines[1][1]])
-    eofs_wt_sum_for_map[:3].plot.imshow(ax=ax_reg,
-                                        zorder=0,
-                                        add_colorbar=False,
-                                       )
+    eofs_wt_sum_for_map.sel(x=slice(bbox[0], bbox[2]),
+                            y=slice(bbox[1], bbox[3])).plot.imshow(ax=ax_reg,
+                                                                   zorder=0,
+                                                            add_colorbar=False,
+                                                                  )
     countries.plot(ax=ax_reg,
                    color='none',
                    edgecolor='black',
@@ -344,11 +383,30 @@ for reg, bbox in reg_bboxes.items():
                                              ).rio.reproject(4326)
     eofs_wt_sum_foc = eofs_wt_sum_foc.where(eofs_wt_sum_foc !=
                                             eofs_wt_sum_foc._FillValue, np.nan)
-
     coeffs_foc = coeffs.rio.reproject(8857).sel(x=slice(bbox[0], bbox[2]),
                                                 y=slice(bbox[1], bbox[3]),
                                              ).rio.reproject(4326)
     coeffs_foc = coeffs_foc.where(coeffs_foc != coeffs_foc._FillValue, np.nan)
     # run K-means clustering
-    K = K_vals[reg]
-    run_kmeans_clust(eofs_wt_sum_foc, coeffs_foc, reg, k=K, ax_lines=ax_lines)
+    K = reg_K_vals[reg]
+    run_kmeans_clust(eofs_wt_sum_foc, coeffs_foc, reg,
+                     k=K,
+                     ax_lines=ax_lines,
+                     batch_size=40,
+                     seed=123456)
+    # adjust focal-region plotting and add bounding boxes
+    strip_axes(ax_lines)
+    ax_lines.set_xticks(np.linspace(0, 365, 5),
+                        ['Jan', 'Apr', 'Jul', 'Oct', 'Jan'])
+    for month in np.linspace(0, 365, 13):
+        ax_lines.axvline(month, color='black',
+                         linewidth=0.25, linestyle=':', alpha=0.75, zorder=0)
+    ax_lines.tick_params(labelsize=14, rotation=0)
+    for axis in ['top','bottom','left','right']:
+        ax_lines.spines[axis].set_linewidth(2)
+    plot_bbox_rectangle(bbox, ax_rgb)
+
+# show and save figure
+fig_main.show()
+fig_main.subplots_adjust(left=0.02, right=0.98, bottom=0.04, top=0.98)
+fig_main.savefig('ch2_fig2_EOF_maps.png', dpi=700)
