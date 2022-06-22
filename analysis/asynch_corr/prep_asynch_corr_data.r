@@ -134,6 +134,10 @@ tmp.min.asy = read.file('tmmn', asynch.file=T,
 tmp.min.nmn = read.file('CHELSA_bio6_1981-2010_V.2.1_5km_10CELLRAD_NEIGHMEAN',
                         asynch.file=F, align.to=phn.asy, mask.it=F)
 
+# 50km neighborhood mean daily min temp, coldest month
+tmp.min.nsd = read.file('CHELSA_bio6_1981-2010_V.2.1_5km_10CELLRAD_NEIGHSD',
+                        asynch.file=F, align.to=phn.asy, mask.it=F)
+
 # asynchrony in precipitation
 ppt.asy = read.file('pr', asynch.file=T,
                     align.to=phn.asy, mask.it=F)
@@ -183,7 +187,7 @@ eco.dis = raster::mask(eco.dis, phn.asy)
 ###########
 
 # gather into a stack
-vars = stack(phn.asy, tmp.min.asy, tmp.min.nmn,
+vars = stack(phn.asy, tmp.min.asy, tmp.min.nmn, tmp.min.nsd,
              ppt.asy, ppt.sea.nsd, def.asy, cld.asy, vrm.med,
              riv.dis, eco.dis)
 
@@ -194,7 +198,7 @@ if (on.laptop){
 
 # rename all bands 
 names = c('phn.asy', 'tmp.min.asy',
-          'tmp.min.nmn', 'ppt.asy',
+          'tmp.min.nmn', 'tmp.min.nsd', 'ppt.asy',
           'ppt.sea.nsd', 'def.asy', 'cld.asy', 'vrm.med',
           'riv.dis', 'eco.dis')
 

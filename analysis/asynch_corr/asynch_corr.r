@@ -256,9 +256,9 @@ make.pdp = function(rf, trn, response, varn1, varn2, seed.num=NA){
 world = map_data('world')
 
 # get band names
-names = c('phn.asy', 'tmp.min.asy', 'tmp.max.asy',
-          'tmp.min.mea', 'ppt.asy',
-          'ppt.sea', 'def.asy', 'cld.asy', 'vrm.med',
+names = c('phn.asy', 'tmp.min.asy',
+          'tmp.min.nmn', 'tmp.min.nsd', 'ppt.asy',
+          'ppt.sea.nsd', 'def.asy', 'cld.asy', 'vrm.med',
           'riv.dis', 'eco.dis')
 
 # load rasters of prepped variables
@@ -634,8 +634,8 @@ mtry.local = mtry
 
 coords = trn[,c('x', 'y')]
 
-rf_local <- SpatialML::grf(formula=phn.asy ~ tmp.min.asy + tmp.min.mea +
-                             ppt.asy + ppt.sea + def.asy + cld.asy +
+rf_local <- SpatialML::grf(formula=phn.asy ~ tmp.min.asy + tmp.min.nmn + tmp.min.nsd +
+                             ppt.asy + ppt.sea.nsd + def.asy + cld.asy +
                              vrm.med + riv.dis + eco.dis,
                            dframe=trn[, 3:ncol(trn)],
                            bw=bw.local,
