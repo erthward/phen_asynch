@@ -39,9 +39,9 @@ library(rfUtilities)          # Jeff Evans R package for model selection
 # WORKFLOW:
 
 # X. draw subsample (COMPARE RUNNNING WITH AND WITHOUT, LATER)
-  # X. check that it's small enough that independent bootstraps can be drawn from it (how??) (OR IS IT JUST MEASURE VARIANCE ACROSS BOOTSTRAPS?)
+# X. check that it's small enough that independent bootstraps can be drawn from it (how??) (OR IS IT JUST MEASURE VARIANCE ACROSS BOOTSTRAPS?)
 # 1. RF model (or GB?)
-  #1.5 MAYBE LATER CONSIDER GRADIENT-BOOSTING AS WELL/INSTEAD?
+#1.5 MAYBE LATER CONSIDER GRADIENT-BOOSTING AS WELL/INSTEAD?
 # 2. boruta to select vars
 # 3. rerun parsimonious model (use Lauren's and HOML approach to choosing reasonable starting param values and to tuning)
 # 4. plot and assess var importance
@@ -59,18 +59,18 @@ library(rfUtilities)          # Jeff Evans R package for model selection
 #######################
 
 # input and output dirs:
-  # if on laptop
+# if on laptop
 if (strsplit(getwd(), '/')[[1]][2] == 'home'){
-       on.laptop=T
-       data.dir = '/media/deth/SLAB/seasonality/other/rf_vars'
-       analysis.dir = '/media/deth/SLAB/seasonality/other/rf_vars'
+  on.laptop=T
+  data.dir = '/media/deth/SLAB/seasonality/other/rf_vars'
+  analysis.dir = '/media/deth/SLAB/seasonality/other/rf_vars'
   # if on Savio
 } else {
-       on.laptop=F
-       data.dir = '/global/scratch/users/drewhart/seasonality/'
-       analysis.dir = '/global/scratch/users/drewhart/seasonality/'
-       # data.dir = '/global/home/groups/fc_landgen/' # directory for Lauren
-       # analysis.dir = '/global/home/users/ldimaggio/ondemand/' # directory for Lauren
+  on.laptop=F
+  data.dir = '/global/scratch/users/drewhart/seasonality/'
+  analysis.dir = '/global/scratch/users/drewhart/seasonality/'
+  # data.dir = '/global/home/groups/fc_landgen/' # directory for Lauren
+  # analysis.dir = '/global/home/users/ldimaggio/ondemand/' # directory for Lauren
 }
 
 # verbose?
@@ -113,38 +113,38 @@ include.coords = T
 # buffer - the minimum distance between output points
 # reps - the number of repetitions for the points selection
 buffer.f <- function(foo, buffer, reps){
-     # Make list of suitable vectors
-     suitable <- list()
+  # Make list of suitable vectors
+  suitable <- list()
   for(k in 1:reps){
-         # Make the output vector
-         outvec <- as.numeric(c())
-      # Make the vector of dropped (buffered out) points
-      dropvec <- c()
-          for(i in 1:nrow(foo)){
-                   # Stop running when all points exhausted
-                   if(length(dropvec)<nrow(foo)){
-                              # Set the rows to sample from
-                              if(i>1){
-                                           rowsleft <- (1:nrow(foo))[-c(dropvec)]
-              } else {
-                           rowsleft <- 1:nrow(foo)
-                      }
-              # Randomly select point
-              outpoint <- as.numeric(sample(as.character(rowsleft),1))
-                      outvec[i] <- outpoint
-                      # Remove points within buffer
-                      outcoord <- foo[outpoint,c("x","y")]
-                              dropvec <- c(dropvec, which(sqrt((foo$x-outcoord$x)^2 + (foo$y-outcoord$y)^2)<buffer))
-                              # Remove unnecessary duplicates in the buffered points
-                              dropvec <- dropvec[!duplicated(dropvec)]
-                                    }
-          }
-          # Populate the suitable points list
-          suitable[[k]] <- outvec
-            }
-    # Go through the iterations and pick a list with the most data
-    best <- unlist(suitable[which.max(lapply(suitable,length))])
-    foo[best,]
+    # Make the output vector
+    outvec <- as.numeric(c())
+    # Make the vector of dropped (buffered out) points
+    dropvec <- c()
+    for(i in 1:nrow(foo)){
+      # Stop running when all points exhausted
+      if(length(dropvec)<nrow(foo)){
+        # Set the rows to sample from
+        if(i>1){
+          rowsleft <- (1:nrow(foo))[-c(dropvec)]
+        } else {
+          rowsleft <- 1:nrow(foo)
+        }
+        # Randomly select point
+        outpoint <- as.numeric(sample(as.character(rowsleft),1))
+        outvec[i] <- outpoint
+        # Remove points within buffer
+        outcoord <- foo[outpoint,c("x","y")]
+        dropvec <- c(dropvec, which(sqrt((foo$x-outcoord$x)^2 + (foo$y-outcoord$y)^2)<buffer))
+        # Remove unnecessary duplicates in the buffered points
+        dropvec <- dropvec[!duplicated(dropvec)]
+      }
+    }
+    # Populate the suitable points list
+    suitable[[k]] <- outvec
+  }
+  # Go through the iterations and pick a list with the most data
+  best <- unlist(suitable[which.max(lapply(suitable,length))])
+  foo[best,]
 }
 
 
@@ -167,80 +167,80 @@ plot.ranger.import = function(ranger_rf){
 # function to make partial dependence plot
 # (adapted from: https://zia207.github.io/geospatial-r-github.io/geographically-wighted-random-forest.html)
 make.pdp = function(rf, trn, response, varn1, varn2, seed.num=NA){
-   # set seed, if requested
-   if (!is.na(seed.num)){
-      set.seed(seed.num)
-   }
-   # custom prediction functions
-   pred <- function(object, newdata)  {
-        results <- as.vector(predict(object, newdata))
-     return(results$predictions)
-       }
-   pdp_pred <- function(object, newdata)  {
-      results <- mean(as.vector(predict(object, newdata)))
-      return(results$predictions)
-   }
-   # get variable imporatnce (by % inc MSE when removed)
-   per.var.imp<-vip(
-                    rf,
-                    train = trn,
-                    method = "permute",
-                    target = response,
-                    metric = "RMSE",
-                    nsim = 5,
-                    sample_frac = 0.5,
-                    pred_wrapper = pred
-   )$data
-   print(per.var.imp)
-   # grab the two variables of interest (numbered by decreased importance by % inc MSE)
-   var.names=per.var.imp[1]
-   var_1=var.names[varn1,]$Variable
-   var_2=var.names[varn2,]$Variable
-   # get partial dependence of both vars
-   pd_var_1<- pdp::partial(
-                          rf,
-                          train = trn,
-                          pred.var = var_1,
-                          pred.fun = pdp_pred,
-                          parallel = T,
-                          grid.resolution = 10
-   )
-   pd_var_2<- pdp::partial(
-                          rf,
-                          train = trn,
-                          pred.var = var_2,
-                          pred.fun = pdp_pred,
-                          parallel = T,
-                          grid.resolution = 10
-   )
-   # create their autoplots
-   pd_1<-autoplot(pd_var_1,
-                  rug = TRUE,
-                  train=trn) +
-        theme(text = element_text(size=15))
-   pd_2<-autoplot(pd_var_2,
-                  rug = TRUE,
-                  train=trn) +
-        theme(text = element_text(size=15))
-   # bivaraite partial dependence and its autplot
-   pd_var_1_v_2<- pdp::partial(
-                                 rf,
-                                 train = trn,
-                                 pred.var = c(var_1, var_2),
-                                 pred.fun = pdp_pred,
-                                 parallel = F,
-                                 grid.resolution = 10
-   )
+  # set seed, if requested
+  if (!is.na(seed.num)){
+    set.seed(seed.num)
+  }
+  # custom prediction functions
+  pred <- function(object, newdata)  {
+    results <- as.vector(predict(object, newdata))
+    return(results$predictions)
+  }
+  pdp_pred <- function(object, newdata)  {
+    results <- mean(as.vector(predict(object, newdata)))
+    return(results$predictions)
+  }
+  # get variable imporatnce (by % inc MSE when removed)
+  per.var.imp<-vip(
+    rf,
+    train = trn,
+    method = "permute",
+    target = response,
+    metric = "RMSE",
+    nsim = 5,
+    sample_frac = 0.5,
+    pred_wrapper = pred
+  )$data
+  print(per.var.imp)
+  # grab the two variables of interest (numbered by decreased importance by % inc MSE)
+  var.names=per.var.imp[1]
+  var_1=var.names[varn1,]$Variable
+  var_2=var.names[varn2,]$Variable
+  # get partial dependence of both vars
+  pd_var_1<- pdp::partial(
+    rf,
+    train = trn,
+    pred.var = var_1,
+    pred.fun = pdp_pred,
+    parallel = T,
+    grid.resolution = 10
+  )
+  pd_var_2<- pdp::partial(
+    rf,
+    train = trn,
+    pred.var = var_2,
+    pred.fun = pdp_pred,
+    parallel = T,
+    grid.resolution = 10
+  )
+  # create their autoplots
+  pd_1<-autoplot(pd_var_1,
+                 rug = TRUE,
+                 train=trn) +
+    theme(text = element_text(size=15))
+  pd_2<-autoplot(pd_var_2,
+                 rug = TRUE,
+                 train=trn) +
+    theme(text = element_text(size=15))
+  # bivaraite partial dependence and its autplot
+  pd_var_1_v_2<- pdp::partial(
+    rf,
+    train = trn,
+    pred.var = c(var_1, var_2),
+    pred.fun = pdp_pred,
+    parallel = F,
+    grid.resolution = 10
+  )
   pd_1_v_2<-autoplot(pd_var_1_v_2, contour = TRUE) +
-      theme(text = element_text(size=15))
+    theme(text = element_text(size=15))
   # arrange plots in grid
   table_grob = grid.arrange(pd_1,pd_2,pd_1_v_2,
-               ncol= 3,
-               heights = c(40,8),
-               top = textGrob(paste0("Partial Dependence Plot: ",
-                                     var_1,
-                                     " vs. ",
-                                     var_2), gp=gpar(fontsize=25)))
+                            ncol= 3,
+                            heights = c(40,8),
+                            top = textGrob(paste0("Partial Dependence Plot: ",
+                                                  var_1,
+                                                  " vs. ",
+                                                  var_2), gp=gpar(fontsize=25)))
   return(table_grob)
 }
 
@@ -248,9 +248,9 @@ make.pdp = function(rf, trn, response, varn1, varn2, seed.num=NA){
 
 
 
-######################
-# LOAD AND SUBSET DATA
-######################
+####################
+# LOAD AND PREP DATA
+####################
 
 # load countries polygons (for use as a simple basemap)
 world = map_data('world')
@@ -282,8 +282,7 @@ df_full_unproj = read.csv(paste0(data.dir, "/asynch_model_all_vars_prepped.csv")
 #       IN MEANTIME, JUST OMITTING COORDS...
 df_full = df_full_unproj
 
-
-
+df_full = subset(df_full, select=-tmp.max.asy)
 
 
 
@@ -301,26 +300,26 @@ for (subset.frac in subset.fracs){
   cat('SUBSET FRAC: ', subset.frac, '\n\n')
   # subset the data
   if (subset.by.range){
-      # TODO: DEBUG, IF USING
-      # get cell coordinates in global equal-area projected CRS
-      xy = df_full[, c('x', 'y')]
-      coordinates(xy) = c('x', 'y')
-      xy_proj = spTransform(xy, proj4str='+init=epsg:8857')
-      # select a subset with all points >= 150km from other points
-      # (based on my previous estimation of the range of the spatial autocorrelation in the data)
-      df = buffer.f(as.data.frame(xy_proj@coords), buffer=150000, reps=1)
+    # TODO: DEBUG, IF USING
+    # get cell coordinates in global equal-area projected CRS
+    xy = df_full[, c('x', 'y')]
+    coordinates(xy) = c('x', 'y')
+    xy_proj = spTransform(xy, proj4str='+init=epsg:8857')
+    # select a subset with all points >= 150km from other points
+    # (based on my previous estimation of the range of the spatial autocorrelation in the data)
+    df = buffer.f(as.data.frame(xy_proj@coords), buffer=150000, reps=1)
   }
   else {
-      # take a stratified random sample, stratified by the response var
-      split_subset  <- initial_split(df_full, prop = subset.frac, strata = "phn.asy")
-      df = training(split_subset)
+    # take a stratified random sample, stratified by the response var
+    split_subset  <- initial_split(df_full, prop = subset.frac, strata = "phn.asy")
+    df = training(split_subset)
   }
   # get training and test data, using a stratified random sample
   split_strat  <- initial_split(df, prop = train.frac,
                                 strata = "phn.asy")
   trn  <- training(split_strat)
   tst  <- testing(split_strat)
-    #build a default ranger model
+  #build a default ranger model
   default.fit <- ranger(
     formula = phn.asy ~ .,
     data = trn[, 3:ncol(trn)],
@@ -344,7 +343,7 @@ for (subset.frac in subset.fracs){
     tst.rmse = NA
   )
   for(i in seq_len(nrow(hyper_grid))) {
-      # fit model for ith hyperparameter combination
+    # fit model for ith hyperparameter combination
     fit <- ranger(
       formula         = phn.asy ~ .,
       data            = trn[, 3:ncol(trn)],
@@ -372,7 +371,7 @@ for (subset.frac in subset.fracs){
     mutate(perc_gain = (default.rmse - rmse) / default.rmse * 100,
            perc_tst_gain = (default.tst.rmse - tst.rmse) / default.tst.rmse * 100,
            perc_rsq_inc = (default.fit$r.squared - r2) / default.fit$r.squared * 100,
-           )
+    )
   print(head(hyper_grid_complete, 50))
   # save tuning results
   write.csv(as.data.frame(hyper_grid),
@@ -385,7 +384,7 @@ for (subset.frac in subset.fracs){
 ntree = 300
 replace = F
 rf.sample.fraction = 0.8
-mtry = 4
+mtry = 5
 min.node.size = 1
 
 # and choose data subset based on output above
@@ -477,12 +476,12 @@ rf_global = ranger(phn.asy ~ .,
 print(rf_global)
 
 # var importance plots, with permutation based metric...
-p_imp_permut = plot.ranger.import(rf_permut)
+p_imp_permut = plot.ranger.import(rf_global)
 pfun <- function(object, newdata) {
   predict(object, data = newdata)$predictions
 }
 # ... and with SHAP values
-shap <- fastshap::explain(rf_permut, X = df[, 4:ncol(df)], pred_wrapper = pfun, nsim = 10)
+shap <- fastshap::explain(rf_global, X = df[, 4:ncol(df)], pred_wrapper = pfun, nsim = 10)
 shap_imp <- data.frame(
   Variable = names(shap),
   Importance = apply(shap, MARGIN = 2, FUN = function(x) sum(abs(x)))
@@ -492,11 +491,11 @@ p_imp_shap = ggplot(shap_imp, aes(reorder(Variable, Importance), Importance)) +
   coord_flip() +
   xlab("") +
   ylab("mean(|Shapley value|)")
-varimp_grob = grid.arrange(shap_imp, permut_imp, ncol=2)
+varimp_grob = grid.arrange(p_imp_shap, p_imp_permut, ncol=2)
 
 
-   ggsave(varimp_grop, file=paste0(data.dir, 'var_import_plots_permut_and_SHAP.png'),
-          width=45, height=35, units='cm', dpi=600)
+ggsave(varimp_grob, file=paste0(data.dir, 'var_import_plots_permut_and_SHAP.png'),
+       width=45, height=35, units='cm', dpi=600)
 
 
 # partial dependence plots
@@ -522,14 +521,14 @@ varimp_grob = grid.arrange(shap_imp, permut_imp, ncol=2)
 
 
 # assess model externally using withheld test data
-preds = predict(rf_permut, tst[,3:ncol(tst)])$predictions
+preds = predict(rf_global, tst[,3:ncol(tst)])$predictions
 tst$err = preds - tst[,'phn.asy']
 preds_plot = ggplot(tst) +
-    geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
-    geom_point(aes(x=x, y=y, col=err, alpha=abs(err)/max(abs(err))), size=1) +
-    scale_color_gradient2(low='#cc003d', mid='#dbdbdb', high='#009e64') +
-    #coord_map() +
-    theme_bw()
+  geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
+  geom_point(aes(x=x, y=y, col=err, alpha=abs(err)/max(abs(err))), size=1) +
+  scale_color_gradient2(low='#cc003d', mid='#dbdbdb', high='#009e64') +
+  #coord_map() +
+  theme_bw()
 preds_plot
 
 ggsave(preds_plot, file=paste0(data.dir, 'preds_plot.png'),
@@ -537,7 +536,7 @@ ggsave(preds_plot, file=paste0(data.dir, 'preds_plot.png'),
 
 
 # make predicitions for full dataset (to map as raster)
-full_preds = predict(rf_permut, df_full[,3:ncol(df_full)])$predictions
+full_preds = predict(rf_global, df_full[,3:ncol(df_full)])$predictions
 df.res = df_full %>% mutate(preds = full_preds, err = full_preds - df_full[,'phn.asy'])
 dfrast <- rasterFromXYZ(df.res[, c('x', 'y', 'phn.asy', 'preds', 'err')])
 re_df = as.data.frame(dfrast, xy=T)
@@ -545,54 +544,53 @@ colnames(re_df) = c('x', 'y', 'phn.asy', 'preds', 'err')
 asy.cbar.limits = quantile(re_df$phn.asy, c(0.01, 0.99), na.rm=T, type=8)
 err.cbar.limits = rep(max(abs(quantile(re_df$err, c(0.01, 0.99), na.rm=T, type=8))),2) * c(-1,1)
 obs_map = ggplot() +
-        geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
-        geom_raster(data=re_df, aes(x=x, y=y, fill=phn.asy)) +
-        #scale_fill_gradient2(low='#940500', mid='#f5f5f5', high='#00138f') +
-        scale_fill_cmocean(name='dense', direction=-1, limits=asy.cbar.limits) +
-        #coord_quickmap() +
-        theme_bw() +
-        theme(legend.key.size = unit(2, 'cm'),
-              legend.key.width = unit(1, 'cm'),
-              legend.text = element_text(size=13),
-              legend.title = element_text(size=16))
+  geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
+  geom_raster(data=re_df, aes(x=x, y=y, fill=phn.asy)) +
+  #scale_fill_gradient2(low='#940500', mid='#f5f5f5', high='#00138f') +
+  scale_fill_cmocean(name='dense', direction=-1, limits=asy.cbar.limits) +
+  #coord_quickmap() +
+  theme_bw() +
+  theme(legend.key.size = unit(2, 'cm'),
+        legend.key.width = unit(1, 'cm'),
+        legend.text = element_text(size=13),
+        legend.title = element_text(size=16))
 preds_map = ggplot() +
-        geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
-        geom_raster(data=re_df, aes(x=x, y=y, fill=preds)) +
-        #scale_fill_gradient2(low='#940500', mid='#f5f5f5', high='#00138f') +
-        scale_fill_cmocean(name='dense', direction=-1, limits=asy.cbar.limits) +
-        #coord_quickmap() +
-        theme_bw() +
-        theme(legend.key.size = unit(2, 'cm'),
-              legend.key.width = unit(1, 'cm'),
-              legend.text = element_text(size=13),
-              legend.title = element_text(size=16))
+  geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
+  geom_raster(data=re_df, aes(x=x, y=y, fill=preds)) +
+  #scale_fill_gradient2(low='#940500', mid='#f5f5f5', high='#00138f') +
+  scale_fill_cmocean(name='dense', direction=-1, limits=asy.cbar.limits) +
+  #coord_quickmap() +
+  theme_bw() +
+  theme(legend.key.size = unit(2, 'cm'),
+        legend.key.width = unit(1, 'cm'),
+        legend.text = element_text(size=13),
+        legend.title = element_text(size=16))
 err_map = ggplot() +
-        geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
-        geom_raster(data=re_df, aes(x=x, y=y, fill=err)) +
-        #scale_fill_gradient2(low='#940500', mid='#f5f5f5', high='#00138f') +
-        scale_fill_cmocean(name='curl', direction=-1, limits=err.cbar.limits) +
-        #coord_quickmap() +
-        theme_bw() +
-        theme(legend.key.size = unit(2, 'cm'),
-              legend.key.width = unit(1, 'cm'),
-              legend.text = element_text(size=13),
-              legend.title = element_text(size=16))
+  geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
+  geom_raster(data=re_df, aes(x=x, y=y, fill=err)) +
+  #scale_fill_gradient2(low='#940500', mid='#f5f5f5', high='#00138f') +
+  scale_fill_cmocean(name='curl', direction=-1, limits=err.cbar.limits) +
+  #coord_quickmap() +
+  theme_bw() +
+  theme(legend.key.size = unit(2, 'cm'),
+        legend.key.width = unit(1, 'cm'),
+        legend.text = element_text(size=13),
+        legend.title = element_text(size=16))
 obs_vs_pred = ggplot() +
-        geom_point(data=re_df, aes(x=phn.asy, y=preds), alpha=0.05) +
-        geom_abline(intercept=0, slope=1)
+  geom_point(data=re_df, aes(x=phn.asy, y=preds), alpha=0.05) +
+  geom_abline(intercept=0, slope=1)
 global_main_plots = cowplot::plot_grid(obs_map, preds_map, err_map, obs_vs_pred, nrow=2, ncol=2)
 global_main_plots
 
 # save plots and raster
 ggsave(global_grrf_main_plots, file=paste0(data.dir, 'global_grrf_main_plot.png'),
-          width=75, height=55, units='cm', dpi=500)
+       width=75, height=55, units='cm', dpi=500)
 
 writeRaster(dfrast,
-              paste0(data.dir, 'global_rf_map_results.tif'),
-              'GTiff',
-              overwrite = T
-  )
-
+            paste0(data.dir, 'global_rf_map_results.tif'),
+            'GTiff',
+            overwrite = T
+)
 
 # plot SHAP values
 p1 <- autoplot(shap)
@@ -606,19 +604,19 @@ p2 <- autoplot(shap, type = "dependence", feature = "tmp.min.asy", X = df[,3:nco
 gridExtra::grid.arrange(p1, p2, nrow = 1)
 
 # map SHAP values
-shap_full = fastshap::explain(rf_permut, X = df_full[, 4:ncol(df_full)], pred_wrapper = pfun, nsim = 10)
+shap_full = fastshap::explain(rf_global, X = df_full[, 4:ncol(df_full)], pred_wrapper = pfun, nsim = 10)
 df_shap_full = cbind(df_full[,c('x', 'y')], shap_full)
 df_shap_full_rast <- rasterFromXYZ(df_shap_full)
 names(df_shap_full_rast) = colnames(df_shap_full)[3:ncol(df_shap_full)]
 
 # save SHAP rasters
-  for (lyr in names(df_shap_rast_full)){
-    writeRaster(df_shap_full_rast,
-                paste0(data.dir, 'rf_SHAP_vals_', lyr, '.tif'),
-                'GTiff',
-                overwrite = T
-    )
-  }
+for (lyr in names(df_shap_full_rast)){
+  writeRaster(df_shap_full_rast[[lyr]],
+              paste0(data.dir, 'rf_SHAP_vals_', lyr, '.tif'),
+              'GTiff',
+              overwrite = T
+  )
+}
 
 
 ######################
@@ -631,40 +629,40 @@ names(df_shap_full_rast) = colnames(df_shap_full)[3:ncol(df_shap_full)]
 bw.local = 150
 ntree.local = ntree
 replace.local = replace
-rf.samp.frac.local = rf.samp.frac
+rf.sample.fraction.local = rf.sample.fraction
 mtry.local = mtry
 
 coords = trn[,c('x', 'y')]
 
-grf.model <- SpatialML::grf(formula=phn.asy ~ tmp.min.asy + tmp.max.asy + tmp.min.mea +
-                               ppt.asy + ppt.sea + def.asy + cld.asy +
-                               vrm.med + riv.dis + eco.dis,
-                 dframe=trn[, 3:ncol(trn)],
-                 bw=bw.local,
-                 kernel="adaptive",
-                 ntree=ntree.local,
-                 mtry=mtry.local,
-                 forests = TRUE,
-                 coords=coords,
-                 importance = TRUE
-                 )
+rf_local <- SpatialML::grf(formula=phn.asy ~ tmp.min.asy + tmp.min.mea +
+                             ppt.asy + ppt.sea + def.asy + cld.asy +
+                             vrm.med + riv.dis + eco.dis,
+                           dframe=trn[, 3:ncol(trn)],
+                           bw=bw.local,
+                           kernel="adaptive",
+                           coords=coords,
+                           ntree=ntree.local,
+                           mtry=mtry.local,                 
+                           importance = TRUE,
+                           forests = FALSE
+)
 
 # global model summary
-glob.imp = as.data.frame(randomForest::importance(grf.model$Global.Model, type=1)) # %IncMSE
+glob.imp = as.data.frame(randomForest::importance(rf_local$Global.Model, type=1)) # %IncMSE
 colnames(glob.imp) = c('pct.inc.mse')
 glob.imp = glob.imp %>% arrange(desc(pct.inc.mse))
 
-print(paste0('GLOBAL MODEL MSE: ', mean(grf.model$Global.Model$mse)))
+print(paste0('GLOBAL MODEL MSE: ', mean(rf_local$Global.Model$mse)))
 
-print(paste0('GLOBAL MODEL Rsq: ', mean(grf.model$Global.Model$rsq)))
+print(paste0('GLOBAL MODEL Rsq: ', mean(rf_local$Global.Model$rsq)))
 
 
 # local model summary and variable importance
-print(grf.model$LocalModelSummary)
+print(rf_local$LocalModelSummary)
 
 #imp.var.to.use = "Local.Pc.IncMSE"
 imp.var.to.use = "Local.IncNodePurity"
-var.imp.loc = grf.model[[imp.var.to.use]]
+var.imp.loc = rf_local[[imp.var.to.use]]
 
 # plot local var importance, with plots in order of decreasing global var imp
 plots = lapply(seq(nrow(glob.imp)), function(n){
@@ -672,46 +670,46 @@ plots = lapply(seq(nrow(glob.imp)), function(n){
   glob.imp.val = glob.imp[var,]
   cbar.limits = rep(max(abs(quantile(var.imp.loc[,var], c(0.01, 0.99), na.rm=T, type=8))),2) * c(-1,1)
   p = ggplot() +
-     geom_polygon(data=world, aes(x=long, y=lat, group=group),
-                                  color="black", fill="white" ) +
-     geom_point(aes(x=trn$x, y=trn$y, col=var.imp.loc[,var]), alpha=0.5, size=0.75) +
-     scale_color_cmocean(name='curl', direction=-1, limits=cbar.limits) +
-     ggtitle(paste0(var, ": Global ", imp.var.to.use, ": ", glob.imp.val)) +
-     labs(col=var)
+    geom_polygon(data=world, aes(x=long, y=lat, group=group),
+                 color="black", fill="white" ) +
+    geom_point(aes(x=trn$x, y=trn$y, col=var.imp.loc[,var]), alpha=0.5, size=0.75) +
+    scale_color_cmocean(name='curl', direction=-1, limits=cbar.limits) +
+    ggtitle(paste0(var, ": Global ", imp.var.to.use, ": ", glob.imp.val)) +
+    labs(col=var)
   return(p)
 })
-local_rf_main_plots = grid.arrange(plots[[1]], plots[[2]], plots[[3]],
-             plots[[4]], plots[[5]], plots[[6]],
-             plots[[7]], plots[[8]], plots[[9]],
-             plots[[10]],
-             ncol=4)
 
-ggsave(local_rf_main_plots, file='local_rf_main_plot.png',
-          width=75, height=55, units='cm', dpi=1000)
+for (plot_i in seq(length(plots))){
+  plot = plots[[i]]
+  name = colnames(trn)[4:ncol(trn)][i]
+  ggsave(plot, file=paste0('rf_local_var_import_map_', name, '.png'),
+         width=75, height=55, units='cm', dpi=700)  
+}
+
 
 
 
 # map goodness of fit
-gof.loc = grf.model$LGofFit
+gof.loc = rf_local$LGofFit
 
 # plot local var importance, with plots in order of decreasing global var imp
 plots = lapply(seq(ncol(gof.loc)), function(n){
   var = colnames(gof.loc)[n]
   cbar.limits = rep(max(abs(quantile(gof.loc[,var], c(0.01, 0.99), na.rm=T, type=8))),2) * c(-1,1)
   p = ggplot() +
-     geom_polygon(data=world, aes(x=long, y=lat, group=group),
-                                  color="black", fill="white" ) +
-     geom_point(aes(x=grf.model$Locations[,1], y=grf.model$Locations[,2],
-                    col=gof.loc[,var]), alpha=0.5, size=0.75) +
-     scale_color_cmocean(name='curl', direction=-1, limits=cbar.limits) +
-     ggtitle(paste0("GoF metric: ", var)) +
-     labs(col=var)
+    geom_polygon(data=world, aes(x=long, y=lat, group=group),
+                 color="black", fill="white" ) +
+    geom_point(aes(x=rf_local$Locations[,1], y=grf.model$Locations[,2],
+                   col=gof.loc[,var]), alpha=0.5, size=0.75) +
+    scale_color_cmocean(name='curl', direction=-1, limits=cbar.limits) +
+    ggtitle(paste0("GoF metric: ", var)) +
+    labs(col=var)
   return(p)
 })
 local_rf_gof_plots = grid.arrange(plots[[1]], plots[[2]], plots[[3]],
-             plots[[4]], plots[[5]], plots[[6]], plots[[7]],
-             ncol=4)
+                                  plots[[4]], plots[[5]], plots[[6]], plots[[7]],
+                                  ncol=4)
 
-   ggsave(local_rf_main_plots, file='local_rf_gof_plot.png',
-          width=75, height=55, units='cm', dpi=1000)
+ggsave(local_rf_main_plots, file='rf_local_gof_plot.png',
+       width=75, height=55, units='cm', dpi=1000)
 

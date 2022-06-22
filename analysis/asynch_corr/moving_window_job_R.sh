@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=semivar
+#SBATCH --job-name=window
 #
 # Account:
 #SBATCH --account=fc_landgen

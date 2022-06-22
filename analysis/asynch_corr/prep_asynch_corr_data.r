@@ -130,10 +130,6 @@ phn.asy = read.file('NIRv', T)
 tmp.min.asy = read.file('tmmn', asynch.file=T,
                     align.to=phn.asy, mask.it=F)
 
-# asynchrony in max temperature
-tmp.max.asy = read.file('tmmx', asynch.file=T,
-                    align.to=phn.asy, mask.it=F)
-
 # 50km neighborhood mean daily min temp, coldest month
 tmp.min.nmn = read.file('CHELSA_bio6_1981-2010_V.2.1_5km_10CELLRAD_NEIGHMEAN',
                         asynch.file=F, align.to=phn.asy, mask.it=F)
@@ -187,7 +183,7 @@ eco.dis = raster::mask(eco.dis, phn.asy)
 ###########
 
 # gather into a stack
-vars = stack(phn.asy, tmp.min.asy, tmp.max.asy, tmp.min.nmn,
+vars = stack(phn.asy, tmp.min.asy, tmp.min.nmn,
              ppt.asy, ppt.sea.nsd, def.asy, cld.asy, vrm.med,
              riv.dis, eco.dis)
 
@@ -197,7 +193,7 @@ if (on.laptop){
 }
 
 # rename all bands 
-names = c('phn.asy', 'tmp.min.asy', 'tmp.max.asy',
+names = c('phn.asy', 'tmp.min.asy',
           'tmp.min.nmn', 'ppt.asy',
           'ppt.sea.nsd', 'def.asy', 'cld.asy', 'vrm.med',
           'riv.dis', 'eco.dis')
