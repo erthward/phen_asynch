@@ -18,8 +18,6 @@ import re, os
 
 """
 TODO:
-- replace SIF_coeffs.tif with both that and NIRvP_coeffs.tif from final
-  data, then rerun
 
 - how to test sig?? just permuting doesn't sound adequate at all? use DTW with
 global constraints to not allow warping across time, so as not to lose signal
@@ -37,10 +35,10 @@ max_neigh_cell_dist = 2 # at our 0.05deg res, this is up to ~10km away...
 seed = 1
 np.random.seed(seed)
 
-rs_var = 'SIF'
-#rs_var = 'NIRvP'
+#rs_var = 'SIF'
+rs_var = 'NIRv'
 rs_var_units = {'SIF': '$mW\ m^{-2}\ sr^{-1}\ nm^{-1}$',
-                       'NIRvP': '$nmol\ m^{-2}\ s^{-1}'
+                       'NIRv': '$nmol\ m^{-2}\ s^{-1}'
                }
 
 
@@ -55,7 +53,7 @@ local_datadir = ('/home/deth/Desktop/CAL/research/projects/'
 mount_datadir = ('/media/deth/SLAB/seasonality/other/flux')
 
 # indicate the RS-based coefficients TIFF to validate
-rs_coeffs_tiff = os.path.join(mount_datadir, '%s_coeffs.tif' % rs_var)
+rs_coeffs_tif = os.path.join(mount_datadir, '%s_global_coeffs.tif' % rs_var)
 
 # variables that differ between main FLUXNET sites and CH4 sites
 # (indexed by the filename patterns that distinguish between the two types)
@@ -67,8 +65,8 @@ response_vars = {'CH4': 'GPP_DT',
 sites = pd.read_csv('./FLUXNET_sites.csv')
 
 # load the RS-based seasonality coeffs file, to be validated
-def load_rs_coeffs(rs_coeffs_tiff):
-    rs_coeffs = rxr.open_rasterio(rs_coeffs_tiff)
+def load_rs_coeffs(rs_coeffs_tif):
+    rs_coeffs = rxr.open_rasterio(rs_coeffs_tif)
     # NOTE: already in WGS84 latlon, and I'll just be extracting using
     #       latlon, so no need to transform
     return rs_coeffs
@@ -233,7 +231,7 @@ def predict_rs_detretend_vals(coeffs_rast, x, y, design_mat,
 
     # normalize it
     if normalize:
-        pred = normalize_ts(pred)
+        pred = normalize_data(pred)
 
     # pair it with a date range object, then make into a df
     dates = pd.date_range(start='1/1/2021', end='12/31/2021')
@@ -355,6 +353,9 @@ def process_site_data(zip_filename,
     gpp['ann'] = 2*np.pi*np.array([*gpp['doy']])/365
     gpp['sem'] = 2*np.pi*np.array([*gpp['doy']])/(365/2)
 
+    # save length of GPP time series being used for the regression (in years)
+    gpp_ts_len = len(gpp)/365
+
     # fit the regression, then add the predicted, detrended vals col
     reg = fit_harmonic_regression(gpp, response_var)
 
@@ -364,7 +365,7 @@ def process_site_data(zip_filename,
     if delete_after_finished:
         os.remove(csv_filename)
 
-    return gpp
+    return gpp, gpp_ts_len
 
 
 # get and compare flux-based and RS-based predicted GPP values for a site
@@ -390,11 +391,13 @@ def compare_rs_flux_predicted_vals(zip_filename, coeffs_rast, design_mat,
         dist = np.nan
         r2 = np.nan
         flux_pred_df = rs_pred = None
+        gpp_ts_len = np.nan
 
     else:
 
-        # get df with fluxnet-predicted seasonality
-        flux_pred_df = process_site_data(zip_filename,
+        # get df with fluxnet-predicted seasonality,
+        # and length of GPP time series being used to fit the regression
+        flux_pred_df, gpp_ts_len = process_site_data(zip_filename,
                                          normalize=normalize,
                                          filter_start_date=filter_start_date,
                                          filter_end_date=filter_end_date,
@@ -454,6 +457,7 @@ def compare_rs_flux_predicted_vals(zip_filename, coeffs_rast, design_mat,
                    'dist': dist,
                    'r2': r2,
                    'cell_dist': cell_dist,
+                   'gpp_ts_len': gpp_ts_len,
                    'notes': np.nan,
                   }
 
@@ -461,7 +465,7 @@ def compare_rs_flux_predicted_vals(zip_filename, coeffs_rast, design_mat,
 
 
 # load the rs-derived coefficients (fitted on GEE)
-coeffs_rast = load_rs_coeffs(rs_coeffs_tiff)
+coeffs_rast = load_rs_coeffs(rs_coeffs_tif)
 
 # make design matrix used to estimate rs-based coeffs' fitted seasonality
 design_mat = make_design_matrix()
@@ -478,6 +482,7 @@ results = {'id': [],
            'dist': [],
            'r2': [],
            'cell_dist': [],
+           'gpp_ts_len': [],
            'notes': [],
           }
 
@@ -508,6 +513,7 @@ for zip_filename in zip_filenames:
                   'dist': np.nan,
                   'r2': np.nan,
                   'cell_dist': np.nan,
+                  'gpp_ts_len': np.nan,
                   'notes': e
                  }
 
@@ -543,13 +549,12 @@ scat = ax1.scatter(results_df['lon'],
                   c = results_df['r2'],
                   cmap='plasma_r',
                   alpha=0.75,
-                  s=normalize_data(1-results_df['r2'], 10, 150),
+                  s=normalize_data(results_df['gpp_ts_len'], 10, 150),
                   edgecolor='black',
                   linewidth=0.75)
 plt.colorbar(scat, cax=cax1)
 fig1.suptitle(('$R^2$ between RS-fitted seasonality '
-              'and fitted FLUXNET GPP seasonality'),
-             fontdict={'fontsize':20})
+              'and fitted FLUXNET GPP seasonality'))
 
 
 whittaker = pd.read_csv('whittaker_biomes.csv', sep=';')
@@ -557,52 +562,52 @@ whittaker['temp_c'] = whittaker['temp_c'].apply(lambda x:
                                             float(x.replace(',', '.')))
 whittaker['precp_mm'] = whittaker['precp_cm'].apply(lambda x:
                                             float(x.replace(',', '.'))*10)
+
+
+def add_label_newline(label):
+    if ' ' in label and label not in ['Woodland & shrubland',
+                                      'Temperate grassland & desert']:
+        label = '\n'.join(label.split(' '))
+    return label
+
+
 biomes = []
+biome_labels = []
 centroids = []
 patches = []
-
 for biome in whittaker['biome'].unique():
     subwhit = whittaker[whittaker.biome == biome].loc[:, ['temp_c', 'precp_mm']].values
     centroids.append(np.mean(subwhit, axis=0))
     poly = Polygon(subwhit, True)
     patches.append(poly)
-    biomes.append(re.sub('/', '/\n', biome))
-
-#colors = ['#80fffd', # tundra
-#          '#2b422f', # boreal forest
-#          '#ebe157', # temperate grassland/desert
-#          '#ab864b', # woodland/shrubland
-#          '#17a323', # temperate seasonal forest
-#          '#13916b', # temperate rain forest
-#          '#00a632', # tropical rain forest
-#          '#c2d69a', # tropical seasonal forest/savanna
-#          '#e3a107', # subtropical desert
-#         ]
-#colors = np.array(colors)
+    biomes.append(biome)
+    biome_labels.append(biome.replace('/', ' & '))
 
 colors = 255 * np.linspace(0, 1, len(patches))
 p = PatchCollection(patches, alpha=0.4, edgecolor='k', cmap='Pastel1')
 p.set_array(colors)
-fig2, ax2 = plt.subplots(1, 1)
+fig2 = plt.figure(figsize=(13,12))
+ax2 = fig2.add_subplot(1, 1, 1)
 divider = make_axes_locatable(ax2)
 cax2 = divider.append_axes('right', size='5%', pad=0.1)
 ax2.add_collection(p)
-
-for b,c in zip(biomes, centroids):
-    ax2.text(c[0], c[1], b)
-
+for lab,c in zip(biome_labels, centroids):
+    ax2.text(c[0], c[1], add_label_newline(lab), size=16)
 scat = ax2.scatter(results_df['mat'],
            results_df['map'],
            c = results_df['r2'],
-           s=normalize_data(1-results_df['r2'], 10, 150),
+           s=normalize_data(results_df['gpp_ts_len'], 10, 150),
            cmap='plasma_r')
-
-plt.colorbar(scat, cax=cax2)
+cbar = plt.colorbar(scat, cax=cax2)
+cbar.set_label('$R^2$', fontdict={'fontsize': 16})
+cbar.ax.tick_params(labelsize=12)
 ax2.set_xlabel('MAT ($^{\circ}C$)',
               fontdict={'fontsize': 16})
 ax2.set_ylabel('MAP ($mm$)',
               fontdict={'fontsize': 16})
-fig2.suptitle(('$R^2$ between RS-fitted seasonality '
-              'and fitted FLUXNET GPP seasonality, vs MAT and MAP'))
-
+#fig2.suptitle(('$R^2$ between RS-fitted seasonality '
+#              'and fitted FLUXNET GPP seasonality, vs MAT and MAP'))
+ax2.tick_params(labelsize=14)
+fig2.subplots_adjust(top=0.98, bottom=0.06, left=0.07, right=0.94)
 plt.show()
+fig2.savefig('flux_val_results_MAT_MAP.png', dpi=600)

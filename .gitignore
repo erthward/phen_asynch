@@ -1,8 +1,10 @@
 **/__pycache__
 calc_asynchrony/__pycache__/
 *.tif
+*.tif.aux.xml
 *.csv
 *.xlsx
+*.docx
 *.html
 *.png
 *.gif
