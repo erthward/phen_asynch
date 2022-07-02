@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import xarray as xr
 import rioxarray as rxr
@@ -6,14 +7,14 @@ from collections import Counter as C
 import os
 
 # set working directory
-data_dir = '/media/deth/SLAB/seasonality/tmp_SHAP_rasters'
+data_dir = '/media/deth/SLAB/seasonality/results/'
 
 # get CSV Shapley results
-csv = pd.read_csv(os.path.join(data_dir, '/rf_SHAP_vals_w_coords.csv'))
+csv = pd.read_csv(os.path.join(data_dir, 'rf_SHAP_vals_w_coords.csv'))
 
 # get sorted unique lon and lat values
-xs = sort(np.unique(df.x))
-ys = sort(np.unique(df.y))
+xs = np.sort(np.unique(csv.x))
+ys = np.sort(np.unique(csv.y))
 
 # get stepwise diffs between sorted lon and lat values
 x_diffs = C(np.round(xs[1:] - xs[:-1], 3))
@@ -40,11 +41,13 @@ X, Y = np.meshgrid(np.arange(x_min, x_max+x_res, x_res),
                    np.arange(y_min, y_max+y_res, y_res))
 
 # make all SHAP-value rasters
-for col in [col for col in df.columns if col not in ['x', 'y']][:1]:
+for col in [col for col in csv.columns if col not in ['x', 'y']]:
+    print('\n' + '='*80 + '\nNOW RASTERIZING %s:\n\n' % col)
     # make placeholder array for raster values
     vals = np.ones(X.shape) * np.nan
-    for n, row in df.iterrows():
-        print('\nrow number %i...\n\n' % n)
+    for n, row in csv.iterrows():
+        if n % 100000 == 0:
+            print('\nrow number %i of %i...\n\n' % (n, len(csv)))
         i = np.where(np.round(Y[:, 0], 3) == np.round(row['y'], 3))[0][0]
         j = np.where(np.round(X[0, :], 3) == np.round(row['x'], 3))[0][0]
         vals[i,j] = row[col]
