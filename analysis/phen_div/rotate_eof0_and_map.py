@@ -10,7 +10,7 @@ import mpl_toolkits.axisartist.floating_axes as floating_axes
 from matplotlib.colors import LinearSegmentedColormap
 from colorsys import hls_to_rgb
 from sklearn.metrics.pairwise import pairwise_distances_argmin
-from sklearn.cluster import MiniBatchKMeans, KMeans
+from sklearn.cluster import MiniBatchKMeans, KMeans, DBSCAN
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from colormap import rgb2hex
@@ -18,6 +18,7 @@ from copy import deepcopy
 import matplotlib as mpl
 import rioxarray as rxr
 from scipy import stats
+from scipy.signal import argrelextrema
 import seaborn as sns
 import pandas as pd
 import numpy as np
@@ -30,6 +31,8 @@ import helper_fns as hf
 
 #############################################################################
 # TODO:
+
+    # think through and decide best clustering algo for this (Spectral? DBSCAN?)
 
     # can I empirically figure out the amount of color 'deflation' as a
         # function of latitude, then multiply weighted-sum values by that to
@@ -66,38 +69,76 @@ eofs_pcts = [70, 17, 8]
 
 # define focal region bounding bboxes
 reg_bboxes = {
-          'CA': [-1.06e7, 4.6e6, -0.985e7, 2.87e6], # CA Mediterranean and Baja
-          'QU': [1.32e7, -1.38e6, 1.373e7, -2.55e6], # N. Queensland peninsula
-          'AM': [-6.3e6, -2e5, -5.8e6, -5.5e5], # upper Amazon river basin
-          'AD': [-5.47e6, 3e5, -4.6e6, -6.35e5], # NE Arc of Deforestation
-          'FL': [-7.525e6, 3.53e6, -7.25e6, 3.13e6], # South Florida
-          #'CH': [-6.6e6, -3.6e6, -4.75e6, -5.75e6], # Chile Mediterranean
-          #'SA': [1.3e6, -3.35e6, 2.7e6, -3.8e6], # S. Africa Mediterranean
-          #'ME': [-1.5e6, 5.65e6, 7e6, -2.5e6], # actual Mediterranean
-          #'AU': [1e7, -3.25e6, 1.36e7, -5.375e6], # Australia Mediterranean
-         }
+              'Qu': [1.32e7, -1.38e6, 1.373e7, -2.55e6], # N. Queensland peninsula
+              'AD': [-5.47e6, 3.1e5, -4.6e6, -0.6e6], # NE Arc of Deforestation
+              'CA': [-1.06e7, 4.6e6, -0.985e7, 2.87e6], # CA Mediterranean and Baja
+              'SAm':[-7.74e6, -0.6e6, -3.34e6, -2.3e6], # S. America cross-section
+              'Af': [0.95e6, -0.5e6, 4.8e6, -2.3e6], # African cross-section
+              'FL': [-7.525e6, 3.53e6, -7.25e6, 3.13e6], # South Florida
+              'SAf':[1.52e6, -3.8e6, 2.14e6, -4.325e6], # S. Africa Mediterranean
+              'Au': [1.008e7, -3.16e6, 1.09e7, -4.4e6], # Australia Mediterranean
+             }
 # define focal region gridspec indices
 # NOTE: [[i_min, i_max], [j_min, j_max]]
-reg_gsinds = {'QU': [[60, 90], [175, 195]],
-              'AM': [[40, 60], [10, 30]],
-              'AD': [[60, 90], [35, 55]],
-              'FL': [[30, 60], [160, 180]],
-              'CA': [[0, 30], [0, 30]],
+reg_gsinds = {
+              'Qu': [[0, 30], [180, 200]],
+              'AD': [[25, 45], [30, 50]],
+              'CA': [[0, 40], [0, 30]],
+              'SAm':[[65, 85], [22, 94]],
+              'Af': [[65, 85], [84, 148]],
+              'FL': [[60, 90], [0, 20]],
+              'SAf':[[70, 90], [150, 170]],
+              'Au': [[50, 80], [175, 195]],
              }
-reg_gsinds_lines = {'QU': [[90, 100], [175, 195]],
-                    'AM': [[60, 70], [10, 30]],
-                    'AD': [[90, 100], [35, 55]],
-                    'FL': [[60, 70], [160, 180]],
-                    'CA': [[30, 40], [5, 25]],
+# define gridspec indices for axes to plot line plots
+# NOTE: should always be 10 indices tall and 20 wide
+reg_gsinds_lines = {
+              'Qu': [[30, 40], [180, 200]],
+              'AD': [[45, 55], [30, 50]],
+              'CA': [[40, 50], [5, 25]],
+              'SAm':[[85, 95], [48, 68]],
+              'Af': [[85, 95], [106, 126]],
+              'FL': [[90, 100], [0, 20]],
+              'SAf':[[90, 100], [150, 170]],
+              'Au': [[80, 90], [175, 195]],
                    }
 # NOTE: K VALUES WERE DETERMINED BY MANUAL INSPECTION OF SCREE PLOTS
-#       USING THE run_kmeans_clust FN WITH scree=True
-reg_K_vals = {'QU': 3,
-          'AM': 4,
-          'AD': 3,
-          'FL': 3,
-          'CA': 4,
-         }
+#       USING THE run_clust FN WITH scree=True
+reg_K_vals = {
+              'Qu': 3,
+              'AD': 3,
+              'CA': 4,
+              'SAm':5,
+              'Af': 5,
+              'FL': 3,
+              'SAf':5,
+              'Au': 5,
+             }
+reg_letters = {
+              'Qu': 'E.',
+              'AD': 'D.',
+              'CA': 'B.',
+              'SAm':'H.',
+              'Af': 'I.',
+              'FL': 'C.',
+              'SAf':'G.',
+              'Au': 'F.',
+            }
+# locations of region letter labels, expressed in fractions along x,y axes from top left
+reg_lett_locs = {
+              'Qu': (0.05, 0.9),
+              'AD': (0.8, 0.8),
+              'CA': (0.05, 0.05),
+              'SAm':(0.05, 0.05),
+              'Af': (0.9, 0.87),
+              'FL': (0.05, 0.05),
+              'SAf':(0.02, 0.05),
+              'Au': (0.05, 0.9),
+            }
+assert (len(reg_bboxes) == len(reg_gsinds) ==
+        len(reg_gsinds_lines) == len(reg_K_vals))
+assert ([*reg_bboxes.keys()] == [*reg_gsinds.keys()] ==
+        [*reg_gsinds_lines.keys()] == [*reg_K_vals.keys()])
 
 # rescale each layer 0-1
 for i in range(eofs.shape[0]):
@@ -150,19 +191,16 @@ def strip_axes(ax):
 
 
 # define xlims for global map
-global_xlim = (0.90 * eofs_wt_sum_for_map.x.min(),
+global_xlim = (0.80 * eofs_wt_sum_for_map.x.min(),
                0.95 * eofs_wt_sum_for_map.x.max())
 
 
-# create figure
-dims = (20, 10)
-fig_main = plt.figure(figsize=(20,10))
-gs = fig_main.add_gridspec(*[10*dim for dim in dims[::-1]]) # NOTE: REV ORDER OF FIGSIZE
+# create EOF fig
+fig_eof = plt.figure(figsize=(20,30))
+
 # maps EOFS 1 (lat-weighted sum), 2, and 3
-eofs_rows = [[0, 30], [0, 15], [15, 30]]
-eofs_cols = [[30, 100], [100, 170], [100,170]]
-for i, rows, cols in zip(range(3), eofs_rows, eofs_cols):
-    ax_eof = fig_main.add_subplot(gs[rows[0]:rows[1], cols[0]:cols[1]])
+for i in range(3):
+    ax_eof = fig_eof.add_subplot(3,1,i+1)
     if i == 0:
         eofs_for_map = eofs.rio.write_crs(4326)
         eofs_for_map = eofs_for_map.rio.reproject(8857)
@@ -193,10 +231,21 @@ for i, rows, cols in zip(range(3), eofs_rows, eofs_cols):
     ax_eof.set_xlim(global_xlim)
     ax_eof.set_ylim(eofs_wt_sum_for_map.rio.bounds()[1::2])
     ax_eof.text(0.92*ax_eof.get_xlim()[0], 0.92*ax_eof.get_ylim()[0],
-                'EOF %i\n%0.1f%%' % (i, eofs_pcts[i]),
-                fontdict={'fontsize': 14})
+                'EOF %i\n%0.1f%%' % (i+1, eofs_pcts[i]),
+                fontdict={'fontsize': 38})
+fig_eof.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98,
+                        hspace=0.05)
+fig_eof.savefig('ch3_fig_EOF_maps.png', dpi=700)
+
+
+# create main figure
+dims = (20, 10)
+fig_main = plt.figure(figsize=(20,10))
+gs = fig_main.add_gridspec(*[10*dim for dim in dims[::-1]]) # NOTE: REV ORDER OF FIGSIZE
+
+
 # plot the RGB map of EOFs 1-3 together
-ax_rgb = fig_main.add_subplot(gs[35:, 35:165])
+ax_rgb = fig_main.add_subplot(gs[:65, 35:165])
 eofs_wt_sum_for_map.plot.imshow(ax=ax_rgb,
                                     add_colorbar=False,
                                     alpha=1,
@@ -212,18 +261,26 @@ countries.plot(color='none',
 strip_axes(ax_rgb)
 ax_rgb.set_xlim(global_xlim)
 ax_rgb.set_ylim(eofs_wt_sum_for_map.rio.bounds()[1::2])
+ax_rgb.text(ax_rgb.get_xlim()[0]+0.01*np.diff(ax_rgb.get_xlim())[0],
+            ax_rgb.get_ylim()[0]+0.95*np.diff(ax_rgb.get_ylim())[0],
+            'A.',
+            size=20,
+            weight='bold',
+           )
 
 
 ####################
 # PLOT FOCAL REGIONS
 #################### 
 
-def run_kmeans_clust(eofs_rast, coeffs_rast, reg,
-                     k=None, k_max=12,
-                     batch_size=40, n_init=10, max_no_improvement=10, seed=None,
-                     n_clust_neighs=50,
-                     plot_scree=False,
-                     map_clusters=False, ax_lines=None):
+def run_clust(eofs_rast, coeffs_rast, reg,
+              clust_algo='kmeans',
+              k=None, k_max=12,
+              batch_size=40, n_init=10, max_no_improvement=10, seed=None,
+              n_clust_neighs=50,
+              plot_envelope=False,
+              plot_scree=False,
+              map_clusters=False, ax_lines=None):
     if seed is not None:
         np.random.seed(seed)
     if plot_scree:
@@ -245,16 +302,17 @@ def run_kmeans_clust(eofs_rast, coeffs_rast, reg,
         # with within-cluster SoS recorded for each K
         wcss = []
         for k_val in k:
-            mbk = MiniBatchKMeans(
-                init="k-means++",
-                n_clusters=k_val,
-                batch_size=batch_size,
-                n_init=n_init,
-                max_no_improvement=max_no_improvement,
-                verbose=0,
-             )
-            mbk.fit(eofs_X_sub)
-            wcss.append(mbk.inertia_)
+            if clust_algo == 'kmeans':
+                clust = MiniBatchKMeans(
+                    init="k-means++",
+                    n_clusters=k_val,
+                    batch_size=batch_size,
+                    n_init=n_init,
+                    max_no_improvement=max_no_improvement,
+                    verbose=0,
+                )
+            clust.fit(eofs_X_sub)
+            wcss.append(clust.inertia_)
         fig_scree, ax_scree = plt.subplots(1,1)
         ax_scree.plot(range(1, k_max+1), wcss)
         ax_scree.set_title(reg, fontdict={'fontsize': 24})
@@ -263,17 +321,18 @@ def run_kmeans_clust(eofs_rast, coeffs_rast, reg,
     # else just run clustering for the given value of k
     else:
         # run K means for that value
-        mbk = MiniBatchKMeans(
-                init="k-means++",
-                n_clusters=k,
-                batch_size=batch_size,
-                n_init=n_init,
-                max_no_improvement=max_no_improvement,
-                verbose=0,
-             )
-        mbk.fit(eofs_X_sub)
+        if clust_algo == 'kmeans':
+            clust = MiniBatchKMeans(
+                    init="k-means++",
+                    n_clusters=k,
+                    batch_size=batch_size,
+                    n_init=n_init,
+                    max_no_improvement=max_no_improvement,
+                    verbose=0,
+                )
+        clust.fit(eofs_X_sub)
     # get colors for cluster centers
-    center_colors = [rgb2hex(*np.int32(mbk.cluster_centers_[i,
+    center_colors = [rgb2hex(*np.int32(clust.cluster_centers_[i,
                                                    :]*255)) for i in range(k)]
     cmap = mpl.colors.ListedColormap(center_colors)
     # prep the coeffs vals the same way
@@ -283,7 +342,7 @@ def run_kmeans_clust(eofs_rast, coeffs_rast, reg,
     # map the clusters, if requested
     if map_clusters:
         cluster_arr = np.ones([eofs_X.shape[0], 1])*np.nan
-        cluster_arr[eofs_non_nans,0] = mbk.labels_
+        cluster_arr[eofs_non_nans,0] = clust.labels_
         clusters = cluster_arr.reshape(eofs_vals[:,:,0].shape)
         clusters_rxr = deepcopy(eofs_rast[0])
         clusters_rxr[:,:] = clusters
@@ -301,11 +360,11 @@ def run_kmeans_clust(eofs_rast, coeffs_rast, reg,
         fig_clust_map.show()
         return
     # else, for each clust cent, find n_clust_neighs cells closest in RGB space
-    for i, c in enumerate(mbk.cluster_centers_):
+    for i, c in enumerate(clust.cluster_centers_):
         # TODO: make separate axes for line plot
         dists = []
-        clust_member_coords = eofs_X_sub[mbk.labels_ == i,:]
-        clust_member_coeffs = coeffs_X_sub[mbk.labels_ == i,:]
+        clust_member_coords = eofs_X_sub[clust.labels_ == i,:]
+        clust_member_coeffs = coeffs_X_sub[clust.labels_ == i,:]
         for coords in clust_member_coords:
             dist = hf.calc_euc_dist(c, coords)
             dists.append(dist)
@@ -324,14 +383,15 @@ def run_kmeans_clust(eofs_rast, coeffs_rast, reg,
         ax_lines.plot(np.median(tss_arr, axis=0),
                       color=center_colors[i],
                       linewidth=2.5)
-        ax_lines.plot(np.percentile(tss_arr, 5, axis=0),
-                      color=center_colors[i],
-                      linewidth=1,
-                      linestyle=':')
-        ax_lines.plot(np.percentile(tss_arr, 95, axis=0),
-                      color=center_colors[i],
-                      linewidth=1,
-                      linestyle=':')
+        if plot_envelope:
+            ax_lines.plot(np.percentile(tss_arr, 5, axis=0),
+                          color=center_colors[i],
+                          linewidth=1,
+                          linestyle=':')
+            ax_lines.plot(np.percentile(tss_arr, 95, axis=0),
+                          color=center_colors[i],
+                          linewidth=1,
+                          linestyle=':')
 
 
 def plot_bbox_rectangle(bounds, ax):
@@ -348,8 +408,8 @@ def plot_bbox_rectangle(bounds, ax):
 
 
 # try to help manage memory usage
-del eofs
-del eofs_wt_sum
+#del eofs
+#del eofs_wt_sum
 
 for reg, bbox in reg_bboxes.items():
     print('now plotting region: %s' % reg)
@@ -389,7 +449,7 @@ for reg, bbox in reg_bboxes.items():
     coeffs_foc = coeffs_foc.where(coeffs_foc != coeffs_foc._FillValue, np.nan)
     # run K-means clustering
     K = reg_K_vals[reg]
-    run_kmeans_clust(eofs_wt_sum_foc, coeffs_foc, reg,
+    run_clust(eofs_wt_sum_foc, coeffs_foc, reg,
                      k=K,
                      ax_lines=ax_lines,
                      batch_size=40,
@@ -405,8 +465,149 @@ for reg, bbox in reg_bboxes.items():
     for axis in ['top','bottom','left','right']:
         ax_lines.spines[axis].set_linewidth(2)
     plot_bbox_rectangle(bbox, ax_rgb)
+    # add letters to region maps
+    ax_reg.text(ax_reg.get_xlim()[0]+reg_lett_locs[reg][0]*np.diff(ax_reg.get_xlim())[0],
+                ax_reg.get_ylim()[0]+reg_lett_locs[reg][1]*np.diff(ax_reg.get_ylim())[0],
+                reg_letters[reg],
+                size=20,
+                weight='bold',
+               )
 
 # show and save figure
 fig_main.show()
 fig_main.subplots_adjust(left=0.02, right=0.98, bottom=0.04, top=0.98)
-fig_main.savefig('ch2_fig2_EOF_maps.png', dpi=700)
+fig_main.savefig('ch3_fig_RGB_EOF_map.png', dpi=700)
+
+
+
+################
+# INTERPRET EOFS
+################
+
+def standardize(ts):
+    return (ts-np.min(ts))/(np.max(ts)-np.min(ts))
+
+
+def calc_phase(ts):
+    # TODO: ACTUALLY CALCULATE PHASE OF MAX FROM COEFFS
+    return np.where(ts == np.max(ts))[0][0]
+
+
+def calc_concentration(ts):
+    # TODO: BETTER METRIC HERE
+    stand_ts = standardize(ts)
+    entropy = -np.sum(ts * np.log(ts))
+    return entropy
+
+
+def calc_modality(ts):
+    stand_ts = standardize(ts)
+    maxes = argrelextrema(stand_ts,
+                          np.greater,
+                          mode='wrap',
+                          order=1,
+                         )[0]
+    if len(maxes) == 0:
+        # NOTE: jitter all poitns tiny bit to avoid lack of extrema if fitted
+        #       points symmetrically straddle the numerical maximum
+        maxes = argrelextrema(stand_ts+np.random.normal(0, 0.000001, stand_ts.size),
+                              np.greater,
+                              mode='wrap',
+                              order=1,
+                             )[0]
+    if len(maxes) not in [1, 2]:
+        print(ts)
+    assert len(maxes) in [1, 2], '%i maxes found!' % len(maxes)
+    if len(maxes) == 1:
+        return 0
+    else:
+        maxes_ratio = np.min(stand_ts[maxes])
+        return maxes_ratio
+
+
+def calc_symmetry(ts):
+    # TODO: FIGURE OUT A WAY TO CALCULATE THIS, THEN ADD TO DICT
+    pass
+
+
+stats_fn_dict = {'phase': calc_phase,
+                 'conc': calc_concentration,
+                 'mod': calc_modality,
+                 #'symm': calc_symmetry,
+                }
+
+eof_stats = {}
+#for i, eof in enumerate(eofs_wt_sum):
+for i, eof in enumerate(eofs):
+    xs, ys = [arr.ravel() for arr in np.meshgrid(eof.x, eof.y)]
+    vals = eof.values.ravel()
+    lo_pctile = np.nanpercentile(vals, 1)
+    hi_pctile = np.nanpercentile(vals, 99)
+    lo_inds = np.where(vals<=lo_pctile)
+    hi_inds = np.where(vals>=hi_pctile)
+    lo_xs = xs[lo_inds]
+    lo_ys = ys[lo_inds]
+    hi_xs = xs[hi_inds]
+    hi_ys = ys[hi_inds]
+    lo_stats = {stat: [] for stat in stats_fn_dict.keys()}
+    hi_stats = {stat: [] for stat in stats_fn_dict.keys()}
+    for lo_x, lo_y in zip(lo_xs, lo_ys):
+        lo_coeffs = coeffs.sel(x=lo_x, y=lo_y, method='nearest').values
+        ts = hf.calc_time_series(lo_coeffs, dm)
+        for stat, fn in stats_fn_dict.items():
+            lo_stats[stat].append(fn(ts))
+    for hi_x, hi_y in zip(hi_xs, hi_ys):
+        hi_coeffs = coeffs.sel(x=hi_x, y=hi_y, method='nearest').values
+        ts = hf.calc_time_series(hi_coeffs, dm)
+        for stat, fn in stats_fn_dict.items():
+            hi_stats[stat].append(fn(ts))
+    lo_stats_df = pd.DataFrame(lo_stats)
+    lo_stats_df['pctile'] = 'lo'
+    hi_stats_df = pd.DataFrame(hi_stats)
+    hi_stats_df['pctile'] = 'hi'
+    stats_df = pd.concat((lo_stats_df, hi_stats_df))
+    stats_df['eof'] = i + 1
+    eof_stats[i] = stats_df
+df = pd.concat([*eof_stats.values()])
+
+
+fig_eof_interp = plt.figure(figsize=(10,10))
+gs = fig_eof_interp.add_gridspec(len(stats_fn_dict),len(eofs))
+for i, stat in enumerate(stats_fn_dict.keys()):
+    for j in df['eof'].unique():
+        ax = fig_eof_interp.add_subplot(gs[i, j-1])
+        subdf = df[df['eof'] == j].loc[:, [stat, 'pctile']]
+        sns.violinplot(x='pctile',
+                       y=stat,
+                       data=subdf,
+                       ax=ax,
+                      )
+        stat_range = np.max(subdf[stat]) - np.min(subdf[stat])
+        ax.set_ylim(np.min(subdf[stat]) - 0.1*stat_range,
+                    np.max(subdf[stat]) + 0.1*stat_range)
+        if (j-1) == 0:
+            ax.set_ylabel(stat, fontdict={'fontsize': 22})
+            ax.tick_params(labelsize=14)
+        else:
+            ax.set_ylabel('')
+            ax.set_yticks(())
+        if i == 0:
+            ax.set_title('EOF %i' % j, fontdict={'fontsize': 22})
+        else:
+            ax.set_title('')
+        if i == (len(stats_fn_dict)-1):
+            ax.set_xlabel('pctile', fontdict={'fontsize': 16})
+            ax.set_xticks([0, 1], ['lo', 'hi'])
+            ax.tick_params(labelsize=14)
+        else:
+            ax.set_xlabel('')
+            ax.set_xticks(())
+fig_eof_interp.subplots_adjust(bottom=0.08,
+                               top=0.92,
+                               left=0.1,
+                               right=0.98,
+                               hspace=0.05,
+                               wspace=0.05,
+                              )
+fig_eof_interp.show()
+fig_eof_interp.savefig('ch3_EOF_interpretation_fig.png', dpi=600)
