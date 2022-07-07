@@ -11,6 +11,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from colorsys import hls_to_rgb
 from sklearn.metrics.pairwise import pairwise_distances_argmin
 from sklearn.cluster import MiniBatchKMeans, KMeans, DBSCAN
+from sklearn.mixture import GaussianMixture
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from colormap import rgb2hex
@@ -47,6 +48,13 @@ import helper_fns as hf
 #############################################################################
 
 
+########
+# PARAMS
+########
+
+clust_algo = 'kmeans'
+run_eof_interpretation = False
+
 
 ####################
 # LOAD AND PREP DATA
@@ -76,7 +84,7 @@ reg_bboxes = {
               'Af': [0.95e6, -0.5e6, 4.8e6, -2.3e6], # African cross-section
               'FL': [-7.525e6, 3.53e6, -7.25e6, 3.13e6], # South Florida
               'SAf':[1.52e6, -3.8e6, 2.14e6, -4.325e6], # S. Africa Mediterranean
-              'Au': [1.008e7, -3.16e6, 1.09e7, -4.4e6], # Australia Mediterranean
+              'Au': [1.008e7, -3.86e6, 1.09e7, -4.4e6], # Australia Mediterranean
              }
 # define focal region gridspec indices
 # NOTE: [[i_min, i_max], [j_min, j_max]]
@@ -88,7 +96,7 @@ reg_gsinds = {
               'Af': [[65, 85], [84, 148]],
               'FL': [[60, 90], [0, 20]],
               'SAf':[[70, 90], [150, 170]],
-              'Au': [[50, 80], [175, 195]],
+              'Au': [[60, 80], [175, 195]],
              }
 # define gridspec indices for axes to plot line plots
 # NOTE: should always be 10 indices tall and 20 wide
@@ -103,7 +111,7 @@ reg_gsinds_lines = {
               'Au': [[80, 90], [175, 195]],
                    }
 # NOTE: K VALUES WERE DETERMINED BY MANUAL INSPECTION OF SCREE PLOTS
-#       USING THE run_clust FN WITH scree=True
+#       USING THE run_clust_analysis FN WITH scree=True
 reg_K_vals = {
               'Qu': 3,
               'AD': 3,
@@ -273,14 +281,76 @@ ax_rgb.text(ax_rgb.get_xlim()[0]+0.01*np.diff(ax_rgb.get_xlim())[0],
 # PLOT FOCAL REGIONS
 #################### 
 
-def run_clust(eofs_rast, coeffs_rast, reg,
-              clust_algo='kmeans',
+def calc_euc_dist(vec1, vec2):
+    dist = np.sqrt(np.sum([(vec1[i] - vec2[i])**2 for i in range(len(vec1))]))
+    return dist
+
+
+def get_ssdists(vals, cent):
+    dists = np.array([calc_euc_dist(val, cent) for val in vals])
+    return dists**2
+
+
+def calc_inertia(labels, uniq_labels, data, centers):
+    """
+    NOTE: aping inertia as explained in the KMeans docs
+          (i.e., sum of squared dists of samples from their clust centers)
+    NOTE: NOT ACTUALLY FROM THEIR 'CLOSEST' CLUST CENTERS!
+    """
+    ssdists = []
+    for label in uniq_labels:
+        ssdist = get_ssdists(data[labels==label, :], centers[label, :])
+        ssdists.append(ssdist)
+    inertia = np.sum(np.concatenate(ssdists))
+    return inertia
+
+
+def run_kmeans_clust(data, K, batch_size, n_init, max_no_improvement):
+    clust = MiniBatchKMeans(
+        init="k-means++",
+        n_clusters=K,
+        batch_size=batch_size,
+        n_init=n_init,
+        max_no_improvement=max_no_improvement,
+        verbose=0,
+    )
+    clust.fit(data)
+    inertia = clust.inertia_
+    centers = clust.cluster_centers_
+    labels = clust.labels_
+    return labels, centers, inertia
+
+
+def run_dbscan_clust(data, eps, min_samples):
+    clust = DBSCAN(eps=eps, min_samples=min_samples)
+    labels = clust.fit_predict(data)
+    uniq_labels = np.unique(labels)
+    centers = np.stack([np.mean(data[labels == lab, :],
+                                axis=0) for lab in uniq_labels])
+    inertia = calc_inertia(labels, uniq_labels, data, centers)
+    return labels, centers, inertia
+
+
+def run_gaussian_mix_clust(data, n_clusters):
+    model = GaussianMixture(n_components=n_clusters)
+    model.fit(data)
+    labels = model.predict(data)
+    uniq_labels = np.unique(labels)
+    centers = np.stack([np.mean(data[labels == lab, :],
+                                axis=0) for lab in uniq_labels])
+    inertia = calc_inertia(labels, uniq_labels, data, centers)
+    return labels, centers, inertia
+
+
+def run_clust_analysis(eofs_rast, coeffs_rast, reg, clust_algo,
               k=None, k_max=12,
               batch_size=40, n_init=10, max_no_improvement=10, seed=None,
+              eps=0.3, min_samples=40,
               n_clust_neighs=50,
               plot_envelope=False,
               plot_scree=False,
               map_clusters=False, ax_lines=None):
+    assert clust_algo in ['kmeans', 'gaussian_mix', 'dbscan']
     if seed is not None:
         np.random.seed(seed)
     if plot_scree:
@@ -303,16 +373,19 @@ def run_clust(eofs_rast, coeffs_rast, reg,
         wcss = []
         for k_val in k:
             if clust_algo == 'kmeans':
-                clust = MiniBatchKMeans(
-                    init="k-means++",
-                    n_clusters=k_val,
-                    batch_size=batch_size,
-                    n_init=n_init,
-                    max_no_improvement=max_no_improvement,
-                    verbose=0,
-                )
-            clust.fit(eofs_X_sub)
-            wcss.append(clust.inertia_)
+                labels, centers, inertia = run_kmeans_clust(eofs_X_sub,
+                                                    k_val,
+                                                    batch_size,
+                                                    n_init,
+                                                    max_no_improvement,
+                                                   )
+            elif clust_algo == 'gaussian_mix':
+                labels, centers, inertia = run_gaussian_mix_clust(eofs_X_sub, k)
+            elif clust_algo == 'dbscan':
+                labels, centers, inertia = run_dbscan_clust(eofs_X_sub,
+                                                            eps,
+                                                            min_samples)
+            wcss.append(inertia)
         fig_scree, ax_scree = plt.subplots(1,1)
         ax_scree.plot(range(1, k_max+1), wcss)
         ax_scree.set_title(reg, fontdict={'fontsize': 24})
@@ -322,18 +395,19 @@ def run_clust(eofs_rast, coeffs_rast, reg,
     else:
         # run K means for that value
         if clust_algo == 'kmeans':
-            clust = MiniBatchKMeans(
-                    init="k-means++",
-                    n_clusters=k,
-                    batch_size=batch_size,
-                    n_init=n_init,
-                    max_no_improvement=max_no_improvement,
-                    verbose=0,
-                )
-        clust.fit(eofs_X_sub)
-    # get colors for cluster centers
-    center_colors = [rgb2hex(*np.int32(clust.cluster_centers_[i,
-                                                   :]*255)) for i in range(k)]
+            labels, centers, inertia = run_kmeans_clust(eofs_X_sub,
+                                                k,
+                                                batch_size,
+                                                n_init,
+                                                max_no_improvement,
+                                               )
+        elif clust_algo == 'gaussian_mix':
+            labels, centers, inertia = run_gaussian_mix_clust(eofs_X_sub, k)
+        elif clust_algo == 'dbscan':
+             labels, centers, inertia = run_dbscan_clust(eofs_X_sub,
+                                                         eps,
+                                                         min_samples)
+    center_colors = [rgb2hex(*np.int32(centers[i, :]*255)) for i in range(k)]
     cmap = mpl.colors.ListedColormap(center_colors)
     # prep the coeffs vals the same way
     coeffs_vals = coeffs_rast.values.swapaxes(0,1).swapaxes(1,2)
@@ -342,7 +416,7 @@ def run_clust(eofs_rast, coeffs_rast, reg,
     # map the clusters, if requested
     if map_clusters:
         cluster_arr = np.ones([eofs_X.shape[0], 1])*np.nan
-        cluster_arr[eofs_non_nans,0] = clust.labels_
+        cluster_arr[eofs_non_nans,0] = labels
         clusters = cluster_arr.reshape(eofs_vals[:,:,0].shape)
         clusters_rxr = deepcopy(eofs_rast[0])
         clusters_rxr[:,:] = clusters
@@ -360,11 +434,11 @@ def run_clust(eofs_rast, coeffs_rast, reg,
         fig_clust_map.show()
         return
     # else, for each clust cent, find n_clust_neighs cells closest in RGB space
-    for i, c in enumerate(clust.cluster_centers_):
+    for i, c in enumerate(centers):
         # TODO: make separate axes for line plot
         dists = []
-        clust_member_coords = eofs_X_sub[clust.labels_ == i,:]
-        clust_member_coeffs = coeffs_X_sub[clust.labels_ == i,:]
+        clust_member_coords = eofs_X_sub[labels == i,:]
+        clust_member_coeffs = coeffs_X_sub[labels == i,:]
         for coords in clust_member_coords:
             dist = hf.calc_euc_dist(c, coords)
             dists.append(dist)
@@ -449,7 +523,7 @@ for reg, bbox in reg_bboxes.items():
     coeffs_foc = coeffs_foc.where(coeffs_foc != coeffs_foc._FillValue, np.nan)
     # run K-means clustering
     K = reg_K_vals[reg]
-    run_clust(eofs_wt_sum_foc, coeffs_foc, reg,
+    run_clust_analysis(eofs_wt_sum_foc, coeffs_foc, reg, clust_algo,
                      k=K,
                      ax_lines=ax_lines,
                      batch_size=40,
@@ -483,131 +557,132 @@ fig_main.savefig('ch3_fig_RGB_EOF_map.png', dpi=700)
 ################
 # INTERPRET EOFS
 ################
+if run_eof_interpretation:
 
-def standardize(ts):
-    return (ts-np.min(ts))/(np.max(ts)-np.min(ts))
-
-
-def calc_phase(ts):
-    # TODO: ACTUALLY CALCULATE PHASE OF MAX FROM COEFFS
-    return np.where(ts == np.max(ts))[0][0]
+    def standardize(ts):
+        return (ts-np.min(ts))/(np.max(ts)-np.min(ts))
 
 
-def calc_concentration(ts):
-    # TODO: BETTER METRIC HERE
-    stand_ts = standardize(ts)
-    entropy = -np.sum(ts * np.log(ts))
-    return entropy
+    def calc_phase(ts):
+        # TODO: ACTUALLY CALCULATE PHASE OF MAX FROM COEFFS
+        return np.where(ts == np.max(ts))[0][0]
 
 
-def calc_modality(ts):
-    stand_ts = standardize(ts)
-    maxes = argrelextrema(stand_ts,
-                          np.greater,
-                          mode='wrap',
-                          order=1,
-                         )[0]
-    if len(maxes) == 0:
-        # NOTE: jitter all poitns tiny bit to avoid lack of extrema if fitted
-        #       points symmetrically straddle the numerical maximum
-        maxes = argrelextrema(stand_ts+np.random.normal(0, 0.000001, stand_ts.size),
+    def calc_concentration(ts):
+        # TODO: BETTER METRIC HERE
+        stand_ts = standardize(ts)
+        entropy = -np.sum(ts * np.log(ts))
+        return entropy
+
+
+    def calc_modality(ts):
+        stand_ts = standardize(ts)
+        maxes = argrelextrema(stand_ts,
                               np.greater,
                               mode='wrap',
                               order=1,
                              )[0]
-    if len(maxes) not in [1, 2]:
-        print(ts)
-    assert len(maxes) in [1, 2], '%i maxes found!' % len(maxes)
-    if len(maxes) == 1:
-        return 0
-    else:
-        maxes_ratio = np.min(stand_ts[maxes])
-        return maxes_ratio
-
-
-def calc_symmetry(ts):
-    # TODO: FIGURE OUT A WAY TO CALCULATE THIS, THEN ADD TO DICT
-    pass
-
-
-stats_fn_dict = {'phase': calc_phase,
-                 'conc': calc_concentration,
-                 'mod': calc_modality,
-                 #'symm': calc_symmetry,
-                }
-
-eof_stats = {}
-#for i, eof in enumerate(eofs_wt_sum):
-for i, eof in enumerate(eofs):
-    xs, ys = [arr.ravel() for arr in np.meshgrid(eof.x, eof.y)]
-    vals = eof.values.ravel()
-    lo_pctile = np.nanpercentile(vals, 1)
-    hi_pctile = np.nanpercentile(vals, 99)
-    lo_inds = np.where(vals<=lo_pctile)
-    hi_inds = np.where(vals>=hi_pctile)
-    lo_xs = xs[lo_inds]
-    lo_ys = ys[lo_inds]
-    hi_xs = xs[hi_inds]
-    hi_ys = ys[hi_inds]
-    lo_stats = {stat: [] for stat in stats_fn_dict.keys()}
-    hi_stats = {stat: [] for stat in stats_fn_dict.keys()}
-    for lo_x, lo_y in zip(lo_xs, lo_ys):
-        lo_coeffs = coeffs.sel(x=lo_x, y=lo_y, method='nearest').values
-        ts = hf.calc_time_series(lo_coeffs, dm)
-        for stat, fn in stats_fn_dict.items():
-            lo_stats[stat].append(fn(ts))
-    for hi_x, hi_y in zip(hi_xs, hi_ys):
-        hi_coeffs = coeffs.sel(x=hi_x, y=hi_y, method='nearest').values
-        ts = hf.calc_time_series(hi_coeffs, dm)
-        for stat, fn in stats_fn_dict.items():
-            hi_stats[stat].append(fn(ts))
-    lo_stats_df = pd.DataFrame(lo_stats)
-    lo_stats_df['pctile'] = 'lo'
-    hi_stats_df = pd.DataFrame(hi_stats)
-    hi_stats_df['pctile'] = 'hi'
-    stats_df = pd.concat((lo_stats_df, hi_stats_df))
-    stats_df['eof'] = i + 1
-    eof_stats[i] = stats_df
-df = pd.concat([*eof_stats.values()])
-
-
-fig_eof_interp = plt.figure(figsize=(10,10))
-gs = fig_eof_interp.add_gridspec(len(stats_fn_dict),len(eofs))
-for i, stat in enumerate(stats_fn_dict.keys()):
-    for j in df['eof'].unique():
-        ax = fig_eof_interp.add_subplot(gs[i, j-1])
-        subdf = df[df['eof'] == j].loc[:, [stat, 'pctile']]
-        sns.violinplot(x='pctile',
-                       y=stat,
-                       data=subdf,
-                       ax=ax,
-                      )
-        stat_range = np.max(subdf[stat]) - np.min(subdf[stat])
-        ax.set_ylim(np.min(subdf[stat]) - 0.1*stat_range,
-                    np.max(subdf[stat]) + 0.1*stat_range)
-        if (j-1) == 0:
-            ax.set_ylabel(stat, fontdict={'fontsize': 22})
-            ax.tick_params(labelsize=14)
+        if len(maxes) == 0:
+            # NOTE: jitter all poitns tiny bit to avoid lack of extrema if fitted
+            #       points symmetrically straddle the numerical maximum
+            maxes = argrelextrema(stand_ts+np.random.normal(0, 0.000001, stand_ts.size),
+                                  np.greater,
+                                  mode='wrap',
+                                  order=1,
+                                 )[0]
+        if len(maxes) not in [1, 2]:
+            print(ts)
+        assert len(maxes) in [1, 2], '%i maxes found!' % len(maxes)
+        if len(maxes) == 1:
+            return 0
         else:
-            ax.set_ylabel('')
-            ax.set_yticks(())
-        if i == 0:
-            ax.set_title('EOF %i' % j, fontdict={'fontsize': 22})
-        else:
-            ax.set_title('')
-        if i == (len(stats_fn_dict)-1):
-            ax.set_xlabel('pctile', fontdict={'fontsize': 16})
-            ax.set_xticks([0, 1], ['lo', 'hi'])
-            ax.tick_params(labelsize=14)
-        else:
-            ax.set_xlabel('')
-            ax.set_xticks(())
-fig_eof_interp.subplots_adjust(bottom=0.08,
-                               top=0.92,
-                               left=0.1,
-                               right=0.98,
-                               hspace=0.05,
-                               wspace=0.05,
-                              )
-fig_eof_interp.show()
-fig_eof_interp.savefig('ch3_EOF_interpretation_fig.png', dpi=600)
+            maxes_ratio = np.min(stand_ts[maxes])
+            return maxes_ratio
+
+
+    def calc_symmetry(ts):
+        # TODO: FIGURE OUT A WAY TO CALCULATE THIS, THEN ADD TO DICT
+        pass
+
+
+    stats_fn_dict = {'phase': calc_phase,
+                     'conc': calc_concentration,
+                     'mod': calc_modality,
+                     #'symm': calc_symmetry,
+                    }
+
+    eof_stats = {}
+    #for i, eof in enumerate(eofs_wt_sum):
+    for i, eof in enumerate(eofs):
+        xs, ys = [arr.ravel() for arr in np.meshgrid(eof.x, eof.y)]
+        vals = eof.values.ravel()
+        lo_pctile = np.nanpercentile(vals, 1)
+        hi_pctile = np.nanpercentile(vals, 99)
+        lo_inds = np.where(vals<=lo_pctile)
+        hi_inds = np.where(vals>=hi_pctile)
+        lo_xs = xs[lo_inds]
+        lo_ys = ys[lo_inds]
+        hi_xs = xs[hi_inds]
+        hi_ys = ys[hi_inds]
+        lo_stats = {stat: [] for stat in stats_fn_dict.keys()}
+        hi_stats = {stat: [] for stat in stats_fn_dict.keys()}
+        for lo_x, lo_y in zip(lo_xs, lo_ys):
+            lo_coeffs = coeffs.sel(x=lo_x, y=lo_y, method='nearest').values
+            ts = hf.calc_time_series(lo_coeffs, dm)
+            for stat, fn in stats_fn_dict.items():
+                lo_stats[stat].append(fn(ts))
+        for hi_x, hi_y in zip(hi_xs, hi_ys):
+            hi_coeffs = coeffs.sel(x=hi_x, y=hi_y, method='nearest').values
+            ts = hf.calc_time_series(hi_coeffs, dm)
+            for stat, fn in stats_fn_dict.items():
+                hi_stats[stat].append(fn(ts))
+        lo_stats_df = pd.DataFrame(lo_stats)
+        lo_stats_df['pctile'] = 'lo'
+        hi_stats_df = pd.DataFrame(hi_stats)
+        hi_stats_df['pctile'] = 'hi'
+        stats_df = pd.concat((lo_stats_df, hi_stats_df))
+        stats_df['eof'] = i + 1
+        eof_stats[i] = stats_df
+    df = pd.concat([*eof_stats.values()])
+
+
+    fig_eof_interp = plt.figure(figsize=(10,10))
+    gs = fig_eof_interp.add_gridspec(len(stats_fn_dict),len(eofs))
+    for i, stat in enumerate(stats_fn_dict.keys()):
+        for j in df['eof'].unique():
+            ax = fig_eof_interp.add_subplot(gs[i, j-1])
+            subdf = df[df['eof'] == j].loc[:, [stat, 'pctile']]
+            sns.violinplot(x='pctile',
+                           y=stat,
+                           data=subdf,
+                           ax=ax,
+                          )
+            stat_range = np.max(subdf[stat]) - np.min(subdf[stat])
+            ax.set_ylim(np.min(subdf[stat]) - 0.1*stat_range,
+                        np.max(subdf[stat]) + 0.1*stat_range)
+            if (j-1) == 0:
+                ax.set_ylabel(stat, fontdict={'fontsize': 22})
+                ax.tick_params(labelsize=14)
+            else:
+                ax.set_ylabel('')
+                ax.set_yticks(())
+            if i == 0:
+                ax.set_title('EOF %i' % j, fontdict={'fontsize': 22})
+            else:
+                ax.set_title('')
+            if i == (len(stats_fn_dict)-1):
+                ax.set_xlabel('pctile', fontdict={'fontsize': 16})
+                ax.set_xticks([0, 1], ['lo', 'hi'])
+                ax.tick_params(labelsize=14)
+            else:
+                ax.set_xlabel('')
+                ax.set_xticks(())
+    fig_eof_interp.subplots_adjust(bottom=0.08,
+                                   top=0.92,
+                                   left=0.1,
+                                   right=0.98,
+                                   hspace=0.05,
+                                   wspace=0.05,
+                                  )
+    fig_eof_interp.show()
+    fig_eof_interp.savefig('ch3_EOF_interpretation_fig.png', dpi=600)
