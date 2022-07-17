@@ -18,6 +18,7 @@ from colormap import rgb2hex
 from copy import deepcopy
 import matplotlib as mpl
 import rioxarray as rxr
+import xarray as xr
 from scipy import stats
 from scipy.signal import argrelextrema
 import seaborn as sns
@@ -56,6 +57,23 @@ clust_algo = 'kmeans'
 run_eof_interpretation = False
 
 
+# helpful viz fn
+def compare_wt_nowt_rasts(nowt, wt, bands=[0,1,2]):
+    assert len(bands) in [1, 3]
+    if len(bands) == 1:
+        bands = bands[0]
+    fig, axs = plt.subplots(1,2)
+    try:
+        nowt[bands,:,:].plot.imshow(ax=axs[0])
+    except AttributeError:
+        pass
+    try:
+        wt[bands,:,:].plot.imshow(ax=axs[1])
+    except AttributeError:
+        pass
+    return fig
+
+
 ####################
 # LOAD AND PREP DATA
 ####################
@@ -63,6 +81,12 @@ run_eof_interpretation = False
 # load country boundaries
 countries = gpd.read_file(('/home/deth/Desktop/CAL/research/projects/seasonality/'
                            'results/maps/NewWorldFile_2020.shp')).to_crs(8857)
+
+# load ITCZ shapefile
+# NOTE: digitized from Li and Zeng 2005, as reproduced in Zhisheng et al. 2015
+itcz = gpd.read_file(('/home/deth/Desktop/CAL/research/projects/seasonality/'
+                      'seasonal_asynchrony/analysis/'
+                      'ITCZ_li_zeng_2005_digitized.shp'))
 
 # load the coeffs
 coeffs = rxr.open_rasterio(('/home/deth/Desktop/CAL/research/projects/'
@@ -148,28 +172,110 @@ assert (len(reg_bboxes) == len(reg_gsinds) ==
 assert ([*reg_bboxes.keys()] == [*reg_gsinds.keys()] ==
         [*reg_gsinds_lines.keys()] == [*reg_K_vals.keys()])
 
+
+def minmax_scale(vals, min_out=0, max_out=1):
+    assert (min_out >=0) and (max_out <=1)
+    scaled = (vals-np.min(vals))/(np.max(vals)-np.min(vals))
+    scaled = scaled * (max_out - min_out)
+    if min_out > 0:
+        scaled = min_out + scaled
+    return scaled
+
+
 # rescale each layer 0-1
 for i in range(eofs.shape[0]):
     eofs[i] = (eofs[i]-eofs[i].min())/(eofs[i].max()-eofs[i].min())
-# create a vertical vector that's 0 in the far north, 1 in the far south,
-# and progresses from 0 to 1 as a sigmoid function across the tropics
-# back, by cosine, within tropics
-minmax_scale = lambda vals: (vals-np.min(vals))/(np.max(vals)-np.min(vals))
-ys = eofs.y.values
-wts = eofs.y*0
-wts[ys<0] = 1
-lats_in_tropics = eofs.sel(y=slice(23.4934, -23.4934)).y.values
-# create sigmoid weighting
-# NOTE: MINMAX VAL CHOSEN HEURISTICALLY, TO MINIMIZE NOTICEABLE COLOR-WARPING
-#       ARTEFACTS IN EQUATORIAL REGION 
-minmax_val = 10
-wts_in_tropics = minmax_scale(1/(1 + np.exp(-np.linspace(-minmax_val,
-                                                         minmax_val,
-                                                         len(lats_in_tropics)))))
-wts[(ys >= -23.4934) * (ys < 23.4934)] = wts_in_tropics
-# use that to weighted-sum the regular eof0 array and the inverted eof0 array
+
+
+# create array implementing weights across ITCZ:
+# 1. get DataArrays containing y vals as data, x vals as coordinates
+#    (to facilitate lookup of y corresponding to nearest x to each x in eofs)
+itcz_das = []
+for n in range(2):
+    xs = [itcz.geometry[n].coords[i][0] for i in
+          range(len(itcz.geometry[n].coords))]
+    ys = [itcz.geometry[n].coords[i][1] for i in
+          range(len(itcz.geometry[n].coords))]
+    da = xr.DataArray(data=ys, dims=['x'], coords=dict(x=(['x'], xs)))
+    itcz_das.append(da)
+
+# create empty wts DataArray, and empty wts numpy array to later go into it
+wts = eofs[0]*np.nan
+wts_arr = np.ones(wts.shape) * np.nan
+wts_inflation = eofs[0]*np.nan
+wts_inflation_arr = np.ones(wts.shape) * np.nan
+# loop across x coordinates in wts
+for j, x in enumerate(wts.x):
+    # get N and S ys bounding the ITCZ at this x
+    y_N = float(itcz_das[0].sel(x=x, method='nearest'))
+    y_S = float(itcz_das[1].sel(x=x, method='nearest'))
+    # get number of N and S pixels outside the ITCZ at this x; set to 1 and 0
+    n_N = wts.sel(x=x, y=slice(np.max(wts.y), y_N)).size
+    n_S = wts.sel(x=x, y=slice(y_S, np.min(wts.y))).size
+    wts_arr[:n_N, j] = 1
+    wts_arr[-n_S:, j] = 0
+    # create linear interpolation between 0 and 1 across ITCZ
+    interp = np.linspace(1, 0, len(wts.y) - n_N - n_S + 2)
+    assert len(interp) == 2 + np.sum(np.isnan(wts_arr[:, j]))
+    wts_arr[n_N-1:-n_S+1, j] = interp
+    # determine maximum possible weighted-sum value at this x;
+    # add reciprocal of that to inflation array
+    wt_sum_maxes = np.max(np.stack([n*wts_arr[:,j] +
+        ((1-n)*(1-wts_arr[:,j])) for n in np.linspace(0, 1, 100)]), axis=0)
+    inflation_factors = 1/wt_sum_maxes
+    wts_inflation_arr[:, j] = inflation_factors
+wts.values = wts_arr
+wts_inflation.values = wts_inflation_arr
+
+## create a vertical vector that's 0/ in the extratropical north/south
+## and progresses from 0 to 1 as a sigmoid function across the tropics
+#ys = eofs.y.values
+#wts = eofs.y*0
+##max_lat = 23.4934
+#max_lat = 5
+#min_lat = -5
+#wts[ys<min_lat] = 1
+#transition_lats = eofs.sel(y=slice(max_lat, min_lat)).y.values
+## create sigmoid weighting
+## NOTE: MINMAX VAL CHOSEN HEURISTICALLY, TO MINIMIZE NOTICEABLE COLOR-WARPING
+##       ARTEFACTS IN EQUATORIAL REGION 
+#minmax_val = np.e
+#transition_wts = minmax_scale(1/(1 + np.exp(-np.linspace(-minmax_val,
+#                                                         minmax_val,
+#                                                         len(transition_lats)))))
+#wts[(ys >= min_lat) * (ys < max_lat)] = transition_wts
+#
+## get max possible weighted-sum at each lat
+#wt_sum_maxes = eofs.y*0
+#wt_sum_maxes = wt_sum_maxes + np.max(np.stack([n*
+#                wts+((1-n)*(1-wts)) for n in np.linspace(0, 1, 100)]), axis=0)
+#wt_sum_maxes = minmax_scale(wt_sum_maxes)
+#wt_sum_maxes_inv = 1-wt_sum_maxes
+#
+# use that to weighted-sum the regular and inverted EOF0 and EOF1 arrays
+# (since those two EOFs have pronounced N-S dipoles),
+# then 'backfill' the tropics with the raw EOF0 and EOF1 arrays
+
+
 eofs_wt_sum = deepcopy(eofs)
-eofs_wt_sum[0] = (wts*(1-eofs[0])) + ((1-wts)*eofs[0])
+for n in range(2):
+    #if n == 0:
+        #eofs_wt_sum[n] = (wts*(1-eofs[n])) + ((1-wts)*eofs[n])
+    eofs_wt_sum[n] = ((wts*(eofs[n])) + ((1-wts)*(1-eofs[n])))# * wts_inflation
+    #elif n == 1:
+    #    eofs_wt_sum[n] = (wt_sum_maxes * ((wts*(1-eofs[n])) +
+    #                                      ((1-wts)*eofs[n])) +
+    #                      wt_sum_maxes_inv * eofs[n])
+
+    # then 'reinflate' each latitudinal band of each layer to its original range
+    #for i in range(eofs.shape[1]):
+    #    # need at least 2 values to min-max scale
+    #    if np.sum(pd.notnull(eofs_wt_sum[n, i, :])) > 1:
+    #        raw_min = np.nanmin(eofs[n, i, :])
+    #        raw_max = np.nanmax(eofs[n, i, :])
+    #        eofs_wt_sum[n,i,:] = minmax_scale(eofs_wt_sum[n, i, :],
+    #                                          raw_min,
+    #                                          raw_max)
 
 # get equal-area-projected EOFs rasters, for mapping
 eofs_wt_sum_for_map = eofs_wt_sum.rio.write_crs(4326)
@@ -206,28 +312,19 @@ global_xlim = (0.80 * eofs_wt_sum_for_map.x.min(),
 # create EOF fig
 fig_eof = plt.figure(figsize=(20,30))
 
-# maps EOFS 1 (lat-weighted sum), 2, and 3
+# maps EOFS 1, 2, and 3 (all raw)
+eofs_for_map = eofs.rio.write_crs(4326)
+eofs_for_map = eofs_for_map.rio.reproject(8857)
 for i in range(3):
     ax_eof = fig_eof.add_subplot(3,1,i+1)
-    if i == 0:
-        eofs_for_map = eofs.rio.write_crs(4326)
-        eofs_for_map = eofs_for_map.rio.reproject(8857)
-        eofs_for_map[0] = eofs_for_map[0].where(
-                eofs_for_map[0] < 2*eofs[0].max(), np.nan)
-        eofs_for_map[i].plot.imshow(ax=ax_eof,
-                                    cmap='coolwarm',
-                                    add_colorbar=False,
-                                    alpha=1,
-                                    zorder=0,
-                                   )
-        del eofs_for_map
-    else:
-        eofs_wt_sum_for_map[i].plot.imshow(ax=ax_eof,
-                                           cmap='coolwarm',
-                                           add_colorbar=False,
-                                           alpha=1,
-                                           zorder=0,
-                                          )
+    eofs_for_map[i] = eofs_for_map[i].where(
+            eofs_for_map[i] < 2*eofs[i].max(), np.nan)
+    eofs_for_map[i].plot.imshow(ax=ax_eof,
+                                cmap='coolwarm',
+                                add_colorbar=False,
+                                alpha=1,
+                                zorder=0,
+                               )
     countries.plot(color='none',
                    linewidth=0.5,
                    edgecolor='black',
@@ -237,10 +334,11 @@ for i in range(3):
                   )
     strip_axes(ax_eof)
     ax_eof.set_xlim(global_xlim)
-    ax_eof.set_ylim(eofs_wt_sum_for_map.rio.bounds()[1::2])
+    ax_eof.set_ylim(eofs_for_map.rio.bounds()[1::2])
     ax_eof.text(0.92*ax_eof.get_xlim()[0], 0.92*ax_eof.get_ylim()[0],
                 'EOF %i\n%0.1f%%' % (i+1, eofs_pcts[i]),
                 fontdict={'fontsize': 38})
+del eofs_for_map
 fig_eof.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98,
                         hspace=0.05)
 fig_eof.savefig('ch3_fig_EOF_maps.png', dpi=700)
@@ -345,7 +443,7 @@ def run_gaussian_mix_clust(data, n_clusters):
 def run_clust_analysis(eofs_rast, coeffs_rast, reg, clust_algo,
               k=None, k_max=12,
               batch_size=40, n_init=10, max_no_improvement=10, seed=None,
-              eps=0.3, min_samples=40,
+              eps=1, min_samples=10,
               n_clust_neighs=50,
               plot_envelope=False,
               plot_scree=False,
@@ -521,6 +619,7 @@ for reg, bbox in reg_bboxes.items():
                                                 y=slice(bbox[1], bbox[3]),
                                              ).rio.reproject(4326)
     coeffs_foc = coeffs_foc.where(coeffs_foc != coeffs_foc._FillValue, np.nan)
+
     # run K-means clustering
     K = reg_K_vals[reg]
     run_clust_analysis(eofs_wt_sum_foc, coeffs_foc, reg, clust_algo,

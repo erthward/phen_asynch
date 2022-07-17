@@ -3,6 +3,7 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.patches import Polygon
+from shapely.geometry import Polygon, Point
 from matplotlib.collections import PatchCollection
 import numpy as np
 import xarray as xr
@@ -584,8 +585,10 @@ for biome in whittaker['biome'].unique():
     biome_labels.append(biome.replace('/', ' & '))
 
 colors = 255 * np.linspace(0, 1, len(patches))
-p = PatchCollection(patches, alpha=0.4, edgecolor='k', cmap='Pastel1')
+p = PatchCollection(patches, alpha=0.25, edgecolor='k', cmap='Pastel1')
 p.set_array(colors)
+# get dict of colors, to use in last plots
+col_dict = dict(zip(biomes, p.get_facecolors()))
 fig2 = plt.figure(figsize=(13,12))
 ax2 = fig2.add_subplot(1, 1, 1)
 divider = make_axes_locatable(ax2)
@@ -596,7 +599,9 @@ for lab,c in zip(biome_labels, centroids):
 scat = ax2.scatter(results_df['mat'],
            results_df['map'],
            c = results_df['r2'],
+           edgecolor='black',
            s=normalize_data(results_df['gpp_ts_len'], 10, 150),
+           alpha=0.75,
            cmap='plasma_r')
 cbar = plt.colorbar(scat, cax=cax2)
 cbar.set_label('$R^2$', fontdict={'fontsize': 16})
@@ -609,5 +614,46 @@ ax2.set_ylabel('MAP ($mm$)',
 #              'and fitted FLUXNET GPP seasonality, vs MAT and MAP'))
 ax2.tick_params(labelsize=14)
 fig2.subplots_adjust(top=0.98, bottom=0.06, left=0.07, right=0.94)
-plt.show()
+fig2.show()
 fig2.savefig('flux_val_results_MAT_MAP.png', dpi=600)
+
+# plot R2 against cell-dist and GPP ts length, colored by lat and by IGBP LC
+results_df['igbp_cat'] = pd.Categorical(results_df.igbp)
+for var, cmap in zip(['lat', 'igbp_cat', 'whit'], ['summer_r', 'tab20', 'Pastel1']):
+    if var == 'lat':
+        hue_vals = np.abs(results_df['lat'])
+        hue_order = None
+    elif var == 'igbp_cat':
+        hue_vals = results_df['igbp_cat']
+        hue_order = None
+    elif var == 'whit':
+        biome_idxs = []
+        for n, row in results_df.iterrows():
+            biome_idx_list = [i for i, poly in enumerate(patches) if
+                              poly.contains_point(row[['mat', 'map']])]
+            assert len(biome_idx_list) < 2
+            if len(biome_idx_list) == 0:
+                biome_idxs.append(np.nan)
+            else:
+                biome_idxs.append(biome_idx_list[0])
+        hue_vals = pd.Series([biomes[idx] if pd.notnull(idx) else idx for idx in biome_idxs])
+        hue_order = biomes
+    #subdf = results_df[pd.notnull(hue_vals)]
+    g = sns.FacetGrid(results_df, col='cell_dist', legend_out=True)
+    g.map_dataframe(sns.scatterplot,
+                    'gpp_ts_len',
+                    'r2',
+                    hue=hue_vals,
+                    hue_order=hue_order,
+                    palette=cmap,
+                    edgecolor='black',
+                    alpha=0.75,
+                    s = 35,
+                   )
+    g.add_legend()
+    # add vertical line indicating length of NIRV ts, for comparison
+    for ax in g.axes[0]:
+        ax.axvline(x=10, ymin=-1, ymax=2, linewidth=0.5, alpha=0.6,
+                   color='black', linestyle=':')
+    g.savefig('flux_val_results_R2_vs_celldist_tslen_%s.png' % var, dpi=600)
+

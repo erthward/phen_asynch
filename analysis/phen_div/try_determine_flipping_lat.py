@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 from pprint import pprint
 import rasterstats as rs
+from scipy import stats
 import geopandas as gpd
 import rioxarray as rxr
 import numpy as np
@@ -142,7 +143,13 @@ abs_lats = sorted(list(set(np.round(np.abs(coeffs.y.values), 3))))
 step = abs_lats[1]-abs_lats[0]
 flip_points = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7,
                8, -8, 9, -9, 10, -10, 11, -11, 12, -12]
-for lon in [-65]:
+
+test_lon_step = 10
+test_lons = np.concatenate((np.arange(-80, -52, test_lon_step),
+                            np.arange(6.5, 44.5, test_lon_step),
+                            np.arange(98, 150, test_lon_step)))
+best_flip_pts = []
+for lon in test_lons:
     coeffs_lon = coeffs.sel(x=lon, method='nearest')
     all_R2_diffs = {}
     all_mean_R2_diffs = {}
@@ -164,11 +171,13 @@ for lon in [-65]:
                 R2_diffs.append(R2_diff)
         all_R2_diffs[flip_point] = R2_diffs
         all_mean_R2_diffs[flip_point] = np.mean(R2_diffs)
-    print('Lat with max mean difference in R2s:')
-    print([k for k, v in all_mean_R2_diffs.items() if v ==
-           np.max([*all_mean_R2_diffs.values()])][0])
-
-
+    try:
+        best_flip_pt = [k for k, v in all_mean_R2_diffs.items() if v ==
+                        np.nanmax([*all_mean_R2_diffs.values()])][0]
+        print('Lat with max mean difference in R2s:\n\t%0.2f' % best_flip_pt)
+        best_flip_pts.append(best_flip_pt)
+    except Exception as e:
+        pass
 
 min_fp = np.min(flip_points)
 max_fp = np.max(flip_points)
@@ -178,3 +187,7 @@ for fp, R2s in all_R2_diffs.items():
     color = plt.cm.viridis(color_frac)
     ax.plot(R2s, color=color, alpha=0.5)
 fig.show()
+
+
+fig2, ax = plt.subplots(1,1)
+ax.scatter(test_lons, best_flip_pts)
