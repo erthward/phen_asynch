@@ -18,5 +18,5 @@
 ## Command(s) to run:
 
 module load gdal r r-packages r-spatial
-Rscript --vanilla /global/home/users/drewhart/seasonality/seasonal_asynchrony/analysis/asynch_corr/asynch_analysis.r > ch_rf.Rout 
+Rscript --vanilla /global/home/users/drewhart/seasonality/seasonal_asynchrony/analysis/asynch_corr/asynch_corr.r > ch3_rf.Rout 
 

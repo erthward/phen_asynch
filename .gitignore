@@ -17,6 +17,7 @@ analysis/*.tif
 analysis/__pycache__/
 analysis/__pycache__/*.pyc
 analysis/*.csv
+analysis/asynch_corr/*out
 analysis/hotspots/
 analysis/data/
 analysis/other_data/
