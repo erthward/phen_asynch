@@ -53,8 +53,27 @@ import helper_fns as hf
 # PARAMS
 ########
 
+# save figs?
+save_it = False
+
+# which dataset to use?
+dataset = 'NIRv'
+#dataset = 'SIF'
+
+# which mask mode to use?
+masking_mode = 'default'
+#masking_mode = 'strict'
+mask_filename_ext_dict = {'strict': '_STRICTMASK',
+                          'default': ''}
+mask_filename_ext = mask_filename_ext_dict[masking_mode]
+
+
+# which clustering algo to use?
 clust_algo = 'kmeans'
+
+# create the plots to aid EOF interpretation?
 run_eof_interpretation = False
+
 
 
 # helpful viz fn
@@ -74,6 +93,7 @@ def compare_wt_nowt_rasts(nowt, wt, bands=[0,1,2]):
     return fig
 
 
+
 ####################
 # LOAD AND PREP DATA
 ####################
@@ -90,11 +110,14 @@ itcz = gpd.read_file(('/home/deth/Desktop/CAL/research/projects/seasonality/'
 
 # load the coeffs
 coeffs = rxr.open_rasterio(('/home/deth/Desktop/CAL/research/projects/'
-        'seasonality/results/maps/NIRv_global_coeffs.tif'))
+        'seasonality/results/maps/%s_global_coeffs%s.tif') % (dataset,
+                                                            mask_filename_ext))
+
 
 # load the EOFs
 eofs = rxr.open_rasterio(('/home/deth/Desktop/CAL/research/projects/'
-    'seasonality/results/maps/global_4_EOFs_coswts.tif'))[:3]
+    'seasonality/results/maps/%s_global_4_EOFs_coswts%s.tif') % (dataset,
+                                                        mask_filename_ext))[:3]
 
 # EOF percentages of variance explained
 eofs_pcts = [70, 17, 8]
@@ -191,7 +214,7 @@ for i in range(eofs.shape[0]):
 # 1. get DataArrays containing y vals as data, x vals as coordinates
 #    (to facilitate lookup of y corresponding to nearest x to each x in eofs)
 itcz_das = []
-for n in range(2):
+for n in range(3):
     xs = [itcz.geometry[n].coords[i][0] for i in
           range(len(itcz.geometry[n].coords))]
     ys = [itcz.geometry[n].coords[i][1] for i in
@@ -202,13 +225,21 @@ for n in range(2):
 # create empty wts DataArray, and empty wts numpy array to later go into it
 wts = eofs[0]*np.nan
 wts_arr = np.ones(wts.shape) * np.nan
-wts_inflation = eofs[0]*np.nan
-wts_inflation_arr = np.ones(wts.shape) * np.nan
+#wts_inflation = eofs[0]*np.nan
+#wts_inflation_arr = np.ones(wts.shape) * np.nan
 # loop across x coordinates in wts
+use_mean_itcz = True
+if use_mean_itcz:
+    itcz_delta_lat = 5
 for j, x in enumerate(wts.x):
     # get N and S ys bounding the ITCZ at this x
-    y_N = float(itcz_das[0].sel(x=x, method='nearest'))
-    y_S = float(itcz_das[1].sel(x=x, method='nearest'))
+    if use_mean_itcz:
+        y_corresponding = float(itcz_das[2].sel(x=x, method='nearest'))
+        y_N = y_corresponding + itcz_delta_lat
+        y_S = y_corresponding - itcz_delta_lat
+    else:
+        y_N = float(itcz_das[0].sel(x=x, method='nearest'))
+        y_S = float(itcz_das[1].sel(x=x, method='nearest'))
     # get number of N and S pixels outside the ITCZ at this x; set to 1 and 0
     n_N = wts.sel(x=x, y=slice(np.max(wts.y), y_N)).size
     n_S = wts.sel(x=x, y=slice(y_S, np.min(wts.y))).size
@@ -220,62 +251,17 @@ for j, x in enumerate(wts.x):
     wts_arr[n_N-1:-n_S+1, j] = interp
     # determine maximum possible weighted-sum value at this x;
     # add reciprocal of that to inflation array
-    wt_sum_maxes = np.max(np.stack([n*wts_arr[:,j] +
-        ((1-n)*(1-wts_arr[:,j])) for n in np.linspace(0, 1, 100)]), axis=0)
-    inflation_factors = 1/wt_sum_maxes
-    wts_inflation_arr[:, j] = inflation_factors
+    #wt_sum_maxes = np.max(np.stack([n*wts_arr[:,j] +
+    #    ((1-n)*(1-wts_arr[:,j])) for n in np.linspace(0, 1, 100)]), axis=0)
+    #inflation_factors = 1/wt_sum_maxes
+    #wts_inflation_arr[:, j] = inflation_factors
 wts.values = wts_arr
-wts_inflation.values = wts_inflation_arr
+#wts_inflation.values = wts_inflation_arr
 
-## create a vertical vector that's 0/ in the extratropical north/south
-## and progresses from 0 to 1 as a sigmoid function across the tropics
-#ys = eofs.y.values
-#wts = eofs.y*0
-##max_lat = 23.4934
-#max_lat = 5
-#min_lat = -5
-#wts[ys<min_lat] = 1
-#transition_lats = eofs.sel(y=slice(max_lat, min_lat)).y.values
-## create sigmoid weighting
-## NOTE: MINMAX VAL CHOSEN HEURISTICALLY, TO MINIMIZE NOTICEABLE COLOR-WARPING
-##       ARTEFACTS IN EQUATORIAL REGION 
-#minmax_val = np.e
-#transition_wts = minmax_scale(1/(1 + np.exp(-np.linspace(-minmax_val,
-#                                                         minmax_val,
-#                                                         len(transition_lats)))))
-#wts[(ys >= min_lat) * (ys < max_lat)] = transition_wts
-#
-## get max possible weighted-sum at each lat
-#wt_sum_maxes = eofs.y*0
-#wt_sum_maxes = wt_sum_maxes + np.max(np.stack([n*
-#                wts+((1-n)*(1-wts)) for n in np.linspace(0, 1, 100)]), axis=0)
-#wt_sum_maxes = minmax_scale(wt_sum_maxes)
-#wt_sum_maxes_inv = 1-wt_sum_maxes
-#
-# use that to weighted-sum the regular and inverted EOF0 and EOF1 arrays
-# (since those two EOFs have pronounced N-S dipoles),
-# then 'backfill' the tropics with the raw EOF0 and EOF1 arrays
-
-
+# make the weighted-sum EOFs map
 eofs_wt_sum = deepcopy(eofs)
 for n in range(2):
-    #if n == 0:
-        #eofs_wt_sum[n] = (wts*(1-eofs[n])) + ((1-wts)*eofs[n])
     eofs_wt_sum[n] = ((wts*(eofs[n])) + ((1-wts)*(1-eofs[n])))# * wts_inflation
-    #elif n == 1:
-    #    eofs_wt_sum[n] = (wt_sum_maxes * ((wts*(1-eofs[n])) +
-    #                                      ((1-wts)*eofs[n])) +
-    #                      wt_sum_maxes_inv * eofs[n])
-
-    # then 'reinflate' each latitudinal band of each layer to its original range
-    #for i in range(eofs.shape[1]):
-    #    # need at least 2 values to min-max scale
-    #    if np.sum(pd.notnull(eofs_wt_sum[n, i, :])) > 1:
-    #        raw_min = np.nanmin(eofs[n, i, :])
-    #        raw_max = np.nanmax(eofs[n, i, :])
-    #        eofs_wt_sum[n,i,:] = minmax_scale(eofs_wt_sum[n, i, :],
-    #                                          raw_min,
-    #                                          raw_max)
 
 # get equal-area-projected EOFs rasters, for mapping
 eofs_wt_sum_for_map = eofs_wt_sum.rio.write_crs(4326)
@@ -341,7 +327,9 @@ for i in range(3):
 del eofs_for_map
 fig_eof.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98,
                         hspace=0.05)
-fig_eof.savefig('ch3_fig_EOF_maps.png', dpi=700)
+if save_it:
+    fig_eof.savefig('ch3_fig_%s_EOF_maps%s.png' % (dataset,
+                                                   mask_filename_ext), dpi=700)
 
 
 # create main figure
@@ -649,7 +637,9 @@ for reg, bbox in reg_bboxes.items():
 # show and save figure
 fig_main.show()
 fig_main.subplots_adjust(left=0.02, right=0.98, bottom=0.04, top=0.98)
-fig_main.savefig('ch3_fig_RGB_EOF_map.png', dpi=700)
+if save_it:
+    fig_main.savefig('ch3_fig_%s_RGB_EOF_map%s.png' % (dataset,
+                                                    mask_filename_ext), dpi=700)
 
 
 
@@ -784,4 +774,6 @@ if run_eof_interpretation:
                                    wspace=0.05,
                                   )
     fig_eof_interp.show()
-    fig_eof_interp.savefig('ch3_EOF_interpretation_fig.png', dpi=600)
+    if save_it:
+        fig_eof_interp.savefig('ch3_%s_EOF_interpretation_fig%s.png' % (dataset,
+                                                mask_filename_ext), dpi=600)
