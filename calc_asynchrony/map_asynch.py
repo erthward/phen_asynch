@@ -3,6 +3,7 @@ import matplotlib as mpl
 import geopandas as gpd
 import rioxarray as rxr
 import numpy as np
+import palettable
 import os, re
 
 countries = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
@@ -15,24 +16,23 @@ data_dir = '/home/deth/Desktop/CAL/research/projects/seasonality/results/maps/'
 files = [f for f in os.listdir(data_dir) if re.search('_global_asynch', f)]
 
 for file in files:
+
     fig = plt.figure(figsize=(16,8))
     ax = fig.add_subplot(1,1,1)
     rast = rxr.open_rasterio(os.path.join(data_dir, file), masked=True)[2]
     rast = rast.rio.write_crs(4326).rio.reproject(8857)
-
-    cmap = mpl.cm.inferno.copy()
+    cmap = mpl.cm.cubehelix.copy()
     cmap.set_bad('#717171')
     try:
         rast.plot.imshow(ax=ax,
                      zorder=0,
                      cmap=cmap,
-                     vmin=np.nanpercentile(rast, 0.5),
-                     vmax=np.nanpercentile(rast, 99.5),
+                     vmin=np.nanpercentile(rast, 1),
+                     vmax=np.nanpercentile(rast, 99),
                      add_colorbar=True,
                     )
     except AttributeError as e:
         print('\n\nAttributeError thrown:\n\t%s\n\n' % e)
-
     countries.to_crs(8857).plot(ax=ax,
                                 color='none',
                                 edgecolor='black',
@@ -40,7 +40,6 @@ for file in files:
                                 alpha=0.8,
                                 zorder=1,
                                )
-
     #hotspots.to_crs(8857).plot(ax=ax,
     #                          color='none',
     #                          edgecolor='yellow',
@@ -60,5 +59,6 @@ for file in files:
     filesplit = os.path.splitext(file)
     filename = filesplit[0] + '_map.png'
     fig.subplots_adjust(bottom=0.02, top=0.95, left=0.02, right=1)
+
     fig.savefig(filename, dpi=600)
     del rast

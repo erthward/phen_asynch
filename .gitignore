@@ -13,6 +13,11 @@ calc_asynchrony/__pycache__/
 *.pyc
 *.zip
 *.swp
+*.shp
+*.shx
+*.cpg
+*.dbf
+*.prj
 analysis/*.tif
 analysis/__pycache__/
 analysis/__pycache__/*.pyc
