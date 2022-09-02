@@ -96,7 +96,7 @@ using GLM
 #-----------
 
 """
-Which variable to calculate asynchrony for
+Which variable to calculate asynchrony for?
 """
 #const VAR = "def"
 #const VAR = "pr"
@@ -107,6 +107,18 @@ Which variable to calculate asynchrony for
 #const VAR = "cloud"
 #const VAR = "SIF"
 const VAR = "NIRv"
+
+"""
+Which masking mode to use?
+"""
+#const MASKING_MODE = "strict"
+const MASKING_MODE = "default"
+# create file suffix based on masking mode
+if VAR in ["NIRv", "SIF"] and MASKING_MODE == "strict"
+    const MASKING_SUFFIX = "_STRICTMASK"
+else
+    const MASKING_SUFFIX = ""
+end
 
 
 # stdout options
@@ -127,42 +139,26 @@ const TIMEIT = false
 # when I feed TFRecordReader an absolute path
 # (SEEMS LIKE A BUG, NO?!),
 # so get the relative path to the data_dir instead
+
+# either get paths on my laptop...
 if splitpath(pwd())[2] == "home"
-    # choose the plots backend
+    const BASE_DATA_DIR = "/media/deth/SLAB/seasonality/GEE_output/"
+
+    # and choose the plots backend
     # (sticking with the python plotting window that I know well, for now)
     #pyplot()
     # NOTE: pyplot breaks when trying to plot the Grayscale image,
     # so for now using GR instead
     #gr()
-    if VAR == "NIRv"
-        const ABS_DATA_DIR = "/home/deth/Desktop/CAL/research/projects/seasonality/GEE_output/CA/"
-    elseif VAR == "SIF"
-        const ABS_DATA_DIR = "/home/deth/Desktop/CAL/research/projects/seasonality/GEE_output/old/"
-    elseif VAR in ["pr", "def", "tmmean", "cloud"]
-        const ABS_DATA_DIR = "/home/deth/Desktop/CAL/research/projects/seasonality/tmp_dirs/tmp_debug_asynch_for_climate_data"
-    end
-
+    #
+# ... or else get paths for Savio
 else
-    if VAR == "NIRv"
-        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/NIRv/"
-    elseif VAR == "SIF"
-        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/SIF/"
-    elseif VAR == "tmmean"
-        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/tmmean/"
-    elseif VAR == "tmmn"
-        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/tmmn/"
-    elseif VAR == "tmmx"
-        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/tmmx/"
-    elseif VAR == "vs"
-        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/vs/"
-    elseif VAR == "pr"
-        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/pr/"
-    elseif VAR == "def"
-        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/def/"
-    elseif VAR == "cloud"
-        const ABS_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/cloud/"
-    end
+    const BASE_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/"
 end
+# make data-dir absolute path
+const DATA_SUBDIR = "global_coeffs_" * VAR * MASKING_SUFFIX
+const ABS_DATA_DIR = BASE_DATA_DIR * DATA_SUBDIR
+
 
 
 """
