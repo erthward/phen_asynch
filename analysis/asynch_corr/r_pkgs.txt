@@ -1,1 +1,0 @@
-install.packages(c("raster", "terra", "sp", "sf", "spdep", "randomForest", "SpatialML", "GWmodel", "vip", "pdp", "DALEX", "ggplot2", "ggthemes", "grid", "cowplot", "tmap", "maps", "RColorBrewer", "cmocean", "dplyr"), dependencies=T)

@@ -1,1 +1,0 @@
-geeup upload --nodata -999 --source /run/media/drew/SLAB/seasonality/SIF/OCO-2/gridded/Global_High_Res_SIF_OCO2_1696/OCO2_SIF_ANN --dest users/drewhart/seasonality_data/OCO2_SIF_ANN -u drew.hart@berkeley.edu -m /run/media/drew/SLAB/seasonality/SIF/OCO-2/gridded/Global_High_Res_SIF_OCO2_1696/OCO2_SIF_ANN/SIF_OCO2_ANN_upload_metadata.csv

@@ -1,5 +1,4 @@
 **/__pycache__
-calc_asynchrony/__pycache__/
 *.tif
 *.tif.aux.xml
 *.csv
@@ -18,6 +17,7 @@ calc_asynchrony/__pycache__/
 *.cpg
 *.dbf
 *.prj
+data/
 analysis/*.tif
 analysis/__pycache__/
 analysis/__pycache__/*.pyc
