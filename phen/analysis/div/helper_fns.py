@@ -13,7 +13,6 @@ of the asynch and harmonic-regression maps.
 from sklearn.linear_model import LinearRegression
 from rasterio.fill import fillnodata
 from geopy.distance import geodesic
-from greatcircle import GreatCircle
 from shapely.geometry import Point
 from scipy.spatial import cKDTree
 import matplotlib.pyplot as plt
@@ -321,38 +320,6 @@ def generate_random_points_in_polygon(n, polygon):
         if polygon.contains(pnt):
             points.append(pnt)
     return points
-
-
-def calc_pw_geo_dist_mat(pts):
-    """
-    Calculates the pw geo-dist matrix for an nx2 numpy array
-    containing the (lon, lat) coordinates for n points.
-    """
-    # empty pw dist mat
-    geo_dist = np.zeros([pts.shape[0]]*2) * np.nan
-
-    # loop over pts
-    for i in range(pts.shape[0]):
-        pt_i = pts[i,:]
-        geo_dist[i,i] = 0
-        for j in range(i+1, pts.shape[0]):
-            pt_j = pts[j,:]
-            # set dist to 0 if coords are identical
-            if np.all(pt_i == pt_j):
-                dist = 0
-            else:
-                # calculate the geo dist (great circle dist)
-                gc = GreatCircle()
-                gc.longitude1_degrees = pt_i[0]
-                gc.latitude1_degrees = pt_i[1]
-                gc.longitude2_degrees = pt_j[0]
-                gc.latitude2_degrees = pt_j[1]
-                gc.calculate()
-                dist = gc.distance_kilometres*1000
-            # add to geo_dist matrix
-            geo_dist[i,j] = dist
-            geo_dist[j,i] = dist
-    return geo_dist
 
 
 def calc_pw_clim_dist_mat(pts, nodata_val=-3.4e+38):

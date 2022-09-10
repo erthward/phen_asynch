@@ -12,6 +12,8 @@ from colorsys import hls_to_rgb
 from sklearn.metrics.pairwise import pairwise_distances_argmin
 from sklearn.cluster import MiniBatchKMeans, KMeans, DBSCAN
 from sklearn.mixture import GaussianMixture
+import scipy.stats as stats
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from colormap import rgb2hex
@@ -112,7 +114,7 @@ countries = gpd.read_file(('/home/deth/Desktop/CAL/research/projects/seasonality
 # load ITCZ shapefile
 # NOTE: digitized from Li and Zeng 2005, as reproduced in Zhisheng et al. 2015
 itcz = gpd.read_file(('/home/deth/Desktop/CAL/research/projects/seasonality/'
-                      'seasonal_asynchrony/analysis/'
+                      'seasonal_asynchrony/phen/analysis/div/'
                       'ITCZ_li_zeng_2005_digitized.shp'))
 
 # load the coeffs
@@ -134,8 +136,8 @@ reg_bboxes = {
               'Qu': [1.32e7, -1.38e6, 1.373e7, -2.55e6], # N. Queensland peninsula
               'AD': [-5.47e6, 3.1e5, -4.6e6, -0.6e6], # NE Arc of Deforestation
               'CA': [-1.06e7, 4.6e6, -0.985e7, 2.87e6], # CA Mediterranean and Baja
-              'SAm':[-7.74e6, -0.6e6, -3.34e6, -2.3e6], # S. America cross-section
-              'Af': [0.95e6, -0.5e6, 4.8e6, -2.3e6], # African cross-section
+              'GB': [-1.01e7, 5.5e6, -0.94e7, 4.6e6], # Great Basin
+              'Mad':[3.94e6, -1.4e6, 4.84e6, -3.3e6], # N Madagascar
               'FL': [-7.525e6, 3.53e6, -7.25e6, 3.13e6], # South Florida
               'SAf':[1.52e6, -3.8e6, 2.14e6, -4.325e6], # S. Africa Mediterranean
               'Au': [1.008e7, -3.86e6, 1.09e7, -4.4e6], # Australia Mediterranean
@@ -144,10 +146,10 @@ reg_bboxes = {
 # NOTE: [[i_min, i_max], [j_min, j_max]]
 reg_gsinds = {
               'Qu': [[0, 30], [180, 200]],
-              'AD': [[25, 45], [30, 50]],
+              'AD': [[65, 85], [60, 80]],
               'CA': [[0, 40], [0, 30]],
-              'SAm':[[65, 85], [22, 94]],
-              'Af': [[65, 85], [84, 148]],
+              'GB': [[25, 55], [30, 50]],
+              'Mad':[[65, 90], [110, 130]],
               'FL': [[60, 90], [0, 20]],
               'SAf':[[70, 90], [150, 170]],
               'Au': [[60, 80], [175, 195]],
@@ -156,10 +158,10 @@ reg_gsinds = {
 # NOTE: should always be 10 indices tall and 20 wide
 reg_gsinds_lines = {
               'Qu': [[30, 40], [180, 200]],
-              'AD': [[45, 55], [30, 50]],
+              'AD': [[85, 95], [60, 80]],
               'CA': [[40, 50], [5, 25]],
-              'SAm':[[85, 95], [48, 68]],
-              'Af': [[85, 95], [106, 126]],
+              'GB': [[55, 65], [30, 50]],
+              'Mad':[[90, 100], [110,130]],
               'FL': [[90, 100], [0, 20]],
               'SAf':[[90, 100], [150, 170]],
               'Au': [[80, 90], [175, 195]],
@@ -170,18 +172,18 @@ reg_K_vals = {
               'Qu': 3,
               'AD': 3,
               'CA': 4,
-              'SAm':5,
-              'Af': 5,
+              'GB': 3,
+              'Mad':3,
               'FL': 3,
               'SAf':5,
               'Au': 5,
              }
 reg_letters = {
               'Qu': 'E.',
-              'AD': 'D.',
+              'AD': 'H.',
               'CA': 'B.',
-              'SAm':'H.',
-              'Af': 'I.',
+              'GB': 'D.',
+              'Mad':'I.',
               'FL': 'C.',
               'SAf':'G.',
               'Au': 'F.',
@@ -191,8 +193,8 @@ reg_lett_locs = {
               'Qu': (0.05, 0.9),
               'AD': (0.8, 0.8),
               'CA': (0.05, 0.05),
-              'SAm':(0.05, 0.05),
-              'Af': (0.9, 0.87),
+              'GB': (0.90, 0.05),
+              'Mad':(0.05, 0.87),
               'FL': (0.05, 0.05),
               'SAf':(0.02, 0.05),
               'Au': (0.05, 0.9),
@@ -507,25 +509,66 @@ def run_clust_analysis(eofs_rast, coeffs_rast, reg, clust_algo,
     coeffs_X = coeffs_vals.reshape([np.product(coeffs_vals.shape[:2]), 5])
     coeffs_X_sub = coeffs_X[eofs_non_nans, :]
     # map the clusters, if requested
-    if map_clusters:
+    # NOTE: or, if this is the Great Basin, create the cluster raster,
+    #       then overlay with the cheatgrass data and run a simple ANOVA
+    #       and Tukey's HSD to test differences in modeled percent annual
+    #       herbaceous cover between clusters
+    if map_clusters or reg == 'GB':
         cluster_arr = np.ones([eofs_X.shape[0], 1])*np.nan
         cluster_arr[eofs_non_nans,0] = labels
         clusters = cluster_arr.reshape(eofs_vals[:,:,0].shape)
         clusters_rxr = deepcopy(eofs_rast[0])
         clusters_rxr[:,:] = clusters
-        fig_clust_map, ax_clust_map = plt.subplots(1,1)
-        cmap = mpl.colors.ListedColormap(center_colors)
-        countries.to_crs(4326).plot(color='none',
-                                    linewidth=1,
-                                    edgecolor='black',
-                                    alpha=0.7,
-                                    ax=ax_clust_map,
-                                    zorder=1,
-                                   )
-        clusters_rxr.plot.imshow(ax=ax_clust_map,
-                                 cmap=cmap, alpha=1, zorder=0)
-        fig_clust_map.show()
-        return
+        if map_clusters:
+            fig_clust_map, ax_clust_map = plt.subplots(1,1)
+            cmap = mpl.colors.ListedColormap(center_colors)
+            countries.to_crs(4326).plot(color='none',
+                                        linewidth=1,
+                                        edgecolor='black',
+                                        alpha=0.7,
+                                        ax=ax_clust_map,
+                                        zorder=1,
+                                       )
+            try:
+                clusters_rxr.plot.imshow(ax=ax_clust_map,
+                                         cmap=cmap, alpha=1, zorder=0)
+            # ignore that annoying rioxarray error
+            # ("'tuple' object has no attribute 'startswith'")
+            except AttributeError as e:
+                pass
+            fig_clust_map.show()
+        # load data on percent annual cover and run stats test of significant
+        # difference between clusters
+        if reg == 'GB':
+            # data from: https://www.sciencebase.gov/catalog/item/5ec5159482ce476925eac3b7
+            annuals = rxr.open_rasterio(('./WGA_Weighted_Mean_Annual_'
+                                'Herbaceous_Cover_2016_2017_2018_AGG5KM.tif'),
+                                        masked=True)
+            annuals = annuals.rio.reproject_match(clusters_rxr)
+            cluster_vals = {i: annuals[0].values[clusters_rxr == i].ravel(
+                                            ) for i in np.unique(clusters_rxr)}
+            cluster_vals = {i: vals[pd.notnull(vals)] for i,
+                            vals in cluster_vals.items() if pd.notnull(i)}
+            # run ANOVA
+            fval, pval = stats.f_oneway(*cluster_vals.values())
+            # run Tukey HSD
+            tuk = pairwise_tukeyhsd(
+                endog=np.array([val for val_list in cluster_vals.values(
+                                                    ) for val in val_list]),
+                groups=np.array([clust for clust, val_list in cluster_vals.items(
+                                                    ) for val in val_list]))
+            print('\n\n==========\nGreat Basin cheatgrass statistical results:')
+            print('\n\tANOVA: F-val: %0.2f; p-val: %0.2f\n\n' % (fval, pval))
+            print('\tgroup means:\n\t%s' % '\t'.join(['%i: %0.2f' % (i,
+                    np.mean(vals)) for i, vals in cluster_vals.items()]))
+            print('\n\n\tTukey HSD: %s' % str(tuk))
+            print('\n\ncluster colors:\n')
+            for clust, color in zip(sorted(np.unique(clusters_rxr)),
+                                    center_colors):
+                print(f'cluster {clust}: {color}\n')
+            print('\n\n==========\n\n')
+        if map_clusters:
+            return
     # else, for each clust cent, find n_clust_neighs cells closest in RGB space
     for i, c in enumerate(centers):
         # TODO: make separate axes for line plot

@@ -115,7 +115,7 @@ Which masking mode to use?
 const MASKING_MODE = "default"
 # create file suffix based on masking mode
 if VAR in ["NIRv", "SIF"] and MASKING_MODE == "strict"
-    const MASKING_SUFFIX = "_STRICTMASK"
+    const MASKING_SUFFIX = "_STRICT"
 else
     const MASKING_SUFFIX = ""
 end

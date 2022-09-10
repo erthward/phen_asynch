@@ -36,8 +36,16 @@ max_neigh_cell_dist = 2 # at our 0.05deg res, this is up to ~10km away...
 seed = 1
 np.random.seed(seed)
 
+# choose dataset
 #rs_var = 'SIF'
 rs_var = 'NIRv'
+
+# choose masking mod
+masking_mode = 'default'
+#masking_mode = 'strict'
+masking_suffix = '_STRICT' * (masking_mode == 'strict')
+
+
 rs_var_units = {'SIF': '$mW\ m^{-2}\ sr^{-1}\ nm^{-1}$',
                        'NIRv': '$nmol\ m^{-2}\ s^{-1}'
                }
@@ -48,13 +56,13 @@ filter_end_date = None
 
 
 # data directories
-local_datadir = ('/home/deth/Desktop/CAL/research/projects/'
-                 'seasonality/seasonal_asyncrhony/validation/'
-                 'flux_tower_seasonality_validation')
-mount_datadir = ('/media/deth/SLAB/seasonality/other/flux')
+rs_datadir = ('/media/deth/SLAB/seasonality/GEE_outputs/')
+flux_datadir = ('/media/deth/SLAB/seasonality/other/flux/')
 
 # indicate the RS-based coefficients TIFF to validate
-rs_coeffs_tif = os.path.join(mount_datadir, '%s_global_coeffs.tif' % rs_var)
+rs_coeffs_tif = os.path.join(rs_datadir,
+                             rs_var + masking_suffix,
+                    'global_seas_coeffs_%s%s.tif' % (rs_var, masking_suffix))
 
 # variables that differ between main FLUXNET sites and CH4 sites
 # (indexed by the filename patterns that distinguish between the two types)
@@ -487,9 +495,9 @@ results = {'id': [],
            'notes': [],
           }
 
-zip_filenames = [f for f in os.listdir(mount_datadir) if
+zip_filenames = [f for f in os.listdir(flux_datadir) if
                  os.path.splitext(f)[-1] == '.zip']
-zip_filenames = [os.path.join(mount_datadir, fn) for fn in zip_filenames]
+zip_filenames = [os.path.join(flux_datadir, fn) for fn in zip_filenames]
 for zip_filename in zip_filenames:
     try:
         print('\n\nNow processing: %s\n\n' % zip_filename)
