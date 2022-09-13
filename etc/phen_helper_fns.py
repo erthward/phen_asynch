@@ -1,5 +1,5 @@
 #!/bin/python
-# helper_fns.py
+# phen_helper_fns.py
 
 """
 Functions to help with downstream analyses
@@ -20,7 +20,6 @@ from copy import deepcopy
 from pprint import pprint
 import rasterstats as rs
 import geopandas as gpd
-#import tensorflow as tf
 import rasterio as rio
 import numpy as np
 import glob
@@ -35,14 +34,13 @@ from scipy.spatial import ConvexHull
 from collections import Counter as C
 
 # get the variables' filepaths
-#BIO_DATA_DIR = ('C:\\Users\\thaon\\Documents\\Asynchrony\\bioclim')
 DATA_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
-            'seasonal_asynchrony/analysis/other_data/')
-BIOCLIM_DATA_DIR = DATA_DIR + 'bioclim/'
-COUNTRIES_DATA_DIR = DATA_DIR + 'countries/'
-COEFFS_FILE = DATA_DIR + 'NIRv_global_coeffs.tif'
-COEFFS_FILLED_FILE = DATA_DIR + 'NIRv_coeffs_FILLED_tol25.tif'
-BIOCLIM_INFILEPATHS = glob.glob(os.path.join(BIOCLIM_DATA_DIR,"*.tif"))
+            'seasonal_asynchrony/data')
+COEFFS_FILE = os.path.join(DATA_DIR, 'NIRv_global_coeffs.tif')
+ASYNCH_FILE = os.path.join(DATA_DIR, 'NIRv_global_asynch.tif')
+BOUNDS_DIR = os.path.join(DATA_DIR, 'bounds')
+BIOCLIM_DIR = os.path.join(DATA_DIR, 'bioclim')
+BIOCLIM_INFILEPATHS = glob.glob(os.path.join(BIOCLIM_DIR,"wc2.1_2.5m_bio_*.tif"))
 BIOCLIM_INFILEPATHS = sorted(BIOCLIM_INFILEPATHS)
 
 
@@ -127,6 +125,13 @@ def standardize_array(a):
     Returns a standardized version of the input array
     """
     return (a - np.mean(a))/np.std(a)
+
+
+def minmax_rescale_array(a):
+    """
+    Returns a min-max rescaled (i.e., min-max normalized) version of the input array
+    """
+    return (a-np.min(a))/(np.max(a)-np.min(a))
 
 
 def get_tolerancefilled_arr(arr, tol):

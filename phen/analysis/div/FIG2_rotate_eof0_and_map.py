@@ -30,7 +30,9 @@ import numpy as np
 import os, re
 
 # local imports
-import helper_fns as hf
+sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+                    'seasonal_asynchrony/etc/'))
+import phen_helper_fns as phf
 
 
 #############################################################################
@@ -108,8 +110,15 @@ def compare_wt_nowt_rasts(nowt, wt, bands=[0,1,2]):
 ####################
 
 # load country boundaries
-countries = gpd.read_file(('/home/deth/Desktop/CAL/research/projects/seasonality/'
-                           'results/maps/NewWorldFile_2020.shp')).to_crs(8857)
+countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
+                                       'NewWorldFile_2020.shp')).to_crs(8857)
+
+# load level-1 subnational jurisdictions (downloaded from:
+#                                 https://gadm.org/download_country.html)
+subnational = []
+for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
+    subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR, f)).to_crs(8857))
+subnational = pd.concat(subnational)
 
 # load ITCZ shapefile
 # NOTE: digitized from Li and Zeng 2005, as reproduced in Zhisheng et al. 2015
@@ -282,7 +291,7 @@ for lyr in range(eofs_wt_sum_for_map.shape[0]):
         eofs_wt_sum_for_map[lyr] < 2*eofs_wt_sum[lyr].max(), np.nan)
 
 # get harmonic regression design matrix
-dm = hf.make_design_matrix()
+dm = phf.make_design_matrix()
 
 
 
@@ -320,13 +329,21 @@ for i in range(3):
                                 alpha=1,
                                 zorder=0,
                                )
+    subnational.plot(color='none',
+                     linewidth=0.3,
+                     edgecolor='black',
+                     alpha=0.5,
+                     ax=ax_eof,
+                     zorder=1,
+                    )
     countries.plot(color='none',
                    linewidth=0.5,
                    edgecolor='black',
                    alpha=0.7,
                    ax=ax_eof,
-                   zorder=1,
+                   zorder=2,
                   )
+
     strip_axes(ax_eof)
     ax_eof.set_xlim(global_xlim)
     ax_eof.set_ylim(eofs_for_map.rio.bounds()[1::2])
@@ -354,12 +371,19 @@ eofs_wt_sum_for_map.plot.imshow(ax=ax_rgb,
                                     alpha=1,
                                     zorder=0,
                                    )
+subnational.plot(color='none',
+                 linewidth=0.3,
+                 edgecolor='black',
+                 alpha=0.5,
+                 ax=ax_eof,
+                 zorder=1,
+                )
 countries.plot(color='none',
                linewidth=0.5,
                edgecolor='black',
                alpha=0.7,
                ax=ax_rgb,
-               zorder=1,
+               zorder=2,
               )
 strip_axes(ax_rgb)
 ax_rgb.set_xlim(global_xlim)
@@ -576,7 +600,7 @@ def run_clust_analysis(eofs_rast, coeffs_rast, reg, clust_algo,
         clust_member_coords = eofs_X_sub[labels == i,:]
         clust_member_coeffs = coeffs_X_sub[labels == i,:]
         for coords in clust_member_coords:
-            dist = hf.calc_euc_dist(c, coords)
+            dist = phf.calc_euc_dist(c, coords)
             dists.append(dist)
         closest = np.argsort(dists)[:n_clust_neighs]
         # for each of those cells, get fitted, standardized seasonal TS,
@@ -584,9 +608,9 @@ def run_clust_analysis(eofs_rast, coeffs_rast, reg, clust_algo,
         tss = []
         for ind in closest:
             member_coeffs = clust_member_coeffs[ind]
-            ts = hf.calc_time_series(member_coeffs, dm)
+            ts = phf.calc_time_series(member_coeffs, dm)
             # standardize ts
-            ts = hf.standardize_array(ts)
+            ts = phf.standardize_array(ts)
             tss.append(ts)
         # plot median and 5th and 95th percentiles
         tss_arr = np.array(tss)
@@ -636,12 +660,19 @@ for reg, bbox in reg_bboxes.items():
                                                                    zorder=0,
                                                             add_colorbar=False,
                                                                   )
+    subnational.plot(color='none',
+                     linewidth=0.3,
+                     edgecolor='black',
+                     alpha=0.5,
+                     ax=ax_eof,
+                     zorder=1,
+                    )
     countries.plot(ax=ax_reg,
                    color='none',
                    edgecolor='black',
                    linewidth=0.5,
                    alpha=0.8,
-                   zorder=1,
+                   zorder=2,
                   )
     strip_axes(ax_reg)
     ax_reg.set_xlim(bbox[0], bbox[2])
@@ -767,12 +798,12 @@ if run_eof_interpretation:
         hi_stats = {stat: [] for stat in stats_fn_dict.keys()}
         for lo_x, lo_y in zip(lo_xs, lo_ys):
             lo_coeffs = coeffs.sel(x=lo_x, y=lo_y, method='nearest').values
-            ts = hf.calc_time_series(lo_coeffs, dm)
+            ts = phf.calc_time_series(lo_coeffs, dm)
             for stat, fn in stats_fn_dict.items():
                 lo_stats[stat].append(fn(ts))
         for hi_x, hi_y in zip(hi_xs, hi_ys):
             hi_coeffs = coeffs.sel(x=hi_x, y=hi_y, method='nearest').values
-            ts = hf.calc_time_series(hi_coeffs, dm)
+            ts = phf.calc_time_series(hi_coeffs, dm)
             for stat, fn in stats_fn_dict.items():
                 hi_stats[stat].append(fn(ts))
         lo_stats_df = pd.DataFrame(lo_stats)

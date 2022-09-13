@@ -4,6 +4,7 @@ import numpy as np
 import statsmodels.api as sm
 from collections import OrderedDict as OD
 
+
 def MMRR(Y, X, Xnames=None, nperm=999):
     """
     This is a port of Ian Wang's MMRR script, which lives here:
@@ -42,7 +43,7 @@ def MMRR(Y, X, Xnames=None, nperm=999):
     r2 = mod.rsquared
     tstat = mod.tvalues
     Fstat = mod.fvalue
-    tprob = np.ones((len(tstat)))
+    tprob = np.zeros((len(tstat)))
     Fprob = 1
     # get the row numbers
     rownums = [*range(nrowsY)]
@@ -50,11 +51,12 @@ def MMRR(Y, X, Xnames=None, nperm=999):
     for i in range(nperm):
         # shuffle the row numbers
         np.random.shuffle(rownums)
-        Yperm = Y[rownums, rownums]
+        Yperm = Y[rownums,:][:, rownums]
+        assert np.all(Yperm.shape == Y.shape)
         yperm = _unfold_tril(Yperm)
         permmod_y, permmod_x = _prep_mod_data(yperm, xs)
         permmod = sm.OLS(permmod_y, permmod_x).fit()
-        tprob += (permmod.tvalues >= np.abs(tstat))
+        tprob += (np.abs(permmod.tvalues) >= np.abs(tstat))
         Fprob += (permmod.fvalue >= Fstat)
 
     # calculate the empirical p-values
@@ -68,7 +70,7 @@ def MMRR(Y, X, Xnames=None, nperm=999):
     output.update({c: cval for c, cval in zip(coeff_names, coeffs)})
     output.update({c+ "(t)": tval for c, tval in zip(coeff_names, tstat)})
     output.update({c+ "(p)": pval for c, pval in zip(coeff_names, tp)})
-    output["F-statistc"] = Fstat
+    output["F-statistic"] = Fstat
     output["F p-value"] = Fp
 
     return output
