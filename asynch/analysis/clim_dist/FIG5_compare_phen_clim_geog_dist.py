@@ -3,11 +3,15 @@
 
 
 # TODO:
-    # finalize working version
     # include Whittaker plot?
     # attend remaining TODO's
     # uncomment try statement or remove?
+    # need to record places where alpha is increased, or get rid of that, or is
+        # that okay as part of clustering?
     # delete unused stuff
+    # need to weed out clim_dist coeff values when their p-values are >0.05, or
+        # is that part of the point? (I looked and they're mostly far-north places
+        # that will go away with proper masking anyhow...)
 
 import geopandas as gpd
 import numpy as np
@@ -81,6 +85,8 @@ standardize_ts = True
 # number of MMRR permutations
 MMRR_nperm=499
 
+
+
 #####################################
 # PART I: CLUSTER HIGH-ASYNCH REGIONS
 #####################################
@@ -120,10 +126,28 @@ if interactive:
 else:
     loop_vals = [[float(arg.strip()) for arg in sys.argv[1:]]]
 
+# randomize order of the loop vals
+# (so that I can rerun to try different parameterizations
+#  and will eventually hit them all)
+indices = [*range(len([*deepcopy(loop_vals)]))]
+np.random.shuffle(indices)
+loop_vals = [[*deepcopy(loop_vals)][i] for i in indices]
+
 # get rid of loop vals that already exist in CSV of partial output,
 # if it exists
-if os.path.isfile('clim_dist_all_MMRR_results.csv'):
-    partial_results = pd.read_csv('clim_dist_all_MMRR_results.csv')
+if os.path.isfile('clim_dist_all_MMRR_results.shp'):
+    partial_results = gpd.read_file('clim_dist_all_MMRR_results.shp')
+    # map fiona's laundered column names back to original names
+    partial_results = partial_results.rename(columns={
+                                    'Intercept(': 'Intercept(t)',
+                                    'clim_dist(': 'clim_dist(t)',
+                                    'geo_dist(t': 'geo_dist(t)',
+                                    'Intercep_1': 'Intercept(p)',
+                                    'clim_dis_1': 'clim_dist(p)',
+                                    'geo_dist(p': 'geo_dist(p)',
+                                    'F-statisti': 'F-statistic',
+                                    'mean_clim_': 'mean_clim_dist',
+                                   })
     full_loop_vals = deepcopy(loop_vals)
     needed_loop_vals = []
     for dbscan_eps, dbscan_minsamp, alpha in deepcopy(loop_vals):
@@ -132,9 +156,14 @@ if os.path.isfile('clim_dist_all_MMRR_results.csv'):
                                 (partial_results['alpha'] == alpha)]
         if len(subdf) == 0:
             needed_loop_vals.append((dbscan_eps, dbscan_minsamp, alpha))
-    print('OLD LENGTH LOOP VALS: %i' % len([*deepcopy(loop_vals)]))
-    print('NEW LENGTH LOOP VALS: %i' % len([*deepcopy(needed_loop_vals)]))
+    print('\n\nOLD LENGTH LOOP VALS: %i' % len([*deepcopy(loop_vals)]))
+    remaining_n_loop_vals = len([*deepcopy(needed_loop_vals)])
+    print('\n\nNEW LENGTH LOOP VALS: %i\n\n' % remaining_n_loop_vals)
     loop_vals = needed_loop_vals
+else:
+    partial_results = None
+    remaining_n_loop_vals = len([*deepcopy(loop_vals)])
+    print('\n\nNO EXISTING RESULTS DETECTED\n\n')
 
 # create data strucutres to save all results for final analysis
 all_loop_coords = {}
@@ -143,15 +172,20 @@ all_loop_polys = {}
 all_loop_rand_pts = {}
 all_loop_MMRR_res = {}
 
+# add previously saved partial results to the all_loop_MMRR_res dict,
+# if there were any
+if partial_results is not None:
+    prev_param_combos = partial_results[['alpha', 'minsamp', 'eps']].values
+    n_prev_param_combos = len(set([tuple(row) for row in prev_param_combos]))
+    print('\n\n%i PREVIOUS PARAM COMBOS ALREADY RUN' % n_prev_param_combos)
+    # NOTE: MAKE LOOP NUM -1 FOR ALL PREV RESULTS, EVEN IF MULTIPLE LOOPS'
+    #       RESULTS, SINCE THE LOOP NUM IS NOT REALLY USEFUL POST HOC ANYHOW
+    all_loop_MMRR_res[-1] = partial_results
+
 # loop analysis over param vals
 loop_ct = 0
-for (dbscan_eps, dbscan_minsamp, alpha) in loop_vals:
-
-    # wrap whole thing in a try statement, so that loop can skip over
-    # parameterizations that produce less than min_n_clusts
-    if True:
-    #try:
-
+if remaining_n_loop_vals > 0:
+    for (dbscan_eps, dbscan_minsamp, alpha) in loop_vals:
         print(('#'*80+'\n')*4)
         print(f'\n\nLOOP {loop_ct}:\n\n')
         print('\tdbscan_eps: %0.3f\n\n' % dbscan_eps)
@@ -222,9 +256,10 @@ for (dbscan_eps, dbscan_minsamp, alpha) in loop_vals:
                     MultiPolygon) else MultiPolygon([poly]) for poly in polys]
 
 
-        ####################################
-        # PART II: DRAW PTS AND RUN ANALYSIS
-        ####################################
+
+####################################
+# PART II: DRAW PTS AND RUN ANALYSIS
+####################################
 
         polys_pts = [phf.generate_random_points_in_polygon(
                                                 n_pts, poly) for poly in polys]
@@ -347,10 +382,15 @@ for (dbscan_eps, dbscan_minsamp, alpha) in loop_vals:
         MMRR_res_df['alpha'] = alpha
 
         # add the polygons as a column
-        MMRR_res_df['geom'] = polys
+        MMRR_res_df['geometry'] = polys
 
         # convert to a GeoDataFrame
-        MMRR_res_gdf = gpd.GeoDataFrame(MMRR_res_df, geometry='geom', crs=4326)
+        MMRR_res_gdf = gpd.GeoDataFrame(MMRR_res_df, geometry='geometry', crs=4326)
+
+        # check that columns line up with partial_results columns,
+        # if partial results are being used
+        if partial_results is not None:
+            assert np.all(MMRR_res_gdf.columns == partial_results.columns)
 
         # store all other results for this loop
         all_loop_coords[loop_ct] = coords
@@ -363,16 +403,25 @@ for (dbscan_eps, dbscan_minsamp, alpha) in loop_vals:
         # (do this each loop so that if the script breaks partway then I can
         # pick up where I left off)
         all_loop_MMRR_res_gdf = pd.concat([*all_loop_MMRR_res.values()])
+        # check columns all got lined up correctly
+        assert np.all(all_loop_MMRR_res_gdf.columns == MMRR_res_gdf.columns)
         if save_all_results:
-            MMRR_res_df.to_csv('clim_dist_all_MMRR_results.csv', index=False)
-
-
-    #except Exception as e:
-    #    print('\n\n\nException raised: %s\n\nMoving on...\n\n\n' % e)
+            all_loop_MMRR_res_gdf.to_file('clim_dist_all_MMRR_results.shp',
+                                          index=False)
 
     # increment loop count
     loop_ct += 1
 
+# if all results already run (i.e., if remaining_n_loop_vals == 0),
+# then just prep data for analysis
+else:
+    all_loop_MMRR_res_gdf = partial_results
+
+
+
+####################
+# PART III: ANALYSIS
+####################
 
 # run single, overarching OLS model of clim_dist coeff as a function of mean
 # cluster latitude
@@ -405,7 +454,7 @@ ax.set_xlabel('effect size of mean cluster latitude on MMRR clim_dist coeff')
 ax.set_ylabel('freq')
 plt.hist(null_fx, bins=100, alpha=0.7)
 ax.axvline(fx_size, *ax.get_ylim(), color='red', linewidth=2)
-fig.savefig('clim_dist_effect_size_null_dist.png', dpi=700)
+fig.savefig('mean_cluster_lat_effect_size_null_dist.png', dpi=700)
 
 # plot clim_dist effect size vs |mean lat|
 fig = plt.figure(figsize=(6,12))
@@ -429,6 +478,7 @@ for i, y_col in enumerate(['clim_dist', 'clim_dist(p)', 'mean_clim_dist']):
                 scatter=False,
                 ax=ax,
                )
+
 fig.savefig('clim_dist_vs_lat_scat.png', dpi=700)
 
 fig_map = plt.figure(figsize=(20,10))
@@ -448,6 +498,9 @@ gdf_for_plot.plot(column='clim_dist',
                   ax=ax
                  )
 fig.savefig('clim_dist_vs_lat_scat.png', dpi=700)
+
+plt.show()
+
 
 '''
 # make map
