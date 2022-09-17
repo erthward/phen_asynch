@@ -1,1 +1,0 @@
-geeup upload --nodata 65535 --source /run/media/drew/SLAB/seasonality/other/EarthEnv_MODIS_cloud --dest users/drewhart/ -u drew.hart@berkeley.edu -m /run/media/drew/SLAB/seasonality/other/EarthEnv_MODIS_cloud/MODIS_cloud_upload_metadata.csv
