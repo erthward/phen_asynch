@@ -721,7 +721,8 @@ function make_nneighs_lookup_dict(mix_info::Dict{String, Any},
         # query the tree and record number of neighs
         nneighs = length(inrange(tree, [0, lat], NEIGH_RAD))
         # store the number of neighs in the cells_nneighs_dict
-        nneighs_lookup_dict[cell_info] = nneighs
+        #nneighs_lookup_dict[cell_info] = nneighs
+        nneighs_lookup_dict[round(lat, digits=6)] = nneighs
     end
     
     return nneighs_lookup_dict
@@ -760,7 +761,8 @@ function get_neighbors_info(i::Int64, j::Int64,
     # get the tree's data-row numbers for all neighbors
     # within the NEIGH_RAD-radius neighborhood
     # (by grabbing the k nearest neighbors, where k comes from the NNEIGHS_LOOKUP_DICT built at the outset)
-    neighs = knn(tree, [foc_x, foc_y], nneighs_lookup_dict[Tuple((patch_i, i))])[1]
+    #neighs = knn(tree, [foc_x, foc_y], nneighs_lookup_dict[Tuple((patch_i, i))])[1]
+    neighs = knn(tree, [foc_x, foc_y], nneighs_lookup_dict[round(foc_y, digits=6)])[1]
     # DETH: 10-09-21: trying the knn approach above instead of the inrange approach below because
     #                 I've smashed my head against all the walls and couldn't debug that approach...
     #neighs = inrange(tree, [foc_x, foc_y], NEIGH_RAD)
@@ -1370,7 +1372,7 @@ function main_fn(file_info::Tuple{String,Dict{String,Any}};
         # NOTE: just using a random number because gdal_merge.py will mosaic all anyhow
         randnumstr = "$(round(Int, rand()*10000000))"
         tiff_filename = "$(VAR)_$randnumstr.tif"
-        tiff_filepath = join([ABS_DATA_DIR, tiff_filename]) 
+        tiff_filepath = join([DATA_DIR, "/", tiff_filename]) 
         println("\nNOW WRITING FILE $tiff_filepath\n")
         write_geotiff(outpatch, MIX, patch_is[idx], patch_js[idx], tiff_filepath)
     end

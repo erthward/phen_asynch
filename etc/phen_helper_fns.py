@@ -36,8 +36,8 @@ from collections import Counter as C
 # get the variables' filepaths
 DATA_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
             'seasonal_asynchrony/data')
-COEFFS_FILE = os.path.join(DATA_DIR, 'NIRv_global_coeffs.tif')
-ASYNCH_FILE = os.path.join(DATA_DIR, 'NIRv_global_asynch.tif')
+COEFFS_FILE = os.path.join(DATA_DIR, 'global_seas_coeffs_NIRv.tif')
+ASYNCH_FILE = os.path.join(DATA_DIR, 'global_seas_asynch_NIRv.tif')
 BOUNDS_DIR = os.path.join(DATA_DIR, 'bounds')
 BIOCLIM_DIR = os.path.join(DATA_DIR, 'bioclim')
 BIOCLIM_INFILEPATHS = glob.glob(os.path.join(BIOCLIM_DIR,"wc2.1_2.5m_bio_*.tif"))
