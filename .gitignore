@@ -18,4 +18,5 @@
 *.dbf
 *.prj
 data/
+savio_analysis/
 phen/analysis/div/WGA*
