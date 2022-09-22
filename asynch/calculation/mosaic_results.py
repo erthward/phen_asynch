@@ -107,7 +107,6 @@ def read_mixer_file(data_dir):
     mixerfilepaths = glob.glob(os.path.join(data_dir, '*mixer.json'))
     assert len(mixerfilepaths) == 1, "MORE THAN 1 MIXER FILE FOUND!"
     mixerfilepath = mixerfilepaths[0]
-
     # read the mixer file
     mixer = json.load(open(mixerfilepath, 'r'))
     return mixer

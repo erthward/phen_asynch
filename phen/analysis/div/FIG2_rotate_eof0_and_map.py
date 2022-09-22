@@ -27,7 +27,7 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 #import xycmap
-import os, re
+import os, sys, re
 
 # local imports
 sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
@@ -128,7 +128,7 @@ itcz = gpd.read_file(('/home/deth/Desktop/CAL/research/projects/seasonality/'
 
 # load the coeffs
 coeffs = rxr.open_rasterio(('/home/deth/Desktop/CAL/research/projects/'
-        'seasonality/results/maps/%s_global_coeffs%s.tif') % (dataset,
+        'seasonality/results/maps/global_seas_coeffs_%s%s.tif') % (dataset,
                                                             mask_filename_ext))
 
 

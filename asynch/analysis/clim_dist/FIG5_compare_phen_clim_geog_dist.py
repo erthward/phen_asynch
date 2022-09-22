@@ -324,20 +324,18 @@ if remaining_n_loop_vals > 0:
                         geo_dist[i, j] = dist
                         geo_dist[j, i] = dist
 
-                # min-max rescale input vars
-                seas_dist_rescaled = phf.minmax_rescale_array(seas_dist)
-                clim_dist_rescaled = phf.minmax_rescale_array(clim_dist)
-                geo_dist_rescaled = phf.minmax_rescale_array(geo_dist)
-                assert np.all(np.percentile(seas_dist_rescaled,
-                                            (0, 100)) == [0, 1])
-                assert np.all(np.percentile(clim_dist_rescaled,
-                                            (0, 100)) == [0, 1])
-                assert np.all(np.percentile(geo_dist_rescaled,
-                                            (0, 100)) == [0, 1])
+                # standardize input vars (to make MMRR coeffs into standardized
+                # beta coeffs, and thus comparable)
+                seas_dist_stand = phf.standardize_array(seas_dist)
+                clim_dist_stand = phf.standardize_array(clim_dist)
+                geo_dist_stand = phf.standardize_array(geo_dist)
+                assert np.allclose(np.std(seas_dist_stand), 1)
+                assert np.allclose(np.std(clim_dist_stand), 1)
+                assert np.allclose(np.std(geo_dist_stand), 1)
 
                 # run model
-                res = MMRR(seas_dist_rescaled,
-                           [clim_dist_rescaled, geo_dist_rescaled],
+                res = MMRR(seas_dist_stand,
+                           [clim_dist_stand, geo_dist_stand],
                            ['clim_dist', 'geo_dist'],
                            MMRR_nperm)
 
@@ -409,8 +407,8 @@ if remaining_n_loop_vals > 0:
             all_loop_MMRR_res_gdf.to_file('clim_dist_all_MMRR_results.shp',
                                           index=False)
 
-    # increment loop count
-    loop_ct += 1
+        # increment loop count
+        loop_ct += 1
 
 # if all results already run (i.e., if remaining_n_loop_vals == 0),
 # then just prep data for analysis

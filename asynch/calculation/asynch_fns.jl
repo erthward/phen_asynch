@@ -4,6 +4,10 @@
 ######################
 TODO:
 
+- decide whether to continue using write_geotiff
+
+- use fit_intercept true or false for asynch calc?
+
 - figure out why neigh-num rast is correct but is incorrect in output files
 - decide if I should just write files out to rasters instead of bs TFRecord files
 - implement and run on Savio
@@ -100,10 +104,7 @@ Which variable to calculate asynchrony for?
 """
 #const VAR = "def"
 #const VAR = "pr"
-#const VAR = "tmmean"
 #const VAR = "tmmn"
-#const VAR = "tmmx"
-#const VAR = "vs"
 #const VAR = "cloud"
 #const VAR = "SIF"
 const VAR = "NIRv"
@@ -114,7 +115,7 @@ Which masking mode to use?
 #const MASKING_MODE = "strict"
 const MASKING_MODE = "default"
 # create file suffix based on masking mode
-if VAR in ["NIRv", "SIF"] and MASKING_MODE == "strict"
+if VAR in ["NIRv", "SIF"] && MASKING_MODE == "strict"
     const MASKING_SUFFIX = "_STRICT"
 else
     const MASKING_SUFFIX = ""
@@ -125,7 +126,7 @@ end
 """
 Whether to use verbose output
 """
-const VERBOSE = false
+const VERBOSE = true
 """
 Whether to time the asynchrony calculation
 (Time will be displayed per pixel)
@@ -142,7 +143,7 @@ const TIMEIT = false
 
 # either get paths on my laptop...
 if splitpath(pwd())[2] == "home"
-    const BASE_DATA_DIR = "/media/deth/SLAB/seasonality/GEE_output/"
+    const BASE_DATA_DIR = "/media/deth/SLAB/diss/3-phn/GEE_outputs/"
 
     # and choose the plots backend
     # (sticking with the python plotting window that I know well, for now)
@@ -153,10 +154,10 @@ if splitpath(pwd())[2] == "home"
     #
 # ... or else get paths for Savio
 else
-    const BASE_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_output/"
+    const BASE_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_outputs/"
 end
 # make data-dir absolute path
-const DATA_SUBDIR = "global_coeffs_" * VAR * MASKING_SUFFIX
+const DATA_SUBDIR = VAR * MASKING_SUFFIX
 const ABS_DATA_DIR = BASE_DATA_DIR * DATA_SUBDIR
 
 
@@ -179,16 +180,13 @@ directory where the TFRecord data and mixerfile live
 """
 const DATA_DIR = relpath(ABS_DATA_DIR)
 
+"""
+kernel size used by GEE to output the TFRecord files
+"""
 # kernel size
 if VAR == "NIRv"
-    """
-    kernel size used by GEE to output the TFRecord files
-    """
     const KERNEL_SIZE = 288
 else
-    """
-    kernel size used by GEE to output the TFRecord files
-    """
     const KERNEL_SIZE = 288
 end
 
@@ -222,11 +220,13 @@ const OUTBANDS = ["asynch", "asynch_R2", "asynch_euc",
 max distance out to which to find and include neighbors in
 each pixel's asynchrony calculation (in meters)
 """
+#const NEIGH_RAD = 50_000
+#const NEIGH_RAD = 100_000
 const NEIGH_RAD = 150_000
 
 """
-minimum distance per 1 degree of longitude
-i.e. the distance of 1 deg lat at my highest latitude, which is 60 N/S)
+minimum distance per 1 degree of longitude (i.e. the distance, in meters,
+of 1 deg longitude at my highest latitude, which is 60 N/S)
 """
 const MIN_DIST_°_LON=111_320
 
@@ -268,15 +268,16 @@ const MIN_NUM_NEIGHS = 30
 Uses the data-directory path provided to get and return
 lists of the input and output files' paths.
 """
-	function get_infile_outfile_paths(data_dir::String)::Tuple{Array{String,1}, Array{String,1}}
-	    # set up IO paths
+function get_infile_outfile_paths(data_dir::String;
+                                  neigh_rad=NEIGH_RAD)::Tuple{Array{String,1}, Array{String,1}}
+    # set up IO paths
     infilepaths = glob("*tfrecord", data_dir) 
     # order the infilepaths
     sort!(infilepaths)
     # exclude any previously generated output files
-    infilepaths = [fp for fp in infilepaths if !occursin("OUT", fp)]
+    infilepaths = [fp for fp in infilepaths if !occursin("-OUT-", fp)]
     # get the corresponding outfilepaths
-    outfilepaths = [replace(fp, r"-(?=\d{5})" => "-OUT-") for fp in infilepaths]
+    outfilepaths = [replace(fp, r"-(?=\d{5})" => string(neigh_rad) * "mrad-OUT-") for fp in infilepaths]
     return infilepaths, outfilepaths
 end
 
@@ -354,8 +355,8 @@ end
 
 """
 Combines all the patches contained in the file located at infilepath
-into a TFRecordDataset. Returns a generator that yields each next example
-i.e. patch) in that dataset, parsed into an n_bands x lon x lat numpy array.
+into a TFRecordDataset. Returns an integer-keyed dict of
+examples (i.e. patches) each one being an n_bands x lon x lat array.
 """
 function read_tfrecord_file(infilepath::String,
                             dims::Tuple{Int64, Int64},
@@ -373,7 +374,7 @@ function read_tfrecord_file(infilepath::String,
             arr = Array{Float32}(undef, dims[1], dims[2], 5)
             for (i, band) in enumerate(bands)
                 band_vals = example.features.feature[band].float_list.value[1:prod(dims)]
-                band_arr = reshape(band_vals, dims) #|> transpose
+                band_arr = reshape(band_vals, dims)
                 # replace the default missing-data val
                 replace!(band_arr, default_val=>NaN)
                 arr[:,:, i] = band_arr
@@ -386,7 +387,7 @@ function read_tfrecord_file(infilepath::String,
             arr = Array{Float32}(undef, dims[1], dims[2], 5)
             for (i, band) in enumerate(bands)
                 band_vals = example.features.feature[band].float_list.value[1:prod(dims)]
-                band_arr = reshape(band_vals, dims) #|> transpose
+                band_arr = reshape(band_vals, dims)
                 # replace the default missing-data val
                 replace!(band_arr, default_val=>NaN)
                 arr[:,:, i] = band_arr
@@ -405,9 +406,10 @@ using the given filepath.
 """
 function write_tfrecord_file(patches::OrderedDict{Int64, Array{Float32,3}},
 			     filepath::String,
-                             bands::Array{String, 1})::Nothing
+                             bands::Array{String, 1};
+                             default_val=DEFAULT_VAL)::Nothing
     #instantiate the TFRecordWriter
-    writer = TFRecordWriter(filepath)
+    writer = TFRecord.TFRecordWriter(filepath)
     # NOTE: sort the patches once more, to ensure they're in the right order
     for (patch_i, patch) in sort(patches)
         # create a Dict of the outbands and their arrays
@@ -415,7 +417,7 @@ function write_tfrecord_file(patches::OrderedDict{Int64, Array{Float32,3}},
         for (band_i, band) in enumerate(bands)
             # set all missing back to the missing-data default val,
             # then recast as Float32 and cast as a vector
-            outpatch = vec(Float32.(replace(patch[:, :, band_i], NaN=>DEFAULT_VAL)))
+            outpatch = vec(Float32.(replace(patch[:, :, band_i], NaN=>default_val)))
             outdict[band] = outpatch
         end
         # serialize to a TF example
@@ -429,11 +431,12 @@ end
 Preps a single patch for writing into a TFRecord file
 """
 function prep_single_patch_for_tfrecord_file(patch::Array{Float32,3},
-                                             bands::Array{String, 1})::Dict{String,
+                                             bands::Array{String, 1};
+                                             default_val=DEFAULT_VAL)::Dict{String,
                                                                            Vector{Float32}}
     patchdict = Dict()
     for (band_i, band) in enumerate(bands)
-        outpatch = vec(Float32.(replace(patch[:, :, band_i], NaN=>DEFAULT_VAL)))
+        outpatch = vec(Float32.(replace(patch[:, :, band_i], NaN=>default_val)))
         patchdict[band] = outpatch
     end
     return patchdict
@@ -506,8 +509,8 @@ end
 """
 Takes the overall x and y min values of the TFRecord dataset,
 the x and y resolutions, the patch dimensions, and the column and row
-indices of the current patch. Returns a meshgrid of the cell centers of the
-current patch.
+indices of the current patch. Returns x and y grids of the
+cell centers of the current patch.
 """
 function get_patch_lons_lats(xmin::Float64, ymin::Float64, xres::Float64, yres::Float64,
                              dims::Tuple{Int64,Int64}, hkw::Int64,
@@ -543,7 +546,7 @@ function get_patch_lons_lats(xmin::Float64, ymin::Float64, xres::Float64, yres::
    #               dims[2])
    xs = LinRange(patch_xmin, patch_xmax, kern_xdim)
    ys = LinRange(patch_ymin, patch_ymax, kern_ydim)
-   # get the meshgrid of those coordinates
+   # get the meshgrids of those coordinates
    gridx = xs' .* ones(length(xs))
    gridy = ys .* ones(length(ys))'
    # check that y values are identical across rows and x values are identical down columns
@@ -646,9 +649,7 @@ end
 
 
 """
-Standardizes a 1d Array.
-
-Returns the standardized array of identical shape.
+Standardizes a 1d Array. Returns the standardized array of identical shape.
 """
 standardize(a1::Array{Float64,1})::Array{Float64,1} = (a1.-mean(a1))/std(a1)
 
@@ -687,7 +688,7 @@ function make_nneighs_lookup_dict(mix_info::Dict{String, Any},
 
     # get the pairs of patch row-number and cell row-number
     # that correspond to each cell-row in the final output dataset
-    # NOTE: is have to be 0-indexed in order to match up with
+    # NOTE: have to be 0-indexed in order to match up with
     #       the patch_is values being returned by get_row_col_patch_ns_allfiles
     patch_is = repeat([0:n_patch_rows-1;], inner=patch_ydim)
     # NOTE: add hkw so that the is are expressed as they will appear in the overlapping
@@ -711,8 +712,8 @@ function make_nneighs_lookup_dict(mix_info::Dict{String, Any},
         # NOTE: add 1 to the total number of cells so that the focal cell,
         # whose center coords are (0, lat), will be the center cell
         # in the potential-neighbor box we create
-        potent_lons = LinRange(0-(hkw*xres), 0+(hkw*xres), 2*hkw+1)
-        potent_lats = LinRange(lat-(hkw*yres), lat+(hkw*yres), 2*hkw+1)
+        potent_lons = LinRange(0-(2*hkw*xres), 0+(2*hkw*xres), 4*hkw+1)
+        potent_lats = LinRange(lat-(2*hkw*yres), lat+(2*hkw*yres), 4*hkw+1)
         vec_potent_lons = vec(potent_lons' .* ones(length(potent_lons)))
         vec_potent_lats = vec(potent_lats .* ones(length(potent_lats))')
         # build a tree containing excess potential coords
@@ -761,12 +762,12 @@ function get_neighbors_info(i::Int64, j::Int64,
     # (by grabbing the k nearest neighbors, where k comes from the NNEIGHS_LOOKUP_DICT built at the outset)
     neighs = knn(tree, [foc_x, foc_y], nneighs_lookup_dict[Tuple((patch_i, i))])[1]
     # DETH: 10-09-21: trying the knn approach above instead of the inrange approach below because
-    #                 I've smasked my head against all the walls and couldn't debug that approach...
+    #                 I've smashed my head against all the walls and couldn't debug that approach...
     #neighs = inrange(tree, [foc_x, foc_y], NEIGH_RAD)
     # use the row numbers to subset the pixels' centerpoint coords and
     # their index coordinate pairs
-    neigh_xs = vec_xs[neighs]
     neigh_ys = vec_ys[neighs]
+    neigh_xs = vec_xs[neighs]
     neigh_is = vec_is[neighs]
     neigh_js = vec_js[neighs]
     # make sure num entities in neigh_coords == num index-pairs in neigh_indices
@@ -784,12 +785,13 @@ function get_neighbors_info(i::Int64, j::Int64,
     #       and since the error is quite small (appears to be on the order of 
     #       a few hundred meters for points up to ~150km apart, so this should
     #       not be a problem for the ~5 km-res SIF data, but could later
-    #       present an issue if/when I'm crunching the ~500 m-res NIRv data...)
+    #       present an issue if I decide to crunch the ~500 m-res NIRv data...)
     #
     neigh_dists = hav_fn.(zip(neigh_xs, neigh_ys))
 
     # combine into a dict
     out = Dict(zip(zip(neigh_xs, neigh_ys),
+                   # NOTE: GEOGRAPHIC COORDS ARE x,y ORDER, BUT CELL COORDS ARE i,j!
                    zip(neigh_dists, zip(neigh_is, neigh_js))))
     return out
 end
@@ -811,8 +813,7 @@ end
 Read the file's data from a TFRecord file, as a set of Arrays,
 one per patch.
 
-Return both that read data and a set of identically structured
-output Arrays.
+Return both that data and a set of identically structured output Arrays.
 """
 function get_inpatches_outpatches(infilepath::String, inbands::Array{String,1},
          dims::Tuple{Int64, Int64})::Tuple{OrderedDict{Int64, Array{Float32,3}},
@@ -953,7 +954,6 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
     stand_ts_foc = standardize(ts_foc)
 
     # make the Haversine instance and function for this cell
-    # TODO: FIX THIS LINE
     hav_inst = Haversine(EARTH_RAD)
     hav_fn = function(coord_pair)
         return hav_inst((foc_x, foc_y), coord_pair)
@@ -961,6 +961,8 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
 
     # get the coords, dists, and array-indices
     # of all of the focal pixel's neighbors
+    # TODO: POSSIBLE THAT SAMPLE-SIZE PROBLEM IS JUST BECAUSE NUMBER OF NEIGHS
+    #       IS ACCIDENTALLY BEING DETERMINED AS FUNCTION OF LON INSTEAD OF LAT!?
     coords_dists_inds = get_neighbors_info(i, j, vec_is, vec_js,
                                            foc_y, foc_x, vec_ys, vec_xs,
                                            yres, xres, dims,
@@ -1018,11 +1020,9 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
                                                                        "ts_dists, " *
                                                                        "and R2s are " *
                                                                        "not equal!")
-       #asynch_n = length(geo_dists)
 
         # update the output patch with the new values
-        outpatch[i, j, :] = [NaN, NaN, asynch_ts, R2_ts, num_neighs]
-        #outpatch[i, j, :] = [NaN, NaN, asynch_ts, R2_ts, asynch_n]
+        outpatch[i, j, :] = [NaN, NaN, asynch_ts, R2_ts, convert(Float32, num_neighs)]
 
     # if we don't have at least the minimum number of neighbors
     # then just add NaNs to the outpatch, except for the neighbor count
@@ -1102,7 +1102,7 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
         # since there's no use wasting time calculating for those)
         for ind in eachindex(inpatch[:, :, 1])
             i,j  = Tuple(cart_inds[ind])
-            if (hkw < i <= size(inpatch)[1]-hkw) && (hkw < j <= size(inpatch)[2]-hkw)
+            if (hkw < i <= (size(inpatch)[1]-hkw)) && (hkw < j <= (size(inpatch)[2]-hkw))
 
                 # leave the asynch output val as a NaN if the coeffs for this
                 # pixel contain NaNs
@@ -1160,87 +1160,87 @@ end
 
 
 
-function calc_num_neighs(inpatches::OrderedDict{Int64, Array{Float32,3}},
-                     outpatches::OrderedDict{Int64, Array{Float32,3}},
-                     patch_is::Array{Int64,1}, patch_js::Array{Int64,1}, patch_ns::Array{Int64,1},
-                     vec_is::Array{Int64,1}, vec_js::Array{Int64,1},
-                     cart_inds::CartesianIndices{2,Tuple{Base.OneTo{Int64},Base.OneTo{Int64}}},
-                     xmin::Float64, ymin::Float64, xres::Float64, yres::Float64,
-                     dims::Tuple{Int64,Int64}, design_mat::Array{Float64,2},
-                     kernel_size::Int64, hkw::Int64;
-                     trim_margin=false, verbose=true, timeit=true)
-
-    # loop over the patches from the current file
-    # NOTE: each patch is of shape (n_bands, lat, lon)
-    for (patch_idx, inpatch) in inpatches
-        if patch_idx == 1
-        # grab important variables
-        outpatch = outpatches[patch_idx]
-        patch_i = patch_is[patch_idx]
-        patch_j = patch_js[patch_idx]
-        patch_n = patch_ns[patch_idx]
-
-        # get the lons and lats of the pixels in the current example's patch
-        # as well as an array containing columns for each of the coord pairs of the pixels
-        xs, ys = get_patch_lons_lats(xmin, ymin, xres, yres, dims, patch_j, patch_i)
-        vec_ys = vec(ys)
-        vec_xs = vec(xs)
-
-        # get the BallTree for these lons and lats
-        # make a KDTree out of all the coordinates in a patch,
-        # to be used in neighbor-searching
-        # NOTE: I THINK I MAY HAVE FOUND THE ISSUE WITH THE SAMPLE-SIZE BUG;
-        #       LOOKS TO HAVE GONE AWAY WHEN I SWITCHED THE ORDER OF THE xs AND ys
-        #       USED TO BUILD THE HAVERSINE BALLTREE;
-        #       MAYBE THEY WERE BEING FED INTO Haversine FN IN LON, LAT ORDER
-        #       INSTEAD OF THE LAT, LON THAT IT WANTS?
-        #       (test results checks out now on a single patch;
-        #        will wait to see what global result looks like;
-        #        what turned me onto this possibility is that the incorrect-looking
-        #        biased pattern flips N and S of the equator,
-        #        indicating that it should really have been a N-S trending gradient
-        #        but instead became an E-W trending broken gradient because of lat-lon
-        #        swapping...)
-        tree = BallTree([vec_xs vec_ys]', Haversine(EARTH_RAD))
-
-        #----------------
-        # run calculation
-        #----------------
-
-        # loop over pixels (excluding those in the kernel's margin,
-        # since there's no use wasting time calculating for those)
-        for ind in eachindex(inpatch[:, :, 1])
-            i,j  = Tuple(cart_inds[ind])
-            foc_y, foc_x = (ys[i,j], xs[i,j])
-
-            # make the Haversine instance and function for this cell
-            # TODO: FIX THIS LINE
-            hav_inst = Haversine(EARTH_RAD)
-            hav_fn = function(coord_pair)
-                return hav_inst((foc_x, foc_y), coord_pair)
-            end
-
-            # get the coords, dists, and array-indices
-            # of all of the focal pixel's neighbors
-            coords_dists_inds = get_neighbors_info(i, j, vec_is, vec_js,
-                                                   foc_y, foc_x, vec_ys, vec_xs,
-                                                   yres, xres, dims, patch_i, nneighs_lookup_dict,
-                                                   hav_fn, tree)
-
-            println("\t\t($foc_x, $foc_y)\n")
-            println("\t\t$(length(coords_dists_inds)) neighbors\n")
-            outpatch[i,j,1] = length(coords_dists_inds)
-
-
-        end
-    else
-        a = 1
-    end
-    
-    end
-    return outpatches
-
-end
+#function calc_num_neighs(inpatches::OrderedDict{Int64, Array{Float32,3}},
+#                     outpatches::OrderedDict{Int64, Array{Float32,3}},
+#                     patch_is::Array{Int64,1}, patch_js::Array{Int64,1}, patch_ns::Array{Int64,1},
+#                     vec_is::Array{Int64,1}, vec_js::Array{Int64,1},
+#                     cart_inds::CartesianIndices{2,Tuple{Base.OneTo{Int64},Base.OneTo{Int64}}},
+#                     xmin::Float64, ymin::Float64, xres::Float64, yres::Float64,
+#                     dims::Tuple{Int64,Int64}, design_mat::Array{Float64,2},
+#                     kernel_size::Int64, hkw::Int64;
+#                     trim_margin=false, verbose=true, timeit=true)
+#
+#    # loop over the patches from the current file
+#    # NOTE: each patch is of shape (n_bands, lat, lon)
+#    for (patch_idx, inpatch) in inpatches
+#        if patch_idx == 1
+#        # grab important variables
+#        outpatch = outpatches[patch_idx]
+#        patch_i = patch_is[patch_idx]
+#        patch_j = patch_js[patch_idx]
+#        patch_n = patch_ns[patch_idx]
+#
+#        # get the lons and lats of the pixels in the current example's patch
+#        # as well as an array containing columns for each of the coord pairs of the pixels
+#        xs, ys = get_patch_lons_lats(xmin, ymin, xres, yres, dims, patch_j, patch_i)
+#        vec_ys = vec(ys)
+#        vec_xs = vec(xs)
+#
+#        # get the BallTree for these lons and lats
+#        # make a KDTree out of all the coordinates in a patch,
+#        # to be used in neighbor-searching
+#        # NOTE: I THINK I MAY HAVE FOUND THE ISSUE WITH THE SAMPLE-SIZE BUG;
+#        #       LOOKS TO HAVE GONE AWAY WHEN I SWITCHED THE ORDER OF THE xs AND ys
+#        #       USED TO BUILD THE HAVERSINE BALLTREE;
+#        #       MAYBE THEY WERE BEING FED INTO Haversine FN IN LON, LAT ORDER
+#        #       INSTEAD OF THE LAT, LON THAT IT WANTS?
+#        #       (test results checks out now on a single patch;
+#        #        will wait to see what global result looks like;
+#        #        what turned me onto this possibility is that the incorrect-looking
+#        #        biased pattern flips N and S of the equator,
+#        #        indicating that it should really have been a N-S trending gradient
+#        #        but instead became an E-W trending broken gradient because of lat-lon
+#        #        swapping...)
+#        tree = BallTree([vec_xs vec_ys]', Haversine(EARTH_RAD))
+#
+#        #----------------
+#        # run calculation
+#        #----------------
+#
+#        # loop over pixels (excluding those in the kernel's margin,
+#        # since there's no use wasting time calculating for those)
+#        for ind in eachindex(inpatch[:, :, 1])
+#            i,j  = Tuple(cart_inds[ind])
+#            foc_y, foc_x = (ys[i,j], xs[i,j])
+#
+#            # make the Haversine instance and function for this cell
+#            # TODO: FIX THIS LINE
+#            hav_inst = Haversine(EARTH_RAD)
+#            hav_fn = function(coord_pair)
+#                return hav_inst((foc_x, foc_y), coord_pair)
+#            end
+#
+#            # get the coords, dists, and array-indices
+#            # of all of the focal pixel's neighbors
+#            coords_dists_inds = get_neighbors_info(i, j, vec_is, vec_js,
+#                                                   foc_y, foc_x, vec_ys, vec_xs,
+#                                                   yres, xres, dims, patch_i, nneighs_lookup_dict,
+#                                                   hav_fn, tree)
+#
+#            println("\t\t($foc_x, $foc_y)\n")
+#            println("\t\t$(length(coords_dists_inds)) neighbors\n")
+#            outpatch[i,j,1] = length(coords_dists_inds)
+#
+#
+#        end
+#    else
+#        a = 1
+#    end
+#    
+#    end
+#    return outpatches
+#
+#end
 
 
 #----------------------
