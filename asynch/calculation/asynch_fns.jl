@@ -106,8 +106,8 @@ Which variable to calculate asynchrony for?
 #const VAR = "pr"
 #const VAR = "tmmn"
 #const VAR = "cloud"
-const VAR = "SIF"
-#const VAR = "NIRv"
+#const VAR = "SIF"
+const VAR = "NIRv"
 
 """
 Which masking mode to use?
@@ -660,7 +660,8 @@ containing the number of neighors within the NEIGH_RAD-radius
 neighborhood for each latitudinal band of cells.
 """
 function make_nneighs_lookup_dict(mix_info::Dict{String, Any},
-                                  hkw::Int64)::Dict{Tuple{Int64, Int64}, Int64}
+                                  #hkw::Int64)::Dict{Tuple{Int64, Int64}, Int64}
+                                  hkw::Int64)::Dict{Float64, Int64}
 
     # get min y value (i.e. northmost)
     # and yres (which will be negative, hence progressing southward)
@@ -721,8 +722,8 @@ function make_nneighs_lookup_dict(mix_info::Dict{String, Any},
         # query the tree and record number of neighs
         nneighs = length(inrange(tree, [0, lat], NEIGH_RAD))
         # store the number of neighs in the cells_nneighs_dict
-        nneighs_lookup_dict[cell_info] = nneighs
-        #nneighs_lookup_dict[round(lat, digits=6)] = nneighs
+        #nneighs_lookup_dict[cell_info] = nneighs
+        nneighs_lookup_dict[round(lat, digits=6)] = nneighs
     end
     
     return nneighs_lookup_dict
@@ -754,7 +755,8 @@ function get_neighbors_info(i::Int64, j::Int64,
                             vec_ys::Array{Float64}, vec_xs::Array{Float64},
                             yres::Float64, xres::Float64,
                             patch_dims::Tuple{Int64,Int64},
-                            patch_i::Int64, nneighs_lookup_dict::Dict{Tuple{Int64, Int64}, Int64},
+                            #patch_i::Int64, nneighs_lookup_dict::Dict{Tuple{Int64, Int64}, Int64},
+                            patch_i::Int64, nneighs_lookup_dict::Dict{Float64, Int64},
                             hav_fn::Function,
                             tree::BallTree{SArray{Tuple{2},Float64,1,2},2,Float64,Haversine{Int64}};
                             neigh_rad=NEIGH_RAD)::Dict{Tuple{Float64, Float64}, Tuple{Float64, Tuple{Int64, Int64}}}
@@ -762,8 +764,7 @@ function get_neighbors_info(i::Int64, j::Int64,
     # within the NEIGH_RAD-radius neighborhood
     # (by grabbing the k nearest neighbors, where k comes from the NNEIGHS_LOOKUP_DICT built at the outset)
     #neighs = knn(tree, [foc_x, foc_y], nneighs_lookup_dict[Tuple((patch_i, i))])[1]
-    neighs = knn(tree, [foc_x, foc_y], nneighs_lookup_dict[Tuple((patch_i, j))])[1]
-    #neighs = knn(tree, [foc_x, foc_y], nneighs_lookup_dict[round(foc_y, digits=6)])[1]
+    neighs = knn(tree, [foc_x, foc_y], nneighs_lookup_dict[round(foc_y, digits=6)])[1]
     # DETH: 10-09-21: trying the knn approach above instead of the inrange approach below because
     #                 I've smashed my head against all the walls and couldn't debug that approach...
     #neighs = inrange(tree, [foc_x, foc_y], NEIGH_RAD)
@@ -935,7 +936,8 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
                                patch_n::Int64, yres::Float64, xres::Float64,
                                dims::Tuple{Int64, Int64},
                                design_mat::Array{Float64,2},
-                               patch_i::Int64, nneighs_lookup_dict::Dict{Tuple{Int64, Int64}, Int64},
+                               #patch_i::Int64, nneighs_lookup_dict::Dict{Tuple{Int64, Int64}, Int64},
+                               patch_i::Int64, nneighs_lookup_dict::Dict{Float64, Int64},
                                tree::BallTree{SArray{Tuple{2},Float64,1,2},2,Float64,Haversine{Int64}};
                                timeit=true, verbose=true)::Nothing
     if verbose && timeit
@@ -1057,7 +1059,8 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
                      cart_inds::CartesianIndices{2,Tuple{Base.OneTo{Int64},Base.OneTo{Int64}}},
                      xmin::Float64, ymin::Float64, xres::Float64, yres::Float64,
                      dims::Tuple{Int64,Int64}, design_mat::Array{Float64,2},
-                     nneighs_lookup_dict::Dict{Tuple{Int64, Int64}, Int64},
+                     #nneighs_lookup_dict::Dict{Tuple{Int64, Int64}, Int64},
+                     nneighs_lookup_dict::Dict{Float64, Int64},
                      kernel_size::Int64, hkw::Int64;
                      trim_margin=false, verbose=true, timeit=true)::OrderedDict{Int64, Array{Float32,3}}
 
