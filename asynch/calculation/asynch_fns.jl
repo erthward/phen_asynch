@@ -101,9 +101,9 @@ Which variable to calculate asynchrony for?
 #const VAR = "def"
 #const VAR = "pr"
 #const VAR = "tmmn"
-const VAR = "cloud"
+#const VAR = "cloud"
 #const VAR = "SIF"
-#const VAR = "NIRv"
+const VAR = "NIRv"
 
 """
 Which masking mode to use?
@@ -122,7 +122,7 @@ end
 """
 Whether to use verbose output
 """
-const VERBOSE = true
+const VERBOSE = false
 """
 Whether to time the asynchrony calculation
 (Time will be displayed per pixel)
@@ -217,8 +217,8 @@ max distance out to which to find and include neighbors in
 each pixel's asynchrony calculation (in meters)
 """
 #const NEIGH_RAD = 50_000
-#const NEIGH_RAD = 100_000
-const NEIGH_RAD = 150_000
+const NEIGH_RAD = 100_000
+#const NEIGH_RAD = 150_000
 
 """
 minimum distance per 1 degree of longitude (i.e. the distance, in meters,
