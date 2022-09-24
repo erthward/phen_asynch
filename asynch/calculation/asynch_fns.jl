@@ -4,13 +4,14 @@
 ######################
 TODO:
 
-- decide whether to continue using write_geotiff
+- triple-check get_patch_lons_lats across all tiles
+        - appears to maybe be overshooting 13 pixels per file in the x direction (but the x only...)? running (max(xs...)-187.225)/0.05/23, where xs are calculated for the bottom-right tile, gives 13.0000000000014992, i.e., num pixels overshoot per tile...
+
+- once Marlon debugged, get rid of write_geotiff and commented-out large blocks
 
 - use fit_intercept true or false for asynch calc?
 
-- figure out why neigh-num rast is correct but is incorrect in output files
-- decide if I should just write files out to rasters instead of bs TFRecord files
-- implement and run on Savio
+- Marlon: figure out why neigh-num rast is correct but is incorrect in output files
 
 
 ######################
@@ -105,9 +106,9 @@ Which variable to calculate asynchrony for?
 #const VAR = "def"
 #const VAR = "pr"
 #const VAR = "tmmn"
-#const VAR = "cloud"
+const VAR = "cloud"
 #const VAR = "SIF"
-const VAR = "NIRv"
+#const VAR = "NIRv"
 
 """
 Which masking mode to use?
@@ -374,7 +375,9 @@ function read_tfrecord_file(infilepath::String,
             arr = Array{Float32}(undef, dims[1], dims[2], 5)
             for (i, band) in enumerate(bands)
                 band_vals = example.features.feature[band].float_list.value[1:prod(dims)]
-                band_arr = reshape(band_vals, dims)
+                # NOTE: need to transpose array because tfrecord store in row-major order
+                #       but julia's reshape fills in column-major order
+                band_arr = transpose(reshape(band_vals, dims))
                 # replace the default missing-data val
                 replace!(band_arr, default_val=>NaN)
                 arr[:,:, i] = band_arr
@@ -387,7 +390,9 @@ function read_tfrecord_file(infilepath::String,
             arr = Array{Float32}(undef, dims[1], dims[2], 5)
             for (i, band) in enumerate(bands)
                 band_vals = example.features.feature[band].float_list.value[1:prod(dims)]
-                band_arr = reshape(band_vals, dims)
+                # NOTE: need to transpose array because tfrecord store in row-major order
+                #       but julia's reshape fills in column-major order
+                band_arr = transpose(reshape(band_vals, dims))
                 # replace the default missing-data val
                 replace!(band_arr, default_val=>NaN)
                 arr[:,:, i] = band_arr
@@ -417,7 +422,10 @@ function write_tfrecord_file(patches::OrderedDict{Int64, Array{Float32,3}},
         for (band_i, band) in enumerate(bands)
             # set all missing back to the missing-data default val,
             # then recast as Float32 and cast as a vector
-            outpatch = vec(Float32.(replace(patch[:, :, band_i], NaN=>default_val)))
+            # NOTE: need to undo the transpose we did when reading the TFRecord file in,
+            #       so that julia's column-major behavior returns data in the row-major
+            #       order used in the original TFRecord file
+            outpatch = vec(Float32.(replace(transpose(patch[:, :, band_i]), NaN=>default_val)))
             outdict[band] = outpatch
         end
         # serialize to a TF example
@@ -436,7 +444,10 @@ function prep_single_patch_for_tfrecord_file(patch::Array{Float32,3},
                                                                            Vector{Float32}}
     patchdict = Dict()
     for (band_i, band) in enumerate(bands)
-        outpatch = vec(Float32.(replace(patch[:, :, band_i], NaN=>default_val)))
+        # NOTE: need to undo the transpose we did when reading the TFRecord file in,
+        #       so that julia's column-major behavior returns data in the row-major
+        #       order used in the original TFRecord file
+        outpatch = vec(Float32.(replace(transpose(patch[:, :, band_i]), NaN=>default_val)))
         patchdict[band] = outpatch
     end
     return patchdict
@@ -489,14 +500,12 @@ function write_geotiff(arr::Array, mix_info::Dict,
     # NOTE: need to convert back to basic Matrix type because no method for write!(transpose(::Matrix))
         if length(size(arr)) == 2
             ArchGDAL.write!(dataset,
-                            convert(Matrix, transpose(arr)),
-                            #arr,
+                            convert(Matrix, arr),
                             1)
         else
             for band_n in 1:size(arr)[3]
                 ArchGDAL.write!(dataset,
-                                convert(Matrix, transpose(arr[:,:,band_n])),
-                                #arr[:,:,band_n],
+                                convert(Matrix, arr[:,:,band_n]),
                                 band_n)
             end
         end
@@ -660,8 +669,7 @@ containing the number of neighors within the NEIGH_RAD-radius
 neighborhood for each latitudinal band of cells.
 """
 function make_nneighs_lookup_dict(mix_info::Dict{String, Any},
-                                  #hkw::Int64)::Dict{Tuple{Int64, Int64}, Int64}
-                                  hkw::Int64)::Dict{Float64, Int64}
+                                  hkw::Int64)::Dict{Tuple{Int64, Int64}, Int64}
 
     # get min y value (i.e. northmost)
     # and yres (which will be negative, hence progressing southward)
@@ -722,8 +730,7 @@ function make_nneighs_lookup_dict(mix_info::Dict{String, Any},
         # query the tree and record number of neighs
         nneighs = length(inrange(tree, [0, lat], NEIGH_RAD))
         # store the number of neighs in the cells_nneighs_dict
-        #nneighs_lookup_dict[cell_info] = nneighs
-        nneighs_lookup_dict[round(lat, digits=6)] = nneighs
+        nneighs_lookup_dict[cell_info] = nneighs
     end
     
     return nneighs_lookup_dict
@@ -755,16 +762,14 @@ function get_neighbors_info(i::Int64, j::Int64,
                             vec_ys::Array{Float64}, vec_xs::Array{Float64},
                             yres::Float64, xres::Float64,
                             patch_dims::Tuple{Int64,Int64},
-                            #patch_i::Int64, nneighs_lookup_dict::Dict{Tuple{Int64, Int64}, Int64},
-                            patch_i::Int64, nneighs_lookup_dict::Dict{Float64, Int64},
+                            patch_i::Int64, nneighs_lookup_dict::Dict{Tuple{Int64, Int64}, Int64},
                             hav_fn::Function,
                             tree::BallTree{SArray{Tuple{2},Float64,1,2},2,Float64,Haversine{Int64}};
                             neigh_rad=NEIGH_RAD)::Dict{Tuple{Float64, Float64}, Tuple{Float64, Tuple{Int64, Int64}}}
     # get the tree's data-row numbers for all neighbors
     # within the NEIGH_RAD-radius neighborhood
     # (by grabbing the k nearest neighbors, where k comes from the NNEIGHS_LOOKUP_DICT built at the outset)
-    #neighs = knn(tree, [foc_x, foc_y], nneighs_lookup_dict[Tuple((patch_i, i))])[1]
-    neighs = knn(tree, [foc_x, foc_y], nneighs_lookup_dict[round(foc_y, digits=6)])[1]
+    neighs = knn(tree, [foc_x, foc_y], nneighs_lookup_dict[Tuple((patch_i, i))])[1]
     # DETH: 10-09-21: trying the knn approach above instead of the inrange approach below because
     #                 I've smashed my head against all the walls and couldn't debug that approach...
     #neighs = inrange(tree, [foc_x, foc_y], NEIGH_RAD)
@@ -936,8 +941,7 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
                                patch_n::Int64, yres::Float64, xres::Float64,
                                dims::Tuple{Int64, Int64},
                                design_mat::Array{Float64,2},
-                               #patch_i::Int64, nneighs_lookup_dict::Dict{Tuple{Int64, Int64}, Int64},
-                               patch_i::Int64, nneighs_lookup_dict::Dict{Float64, Int64},
+                               patch_i::Int64, nneighs_lookup_dict::Dict{Tuple{Int64, Int64}, Int64},
                                tree::BallTree{SArray{Tuple{2},Float64,1,2},2,Float64,Haversine{Int64}};
                                timeit=true, verbose=true)::Nothing
     if verbose && timeit
@@ -1059,8 +1063,7 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
                      cart_inds::CartesianIndices{2,Tuple{Base.OneTo{Int64},Base.OneTo{Int64}}},
                      xmin::Float64, ymin::Float64, xres::Float64, yres::Float64,
                      dims::Tuple{Int64,Int64}, design_mat::Array{Float64,2},
-                     #nneighs_lookup_dict::Dict{Tuple{Int64, Int64}, Int64},
-                     nneighs_lookup_dict::Dict{Float64, Int64},
+                     nneighs_lookup_dict::Dict{Tuple{Int64, Int64}, Int64},
                      kernel_size::Int64, hkw::Int64;
                      trim_margin=false, verbose=true, timeit=true)::OrderedDict{Int64, Array{Float32,3}}
 
@@ -1082,18 +1085,6 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
         # get the BallTree for these lons and lats
         # make a KDTree out of all the coordinates in a patch,
         # to be used in neighbor-searching
-        # NOTE: I THINK I MAY HAVE FOUND THE ISSUE WITH THE SAMPLE-SIZE BUG;
-        #       LOOKS TO HAVE GONE AWAY WHEN I SWITCHED THE ORDER OF THE xs AND ys
-        #       USED TO BUILD THE HAVERSINE BALLTREE;
-        #       MAYBE THEY WERE BEING FED INTO Haversine FN IN LON, LAT ORDER
-        #       INSTEAD OF THE LAT, LON THAT IT WANTS?
-        #       (test results checks out now on a single patch;
-        #        will wait to see what global result looks like;
-        #        what turned me onto this possibility is that the incorrect-looking
-        #        biased pattern flips N and S of the equator,
-        #        indicating that it should really have been a N-S trending gradient
-        #        but instead became an E-W trending broken gradient because of lat-lon
-        #        swapping...)
         tree = BallTree([vec_xs vec_ys]', Haversine(EARTH_RAD))
 
         #----------------
