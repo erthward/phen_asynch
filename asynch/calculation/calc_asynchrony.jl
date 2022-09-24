@@ -12,7 +12,7 @@ using Distributed
 using ArgParse
 
 # include the asynch functions
-if splitpath(pwd())[3] == "home"
+if splitpath(pwd())[3] == "home" || splitpath(pwd())[3] == "scratch"
     @everywhere include("/global/home/users/drewhart/seasonality/seasonal_asynchrony/" *
 		        "asynch/calculation/asynch_fns.jl")
 else
