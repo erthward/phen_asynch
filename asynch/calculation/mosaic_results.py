@@ -5,8 +5,9 @@
 Reads in the results calculated by Julia on Savio, mosaics them together,
 then saves the global raster to a new file.
 
-Call as `python mosaic_results.py <DATA_DIR> <OUTPUT_FILEPATH> <DATA_TYPE>`,
-where <DATA_TYPE> can be 'c' (for coefficients) or 'a' (for asynchrony).
+Call as `python mosaic_results.py <DATA_DIR> <OUTPUT_FILEPATH> <DATA_TYPE> <NEIGH_RAD>`,
+where <DATA_TYPE> can be 'c' (for coefficients) or 'a' (for asynchrony)
+and <NEIGH_RAD> is a neighborhood radius size (expressed in km, for simplicity)
 
 NOTE: This is only necessary because the GEE bug won't read my results files
       correctly...
@@ -78,6 +79,13 @@ elif DATA_TYPE == 'c':
 elif DATA_TYPE == 'r2':
     BANDS = ['R2']
 
+# neighborhood radius size
+NEIGH_RAD = sys.argv[4]
+assert re.search('^\d+$', NEIGH_RAD) is not None, ('NEIGH_RAD must be an '
+                                                   'integer (i.e., the radius '
+                                                   'expressed in  km')
+# convert to str used in filenames
+NEIGH_RAD = NEIGH_RAD+'000mrad-'
 
 #-----------------
 # define functions
@@ -95,6 +103,9 @@ def get_filepaths(data_dir):
     # make sure all files are output files
     if DATA_TYPE == 'a':
         filepaths = [f for f in filepaths if 'OUT' in f]
+        # only keep filepaths for the given radius size
+        filepaths = [f for f in filepaths if re.search('(?<=\D)%s' % NEIGH_RAD,
+                                                       f)]
     else:
         filepaths = [f for f in filepaths if 'OUT' not in f]
     return filepaths
