@@ -7,12 +7,7 @@ TODO:
 - triple-check get_patch_lons_lats across all tiles
         - appears to maybe be overshooting 13 pixels per file in the x direction (but the x only...)? running (max(xs...)-187.225)/0.05/23, where xs are calculated for the bottom-right tile, gives 13.0000000000014992, i.e., num pixels overshoot per tile...
 
-- once Marlon debugged, get rid of write_geotiff and commented-out large blocks
-
 - use fit_intercept true or false for asynch calc?
-
-- Marlon: figure out why neigh-num rast is correct but is incorrect in output files
-
 
 ######################
 
@@ -465,54 +460,54 @@ function write_tfrecord_file_new(patches::OrderedDict{Int64, Array{Float32,3}},
 end
 
 
-"""
-write a GeoTIFF using the provided array and JSON mixer-file info,
-writing to the given filename
-"""
-function write_geotiff(arr::Array, mix_info::Dict,
-                       patch_i::Int64, patch_j::Int64,
-                       filename::String)
-    crs = mix_info["projection"]["crs"]
-    wkt_crs = ArchGDAL.toWKT(ArchGDAL.importPROJ4("+init=$crs"))
-    # fix the geotransform's order
-    geotrans = mix_info["projection"]["affine"]["doubleMatrix"]
-    res_x = geotrans[1]
-    res_y = geotrans[5]
-    ul_x = geotrans[3] + (patch_j * res_x * mix_info["patchDimensions"][1])
-    ul_y = geotrans[6] + (patch_i * res_y * mix_info["patchDimensions"][2])
-    reordered_geotrans::Vector{Float64} = [ul_x, res_x, 0.0, ul_y, 0.0, res_y]
-    if length(size(arr)) == 2
-        height, width = size(arr)
-        nbands = 1
-    else
-        height, width, nbands = size(arr)
-    end
-    ArchGDAL.create(
-        filename,
-        driver = ArchGDAL.getdriver("GTiff"),
-        width=width,
-        height=height,
-        nbands=nbands,
-        dtype=Float32
-    ) do dataset
-    # NOTE: for some reason (perhaps Julia's column major order?) it's writing rasters
-    # transposed! So, transpose them to offset this!
-    # NOTE: need to convert back to basic Matrix type because no method for write!(transpose(::Matrix))
-        if length(size(arr)) == 2
-            ArchGDAL.write!(dataset,
-                            convert(Matrix, arr),
-                            1)
-        else
-            for band_n in 1:size(arr)[3]
-                ArchGDAL.write!(dataset,
-                                convert(Matrix, arr[:,:,band_n]),
-                                band_n)
-            end
-        end
-        ArchGDAL.setgeotransform!(dataset, reordered_geotrans)
-        ArchGDAL.setproj!(dataset, wkt_crs)
-    end
-end
+#"""
+#write a GeoTIFF using the provided array and JSON mixer-file info,
+#writing to the given filename
+#"""
+#function write_geotiff(arr::Array, mix_info::Dict,
+#                       patch_i::Int64, patch_j::Int64,
+#                       filename::String)
+#    crs = mix_info["projection"]["crs"]
+#    wkt_crs = ArchGDAL.toWKT(ArchGDAL.importPROJ4("+init=$crs"))
+#    # fix the geotransform's order
+#    geotrans = mix_info["projection"]["affine"]["doubleMatrix"]
+#    res_x = geotrans[1]
+#    res_y = geotrans[5]
+#    ul_x = geotrans[3] + (patch_j * res_x * mix_info["patchDimensions"][1])
+#    ul_y = geotrans[6] + (patch_i * res_y * mix_info["patchDimensions"][2])
+#    reordered_geotrans::Vector{Float64} = [ul_x, res_x, 0.0, ul_y, 0.0, res_y]
+#    if length(size(arr)) == 2
+#        height, width = size(arr)
+#        nbands = 1
+#    else
+#        height, width, nbands = size(arr)
+#    end
+#    ArchGDAL.create(
+#        filename,
+#        driver = ArchGDAL.getdriver("GTiff"),
+#        width=width,
+#        height=height,
+#        nbands=nbands,
+#        dtype=Float32
+#    ) do dataset
+#    # NOTE: for some reason (perhaps Julia's column major order?) it's writing rasters
+#    # transposed! So, transpose them to offset this!
+#    # NOTE: need to convert back to basic Matrix type because no method for write!(transpose(::Matrix))
+#        if length(size(arr)) == 2
+#            ArchGDAL.write!(dataset,
+#                            convert(Matrix, arr),
+#                            1)
+#        else
+#            for band_n in 1:size(arr)[3]
+#                ArchGDAL.write!(dataset,
+#                                convert(Matrix, arr[:,:,band_n]),
+#                                band_n)
+#            end
+#        end
+#        ArchGDAL.setgeotransform!(dataset, reordered_geotrans)
+#        ArchGDAL.setproj!(dataset, wkt_crs)
+#    end
+#end
 
 
 """
@@ -1156,90 +1151,6 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
 end
 
 
-
-#function calc_num_neighs(inpatches::OrderedDict{Int64, Array{Float32,3}},
-#                     outpatches::OrderedDict{Int64, Array{Float32,3}},
-#                     patch_is::Array{Int64,1}, patch_js::Array{Int64,1}, patch_ns::Array{Int64,1},
-#                     vec_is::Array{Int64,1}, vec_js::Array{Int64,1},
-#                     cart_inds::CartesianIndices{2,Tuple{Base.OneTo{Int64},Base.OneTo{Int64}}},
-#                     xmin::Float64, ymin::Float64, xres::Float64, yres::Float64,
-#                     dims::Tuple{Int64,Int64}, design_mat::Array{Float64,2},
-#                     kernel_size::Int64, hkw::Int64;
-#                     trim_margin=false, verbose=true, timeit=true)
-#
-#    # loop over the patches from the current file
-#    # NOTE: each patch is of shape (n_bands, lat, lon)
-#    for (patch_idx, inpatch) in inpatches
-#        if patch_idx == 1
-#        # grab important variables
-#        outpatch = outpatches[patch_idx]
-#        patch_i = patch_is[patch_idx]
-#        patch_j = patch_js[patch_idx]
-#        patch_n = patch_ns[patch_idx]
-#
-#        # get the lons and lats of the pixels in the current example's patch
-#        # as well as an array containing columns for each of the coord pairs of the pixels
-#        xs, ys = get_patch_lons_lats(xmin, ymin, xres, yres, dims, patch_j, patch_i)
-#        vec_ys = vec(ys)
-#        vec_xs = vec(xs)
-#
-#        # get the BallTree for these lons and lats
-#        # make a KDTree out of all the coordinates in a patch,
-#        # to be used in neighbor-searching
-#        # NOTE: I THINK I MAY HAVE FOUND THE ISSUE WITH THE SAMPLE-SIZE BUG;
-#        #       LOOKS TO HAVE GONE AWAY WHEN I SWITCHED THE ORDER OF THE xs AND ys
-#        #       USED TO BUILD THE HAVERSINE BALLTREE;
-#        #       MAYBE THEY WERE BEING FED INTO Haversine FN IN LON, LAT ORDER
-#        #       INSTEAD OF THE LAT, LON THAT IT WANTS?
-#        #       (test results checks out now on a single patch;
-#        #        will wait to see what global result looks like;
-#        #        what turned me onto this possibility is that the incorrect-looking
-#        #        biased pattern flips N and S of the equator,
-#        #        indicating that it should really have been a N-S trending gradient
-#        #        but instead became an E-W trending broken gradient because of lat-lon
-#        #        swapping...)
-#        tree = BallTree([vec_xs vec_ys]', Haversine(EARTH_RAD))
-#
-#        #----------------
-#        # run calculation
-#        #----------------
-#
-#        # loop over pixels (excluding those in the kernel's margin,
-#        # since there's no use wasting time calculating for those)
-#        for ind in eachindex(inpatch[:, :, 1])
-#            i,j  = Tuple(cart_inds[ind])
-#            foc_y, foc_x = (ys[i,j], xs[i,j])
-#
-#            # make the Haversine instance and function for this cell
-#            # TODO: FIX THIS LINE
-#            hav_inst = Haversine(EARTH_RAD)
-#            hav_fn = function(coord_pair)
-#                return hav_inst((foc_x, foc_y), coord_pair)
-#            end
-#
-#            # get the coords, dists, and array-indices
-#            # of all of the focal pixel's neighbors
-#            coords_dists_inds = get_neighbors_info(i, j, vec_is, vec_js,
-#                                                   foc_y, foc_x, vec_ys, vec_xs,
-#                                                   yres, xres, dims, patch_i, nneighs_lookup_dict,
-#                                                   hav_fn, tree)
-#
-#            println("\t\t($foc_x, $foc_y)\n")
-#            println("\t\t$(length(coords_dists_inds)) neighbors\n")
-#            outpatch[i,j,1] = length(coords_dists_inds)
-#
-#
-#        end
-#    else
-#        a = 1
-#    end
-#    
-#    end
-#    return outpatches
-#
-#end
-
-
 #----------------------
 # get the design matrix
 #----------------------
@@ -1363,321 +1274,13 @@ function main_fn(file_info::Tuple{String,Dict{String,Any}};
         write_tfrecord_file_new(outpatches, outfilepath, OUTBANDS)
     end
     # and also write to geotiffs
-    for (idx, outpatch) in outpatches
-        # NOTE: just using a random number because gdal_merge.py will mosaic all anyhow
-        randnumstr = "$(round(Int, rand()*10000000))"
-        tiff_filename = "$(VAR)_$randnumstr.tif"
-        tiff_filepath = join([DATA_DIR, "/", tiff_filename]) 
-        println("\nNOW WRITING FILE $tiff_filepath\n")
-        write_geotiff(outpatch, MIX, patch_is[idx], patch_js[idx], tiff_filepath)
-    end
+    #for (idx, outpatch) in outpatches
+    #    # NOTE: just using a random number because gdal_merge.py will mosaic all anyhow
+    #    randnumstr = "$(round(Int, rand()*10000000))"
+    #    tiff_filename = "$(VAR)_$randnumstr.tif"
+    #    tiff_filepath = join([DATA_DIR, "/", tiff_filename]) 
+    #    println("\nNOW WRITING FILE $tiff_filepath\n")
+    #    write_geotiff(outpatch, MIX, patch_is[idx], patch_js[idx], tiff_filepath)
+    #end
 
 end
-
-
-#function main_fn_calc_num_neighs(file_info::Tuple{String,Dict{String,Any}};
-#                 verbose=VERBOSE, timeit=TIMEIT, trim_margin=TRIM_MARGIN)
-#    # split input info into variables
-#    infilepath, file_dict = file_info
-#    infilename = splitpath(infilepath)[end]
-#    outfilepath = file_dict["outfilepath"]
-#    patch_is::Array{Int64,1} = file_dict["patch_is"]
-#    patch_js::Array{Int64,1} = file_dict["patch_js"]
-#    patch_ns::Array{Int64,1} = file_dict["patch_ns"]
-#    if verbose
-#        @info "\nWorker $(myid()) processing file $infilename\n"
-#    end
-#
-#    # read the data in, and set up the output patches' data structure
-#    # NOTE: by setting this up outside the calc_asynch function, 
-#    #       I make it so that I can run the script for a short amount of
-#    #       time, then retain the partial result
-#    #       for interactive introspection
-#    inpatches, outpatches = get_inpatches_outpatches(infilepath, INBANDS, DIMS)
-#
-#    if verbose
-#        println("RUNNING ASYNCH CALC FOR FILE: $infilename")
-#        for (patch_i, patch_j, patch_n) in zip(patch_is, patch_js, patch_ns)
-#            println("\tPATCH: $patch_n (patch row: $patch_i, patch col: $patch_j)")
-#        end
-#    end
-#
-#    # run the asynchrony calculation
-#    outpatches = calc_num_neighs(inpatches, outpatches,
-#                             patch_is, patch_js, patch_ns, VEC_IS, VEC_JS, CART_INDS,
-#                             XMIN, YMIN, XRES, YRES, DIMS, DESIGN_MAT, KERNEL_SIZE, HKW;
-#                             trim_margin=trim_margin, verbose=verbose, timeit=timeit)
-#    #outpatches = calc_asynch(inpatches, outpatches,
-#    #                         patch_is, patch_js, patch_ns, VEC_IS, VEC_JS, CART_INDS,
-#    #                         XMIN, YMIN, XRES, YRES, DIMS, DESIGN_MAT, KERNEL_SIZE, HKW;
-#    #                         trim_margin=trim_margin, verbose=verbose, timeit=timeit)
-#
-#    return outpatches
-#end
-
-
-
-
-################################################################################
-################################################################################
-################################################################################
-
-
-##------------------------
-## define helper functions
-##------------------------
-#
-#"""
-#Make a GeoArray (multilayer raster object) of the patch provided.
-#Pull the necessary georeferencing info from dims and the mixer_info provided.
-#NOTE: dims fed in separately because dims indicated in GEE's mixer file are incorrect.
-#"""
-#function make_geoarray(patch; dims=DIMS, mixer_info=MIX,
-#                              xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing)
-#    # make a GeoArray
-#    # NOTE: not sure why I need to transpose the patch...
-#    #ga = GeoArray(transpose(patch))
-#    ga = GeoArray(patch)
-#    # get the projection info
-#    proj = mixer_info["projection"]
-#    # get and set the CRS 
-#    crs = parse(Int, split(proj["crs"], ':')[2]) 
-#    epsg!(ga, crs)
-#    # get and set the bounding box
-#    aff = proj["affine"]["doubleMatrix"]
-#    if isa(xmin, Nothing)
-#        xmin = aff[3]
-#    end
-#    if isa(ymin, Nothing)
-#        ymin = aff[6]
-#    end
-#    if isa(xmax, Nothing)
-#        xmax = xmin + aff[1]*dims[1]
-#    end
-#    if isa(ymax, Nothing)
-#        ymax = ymin + aff[5]*dims[2]
-#    end
-#    bbox!(ga, (min_x=xmin,
-#               min_y=ymin,
-#               max_x=xmax,
-#               max_y=ymax))
-#    return ga
-#end
-#
-#"""
-#Plot a patch as a GeoArray.
-#"""
-#function plot_patch(patch, bbox_coords; cmap=:inferno)
-#    mins, maxs = bbox_coords
-#    xmin, ymin = mins
-#    xmax, ymax = maxs
-#    ga = make_geoarray(patch, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
-#    plot(ga, band=1, color=cmap, tickfontsize=4)#, yflip=true)
-#end
-#
-#"""
-#Plot the asynch, its R2s, and its sample sizes.
-#"""
-#function plot_results(outpatch)
-#    # plot asynch
-#    ga =  make_geoarray(outpatch) 
-#    p1 = plot(ga, band=1, title="asynch (corr)")
-#    p2 = plot(ga, band=2, title="asynch (corr): R2s")
-#    p3 = plot(ga, band=3, title="asynch (euc)")
-#    p4 = plot(ga, band=4, title="asynch (euc): R2s")
-#    p5 = plot(ga, band=5, title="n")
-#    plot(p1, p2, p3, p4, p5, layout=5)
-#end
-#
-#"""
-#Plot the asynchrony calculation data for the chosen i,j pixel in the chosen patch.
-#"""
-#function plot_pixel_calculation(patch, patch_i, patch_j, i, j, outpatch; timeit=true)
-#
-#    # time it?
-#    if timeit
-#        # get start time
-#        start = now()
-#    end
-#
-#    # get the lons and lats
-#    xs, ys = get_patch_lons_lats(XMIN, YMIN, XRES, YRES, DIMS, patch_j, patch_i)
-#    vec_ys = vec(ys)
-#    vec_xs = vec(xs)
-#    foc_y, foc_x = (ys[i,j], xs[i,j])
-#
-#    # get the BallTree
-#    tree = BallTree([vec_xs vec_ys]', Haversine(EARTH_RAD))
-#
-#    # create lists of R2 and dist values
-#    R2s::Array{Float64, 1} = []
-#    ts_dists::Array{Float64, 1} = []
-#    geo_dists::Array{Float64, 1} = []
-#    coeff_dists::Array{Float64, 1} = []
-#
-#    # calculate the focal pixel's time series (and its standardized time series)
-#    ts_foc = calc_time_series(patch, i, j, DESIGN_MAT)
-#    stand_ts_foc = standardize(ts_foc)
-#
-#    # make the Haversine instance and function for this cell
-#    hav_inst = Haversine(EARTH_RAD)
-#    hav_fn = function(coord_pair)
-#        return hav_inst((foc_x, foc_y), coord_pair)
-#    end
-#
-#    # get the coords, dists, and array-indices
-#    # of all of the focal pixel's neighbors
-#    coords_dists_inds = get_neighbors_info(i, j, VEC_IS, VEC_JS,
-#                                           foc_y, foc_x, vec_ys, vec_xs,
-#                                           YRES, XRES, DIMS,
-#                                           patch_i, nneighs_lookup_dict,
-#                                           hav_fn, tree)
-#
-#    # loop over neighbors
-#    for (neigh_coords, neigh_info) in coords_dists_inds
-#        # unpack the neighbor info
-#        neigh_dist, neigh_inds = neigh_info
-#        ni, nj = neigh_inds
-#
-#        # get the neighbor's time series
-#        ts_neigh = calc_time_series(patch, ni, nj, DESIGN_MAT)
-#        stand_ts_neigh = standardize(ts_neigh)
-#
-#        # drop this pixel if it returns NAs
-#        if any(isnan.(ts_neigh))
-#           # do nothing 
-#           continue
-#        else
-#            try
-#                # calculate the R2
-#                R2 = run_linear_regression(ts_foc, ts_neigh)["R2"]
-#
-#                # calculate the Euclidean distance between the 2 standardized time series
-#                ts_dist = euclidean(stand_ts_foc, stand_ts_neigh)
-#
-#                # calculate the Euclidean distance between the coeff vectors
-#                coeff_dist = euclidean(view(patch, i, j, :), view(patch, ni, nj, :))
-#         
-#                # append the metrics, if the neighbor-distance calculation was successful
-#                append!(geo_dists, neigh_dist)
-#                append!(R2s, R2)
-#                append!(ts_dists, ts_dist)
-#                append!(coeff_dists, coeff_dist)
-#            catch error
-#                @warn ("ERROR THROWN WHILE CALCULATING NEIGHBOR-DISTANCE METRICS:" *
-#                         "\n\tpixel: $i, $j\n\tneighbor: $ni, $nj\n")
-#            end
-#        end
-#    end
-#
-#    # get the slope of the overall regression of R2s on geo dist
-#    # NOTE: setting fit_intercept to false and subtracting 1
-#    #       from the array of R2s effectively
-#    #       fixes the intercept at R2=1
-#    res = run_linear_regression(geo_dists, R2s .- 1, fit_intercept=false)
-#    # get the slope of the overall regression of Euclidean ts dists on geo dist
-#    # NOTE: just setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
-#    res_euc = run_linear_regression(geo_dists, ts_dists, fit_intercept=true)
-#   
-#    # get the slope of the coeff_dist, geo_dist regression
-#    res_coeff = run_linear_regression(geo_dists, coeff_dists, fit_intercept=true)
-#
-#    # get trendlines for the regressions
-#    line_xs = [0:1:150_000;]
-#    r2_ys = @. 1 + res["slope"] * line_xs
-#    euc_ys = @. 0 + res_euc["slope"] * line_xs
-#    coeff_ys = @. 0 + res_coeff["slope"] * line_xs
-#
-#    # set up the layout grid
-#    lo = @layout [ [ a ; b ] c{0.75w} ]
-#
-#    # make the scatterplots
-#    p_r2 = scatter(geo_dists, R2s,
-#                   xlabel="geographic distance (m)",
-#                   ylabel="time series' R²s",
-#                   title=("R² asynchrony\n" *
-#                          "(β=$(@sprintf("%e", res["slope"])), " *
-#                          "R²=$(round(res["R2"],digits=3)))",),
-#                   titlefontsize=8,
-#                   guidefontsize=7,
-#                   tickfontsize=4,
-#                   markercolor="black",
-#                   markersize=2,
-#                   markerstrokecolor=nothing,
-#                   alpha=0.6,
-#                   #smooth=true,
-#                   #linecolor="red",
-#                   legend=false)
-#    plot!(line_xs, r2_ys, color="red")
-#
-#    p_euc = scatter(geo_dists, ts_dists,
-#                    xlabel="geographic distance (m)",
-#                    ylabel="Euclidean time-series distance",
-#                    title=("Euclidean asynchrony\n" *
-#                           "(β=$(@sprintf("%e", res_euc["slope"])), " *
-#                           "R²=$(round(res_euc["R2"],digits=3)))"),
-#                    titlefontsize=8,
-#                    guidefontsize=7,
-#                    tickfontsize=4,
-#                    markercolor="black",
-#                    markersize=2,
-#                    markerstrokecolor=nothing,
-#                    alpha=0.6,
-#                    #smooth=true,
-#                    #linecolor="red",
-#                    legend=false)
-#    plot!(line_xs, euc_ys, color="red")
-#
-#    p_coeff = scatter(geo_dists, coeff_dists,
-#                      xlabel="geographic distance (m)",
-#                      ylabel="Euclidean coeff-vector distance",
-#                      title=("Coefficient asynchrony\n" *
-#                             "(β=$(@sprintf("%e", res_coeff["slope"])), " *
-#                             "R²=$(round(res_coeff["R2"],digits=3)))"),
-#                      titlefontsize=8,
-#                      guidefontsize=7,
-#                      tickfontsize=4,
-#                      markercolor="black",
-#                      markersize=2,
-#                      markerstrokecolor=nothing,
-#                      alpha=0.6,
-#                      #smooth=true,
-#                      #linecolor="red",
-#                      legend=false)
-#    plot!(line_xs, coeff_ys, color="red")
-#
-#    # plot the raster and highlight the location
-#    hkw::Int64 = KERNEL_SIZE/2
-#    xmin = minimum(xs[hkw+1:end-hkw]) - 0.5*XRES
-#    xmax = maximum(xs[hkw+1:end-hkw]) + 0.5*XRES
-#    ymin = maximum(ys[hkw+1:end-hkw]) + 0.5*YRES
-#    ymax = minimum(ys[hkw+1:end-hkw]) - 0.5*YRES
-#    println((xmin, ymin), (xmax, ymax))
-#    ga = GeoArray(outpatch[:,:,1])
-#    epsg!(ga, 4326)
-#    bbox!(ga, (min_x=xmin, min_y=ymin, max_x=xmax, max_y=ymax))
-#    p_rast = plot(ga)
-#    #p_rast = plot_patch(outpatch, ((xmin, ymin), (xmax, ymax)))
-#    scatter!([foc_x], [foc_y], legend=false,
-#             title=("lon: $(round(foc_x, digits=4))\n" *
-#                    "lat: $(round(foc_y, digits=4))\n" *
-#                    "N:   $(length(geo_dists)) neighbors"),
-#             seriescolor="red", markerstrokecolor=nothing, alpha=0.3,
-#             markersize=10, tickfontsize=4, titlefontsize=8)
-#
-#
-#    plot(p_r2, p_euc, p_coeff, p_rast)#, layout=lo)
-#end
-#
-#"""
-#Make a quick 'n dirty panel plot of all the patches in a TFRecord file
-#"""
-#function plot_all_patches(fp; bands=INBANDS)
-#    ip, op = get_inpatches_outpatches(fp, bands, DIMS)
-#    plots = Any[]
-#    for (n, p) in ip
-#        push!(plots, plot(GeoArray(p[:,:,1])))
-#    end
-#    plot(plots...)
-#end
-
