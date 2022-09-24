@@ -919,7 +919,6 @@ function get_row_col_patch_ns_allfiles(data_dir::String,
         # add this file's file_dict to the files_dict
         files_dict[infile] = file_dict
     end
-    #println("\nAFTER MAKING FILES_DICT\n")
     return files_dict
 end
 
