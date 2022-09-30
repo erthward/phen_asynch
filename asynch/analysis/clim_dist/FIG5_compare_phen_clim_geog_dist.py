@@ -1,17 +1,20 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-
+"""
 # TODO:
-    # include Whittaker plot?
-    # attend remaining TODO's
-    # uncomment try statement or remove?
-    # need to record places where alpha is increased, or get rid of that, or is
-        # that okay as part of clustering?
-    # delete unused stuff
-    # need to weed out clim_dist coeff values when their p-values are >0.05, or
-        # is that part of the point? (I looked and they're mostly far-north places
-        # that will go away with proper masking anyhow...)
+
+    - include Whittaker plot?
+
+    - attend remaining TODO's
+
+    - need to record places where alpha is increased, or get rid of that, or is
+         that okay as part of clustering?
+
+    - need to weed out clim_dist coeff values when their p-values are >0.05, or
+         is that part of the point? (I looked and they're mostly far-north places
+         that will go away with proper masking anyhow...)
+"""
 
 import geopandas as gpd
 import numpy as np
@@ -76,6 +79,9 @@ alpha_vals = [0.25, 0.75, 1.25]
 min_n_clusts = 7
 
 # ANALYSIS PARAMS:
+# asynch neighborhood radius (in m)
+neigh_rad = 100_000
+
 # a number <= number of random points desired
 n_pts = 1000
 
@@ -102,8 +108,8 @@ for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]
     subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,f)).to_crs(8857))
 subnational = pd.concat(subnational)
 
-# load asynch data (band 2 in the asynch file
-asynch = rxr.open_rasterio(phf.ASYNCH_FILE)[2]
+# load asynch data (band 0 in the asynch file
+asynch = rxr.open_rasterio(phf.ASYNCH_FILES[neigh_rad])[0]
 
 # load climate data
 ppt_file =  [f for f in phf.BIOCLIM_INFILEPATHS if 'bio_12.tif' in f]
@@ -135,8 +141,9 @@ loop_vals = [[*deepcopy(loop_vals)][i] for i in indices]
 
 # get rid of loop vals that already exist in CSV of partial output,
 # if it exists
-if os.path.isfile('clim_dist_all_MMRR_results.shp'):
-    partial_results = gpd.read_file('clim_dist_all_MMRR_results.shp')
+if os.path.isfile('clim_dist_all_MMRR_results_%imrad.shp' % neigh_rad):
+    partial_results = gpd.read_file('clim_dist_all_MMRR_results_%imrad.shp' %
+                                    neigh_rad)
     # map fiona's laundered column names back to original names
     partial_results = partial_results.rename(columns={
                                     'Intercept(': 'Intercept(t)',
@@ -404,7 +411,8 @@ if remaining_n_loop_vals > 0:
         # check columns all got lined up correctly
         assert np.all(all_loop_MMRR_res_gdf.columns == MMRR_res_gdf.columns)
         if save_all_results:
-            all_loop_MMRR_res_gdf.to_file('clim_dist_all_MMRR_results.shp',
+            all_loop_MMRR_res_gdf.to_file(
+                'clim_dist_all_MMRR_results_%imrad.shp' % neigh_rad,
                                           index=False)
 
         # increment loop count
@@ -443,26 +451,28 @@ for _ in range(1000):
     null_fx.append(null_fx_size)
 
 # display empirical p-value (i.e., percent of null results >= real result)
-print('\n\nEMPIRICAL P-VALUE: %0.3f\n' % np.mean(np.array(null_fx) >= fx_size))
+emp_pval = '\n\nEMPIRICAL P-VALUE: %0.3f\n' % np.mean(np.array(null_fx) >= fx_size)
+print(emp_pval)
 
 # plot clim_dist effect size vs. empirical null dist
-fig = plt.figure(figsize=(6,6))
-ax = fig.add_subplot(111)
+fig_null = plt.figure(figsize=(6,6))
+ax = fig_null.add_subplot(111)
 ax.set_xlabel('effect size of mean cluster latitude on MMRR clim_dist coeff')
 ax.set_ylabel('freq')
 plt.hist(null_fx, bins=100, alpha=0.7)
 ax.axvline(fx_size, *ax.get_ylim(), color='red', linewidth=2)
-fig.savefig('mean_cluster_lat_effect_size_null_dist.png', dpi=700)
+ax.set_title(emp_pval)
+fig_null.savefig('mean_cluster_lat_effect_size_null_dist_%imrad.png' % neigh_rad, dpi=700)
 
 # plot clim_dist effect size vs |mean lat|
-fig = plt.figure(figsize=(6,12))
+fig_scat = plt.figure(figsize=(6,12))
 ylabels = {'clim_dist': ('effect size of mean cluster clim_dist\n'
                          'on mean cluster seas_dist'),
            'clim_dist(p)': 'p-value of clim_dist coefficient in MMRR',
            'mean_clim_dist': 'cluster mean climate distance',
           }
 for i, y_col in enumerate(['clim_dist', 'clim_dist(p)', 'mean_clim_dist']):
-    ax = fig.add_subplot(311+i)
+    ax = fig_scat.add_subplot(311+i)
     if i == 2:
         ax.set_xlabel('|mean cluster latitude|')
     else:
@@ -477,7 +487,7 @@ for i, y_col in enumerate(['clim_dist', 'clim_dist(p)', 'mean_clim_dist']):
                 ax=ax,
                )
 
-fig.savefig('clim_dist_vs_lat_scat.png', dpi=700)
+fig_scat.savefig('clim_dist_vs_lat_scat_%imrad.png' % neigh_rad, dpi=700)
 
 fig_map = plt.figure(figsize=(20,10))
 ax = fig_map.add_subplot(111)
@@ -495,157 +505,6 @@ gdf_for_plot.plot(column='clim_dist',
                   cmap='plasma',
                   ax=ax
                  )
-fig.savefig('clim_dist_vs_lat_scat.png', dpi=700)
+fig_map.savefig('asynch_clusts_map_%imrad.png' % neigh_rad, dpi=700)
 
 plt.show()
-
-
-'''
-# make map
-fig = plt.figure(figsize=(22,5))
-gs = fig.add_gridspec(10, 3, width_ratios=[0.5,0.25,0.25])
-ax_map = fig.add_subplot(gs[:,0])
-countries.to_crs(4326).plot(color='none', edgecolor='k', linewidth=0.25, ax=ax_map)
-ax_map.scatter(coords[:, 0], coords[:, 1], c=db.labels_, cmap='tab20', s=1)
-ax_map.scatter(coords[:, 0], coords[:, 1], c=db.labels_>0, cmap='Greys_r',
-               alpha=db.labels_==0, s=1)
-# add all constituent polygons to map
-                for p in alpha_hull.geoms:
-                    ax_map.add_patch(PolygonPatch(p, alpha=0.2, color='black'))
-                cent = alpha_hull.centroid.coords.xy
-                ax_map.text(cent[0][0], cent[1][0], str(clust_i), color='black',
-                            size=14, weight='bold', alpha=0.85)
-
-
-
-        # plot clim_dist MMRR coeff as a function of mean lat and mean ppt
-        ax_scat = fig.add_subplot(gs[:5, 1])
-
-        ax_scat.scatter(np.abs(MMRR_res_df['mean_lat']),
-                        MMRR_res_df['clim_dist'],
-                        c='black',
-                        s=40,
-                        alpha=0.9,
-                        )
-
-        sns.regplot(x=np.abs(MMRR_res_df['mean_lat']),
-                    y=MMRR_res_df['clim_dist'],
-                    scatter=False,
-                    ax=ax_scat,
-                   )
-
-        for r,x,y in zip(MMRR_res_df['region'].values,
-                         np.abs(MMRR_res_df['mean_lat'].values),
-                         MMRR_res_df['clim_dist'].values):
-            ax_scat.text(x, y, r, size=16, alpha=0.75, color=reg_cols[int(r)-1])
-
-        ax_scat.set_xlabel('absolute mean cluster latitude (|degrees|)',
-                           fontdict={'fontsize': 14})
-        ax_scat.set_ylabel('MMRR standardized climate\ndistance coefficient',
-                           fontdict={'fontsize': 14})
-        ax_scat.tick_params(labelsize=11)
-
-
-        # plot mean clim_dist against mean lat (as a 'null')
-        ax_scat_null = fig.add_subplot(gs[5:, 1])
-        ax_scat_null.scatter(np.abs(MMRR_res_df['mean_lat']),
-                        MMRR_res_df['mean_clim_dist'],
-                        c='black',
-                        s=40,
-                        alpha=0.9,
-                        )
-        sns.regplot(x=np.abs(MMRR_res_df['mean_lat']),
-                    y=MMRR_res_df['mean_clim_dist'],
-                    scatter=False,
-                    ax=ax_scat_null,
-                   )
-        for r,x,y in zip(MMRR_res_df['region'].values,
-                         np.abs(MMRR_res_df['mean_lat'].values),
-                         MMRR_res_df['mean_clim_dist'].values):
-            ax_scat_null.text(x, y, r, size=16, alpha=0.75, color=reg_cols[int(r)-1])
-        ax_scat_null.set_xlabel('absolute mean cluster latitude (|degrees|)',
-                           fontdict={'fontsize': 14})
-        ax_scat_null.set_ylabel('mean pairwise climate\ndistance of cluster',
-                           fontdict={'fontsize': 14})
-        ax_scat_null.tick_params(labelsize=11)
-
-
-
-        # plot on biomes
-        if plot_whittaker:
-            whittaker = pd.read_csv('./clim_dist/whittaker_biomes.csv', sep=';')
-
-            whittaker['temp_c'] = whittaker['temp_c'].apply(lambda x:
-                                                        float(x.replace(',', '.')))
-            whittaker['precp_mm'] = whittaker['precp_cm'].apply(lambda x:
-                                                        float(x.replace(',', '.'))*10)
-            biomes = []
-            centroids = []
-            patches = []
-
-            for biome in whittaker['biome'].unique():
-                subwhit = whittaker[whittaker.biome == biome].loc[:, ['temp_c', 'precp_mm']].values
-                centroids.append(np.mean(subwhit, axis=0))
-                poly = mplPolygon(subwhit, True)
-                patches.append(poly)
-                biomes.append(re.sub('/', '/\n', biome))
-
-            #colors = ['#80fffd', # tundra
-            #          '#2b422f', # boreal forest
-            #          '#ebe157', # temperate grassland/desert
-            #          '#ab864b', # woodland/shrubland
-            #          '#17a323', # temperate seasonal forest
-            #          '#13916b', # temperate rain forest
-            #          '#00a632', # tropical rain forest
-            #          '#c2d69a', # tropical seasonal forest/savanna
-            #          '#e3a107', # subtropical desert
-            #         ]
-            #colors = np.array(colors)
-
-            colors = 255 * np.linspace(0, 1, len(patches))
-            p = PatchCollection(patches, alpha=0.4, edgecolor='k', cmap='Pastel1')
-            p.set_array(colors)
-            ax_whit = fig.add_subplot(gs[:, 2])
-            divider = make_axes_locatable(ax_whit)
-            cax_whit = divider.append_axes('right', size='5%', pad=0.1)
-            ax_whit.add_collection(p)
-
-            for b,c in zip(biomes, centroids):
-                ax_whit.text(c[0], c[1], b)
-
-            for r,x,y in zip(MMRR_res_df['region'].values,
-                             MMRR_res_df['mean_tmp'].values,
-                             MMRR_res_df['mean_ppt'].values):
-                ax_whit.text(x, y, r, size=16, alpha=0.5)
-
-            scat = ax_whit.scatter(MMRR_res_df['mean_tmp'], MMRR_res_df['mean_ppt'],
-                               c=MMRR_res_df['clim_dist'],
-                               cmap='plasma_r', s=45, alpha=0.85, edgecolor='k',
-                               linewidth=1)
-
-            cbar = plt.colorbar(scat, cax=cax_whit)
-            cbar.set_label('MMRR climate-distance coefficient',
-                           fontdict={'fontsize': 18})
-
-            ax_whit.set_xlabel('MAT ($^{\circ}C$)',
-                          fontdict={'fontsize': 18})
-            ax_whit.set_ylabel('MAP ($mm$)',
-                          fontdict={'fontsize': 18})
-            ax_whit.tick_params(labelsize=14)
-
-        fig.subplots_adjust(bottom=0.06,
-                            top=0.94,
-                            left=0.06,
-                            right=0.94,
-                            wspace=0.25,
-                           )
-
-        fig.savefig(os.path.join('asynch_clust_results',
-                                 ('asynch_clusts_and_MMRR_results'
-                                  '%s_eps%0.2f_minsamp%0.2f_'
-                                  'alpha%0.2f.png') % (file_suffix,
-                                                       dbscan_eps,
-                                                       dbscan_minsamp,
-                                                       alpha)), dpi=800)
-
-'''

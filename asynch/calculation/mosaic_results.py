@@ -73,19 +73,20 @@ NODATA_VAL = -9999.0
 
 # names of the bands saved into the TFRecord files
 if DATA_TYPE == 'a':
-    BANDS = ['asynch', 'asynch_R2', 'asynch_euc', 'asynch_euc_R2', 'asynch_n']
+    BANDS = ['asynch_euc', 'asynch_euc_R2', 'asynch_n']
 elif DATA_TYPE == 'c':
     BANDS = ['constant', 'sin_1', 'cos_1', 'sin_2', 'cos_2']
 elif DATA_TYPE == 'r2':
     BANDS = ['R2']
 
 # neighborhood radius size
-NEIGH_RAD = sys.argv[4]
-assert re.search('^\d+$', NEIGH_RAD) is not None, ('NEIGH_RAD must be an '
-                                                   'integer (i.e., the radius '
-                                                   'expressed in  km')
-# convert to str used in filenames
-NEIGH_RAD = NEIGH_RAD+'000mrad-'
+if DATA_TYPE == 'a':
+    NEIGH_RAD = sys.argv[4]
+    assert re.search('^\d+$', NEIGH_RAD) is not None, ('NEIGH_RAD must be an '
+                                                       'integer (i.e., the radius '
+                                                       'expressed in  km')
+    # convert to str used in filenames
+    NEIGH_RAD = NEIGH_RAD+'000mrad-'
 
 #-----------------
 # define functions
@@ -313,6 +314,14 @@ def write_geotiff(output_filepath, output_arr, bands):
             'tiled': False, ## ?
             'interleave': 'band' ## ?
            }
+    # rename bands, if outputting asynch files
+    # NOTE: DOING THIS BECAUSE I WOUND UP DROPPING THE LINEAR REGRESSION-BASED
+    #       METHOD OF ASYNCH CALCULATION IN FAVOR OF THE 'CLEANER'
+    #       EUCLIDEAN DISTANCE-BASED METHOD, BUT I STILL LEFT 5 OUTPUT BANDS IN
+    #       THE ASYNCH OUTPUT TFRECORD FILES (EVEN THOUGH FIRST 2 ARE EMPTY),
+    #       BECAUSE EASIEST TO JUST DROP THOSE 2 BLANK BANDS HERE
+    if DATA_TYPE == 'a':
+        bands = ['asynch', 'asynch_r2', 'asynch_n']
     # open the file connection, unpacking the profile
     with rio.open(output_filepath, 'w', **meta) as f:
         # Write an array as a raster band to a new file
