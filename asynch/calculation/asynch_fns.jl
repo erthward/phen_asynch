@@ -1,22 +1,4 @@
 """
-
-
-######################
-TODO:
-
-- triple-check get_patch_lons_lats across all tiles
-        - appears to maybe be overshooting 13 pixels per file in the x direction (but the x only...)? running (max(xs...)-187.225)/0.05/23, where xs are calculated for the bottom-right tile, gives 13.0000000000014992, i.e., num pixels overshoot per tile...
-
-- use fit_intercept true or false for asynch calc?
-
-######################
-
-
-
-
-
-
-
 Reads in the data from all the TFRecord files pertaining to a mixerfile.
 Calculates asynchrony for that data and writes out to a matching set of files.
 
@@ -95,29 +77,6 @@ using GLM
 # set params
 #-----------
 
-"""
-Which variable to calculate asynchrony for?
-"""
-#const VAR = "def"
-#const VAR = "pr"
-#const VAR = "tmmn"
-const VAR = "cloud"
-#const VAR = "SIF"
-#const VAR = "NIRv"
-
-"""
-Which masking mode to use?
-"""
-#const MASKING_MODE = "strict"
-const MASKING_MODE = "default"
-# create file suffix based on masking mode
-if VAR in ["NIRv", "SIF"] && MASKING_MODE == "strict"
-    const MASKING_SUFFIX = "_STRICT"
-else
-    const MASKING_SUFFIX = ""
-end
-
-
 # stdout options
 """
 Whether to use verbose output
@@ -129,34 +88,13 @@ Whether to time the asynchrony calculation
 """
 const TIMEIT = false
 
-
-
-# the TFRecord package throws a globbing error
-# ("ERROR: Glob pattern cannot be empty or start with a / character")
-# when I feed TFRecordReader an absolute path
-# (SEEMS LIKE A BUG, NO?!),
-# so get the relative path to the data_dir instead
-
-# either get paths on my laptop...
+# either get path on my laptop...
 if splitpath(pwd())[2] == "home"
     const BASE_DATA_DIR = "/media/deth/SLAB/diss/3-phn/GEE_outputs/"
-
-    # and choose the plots backend
-    # (sticking with the python plotting window that I know well, for now)
-    #pyplot()
-    # NOTE: pyplot breaks when trying to plot the Grayscale image,
-    # so for now using GR instead
-    #gr()
-    #
-# ... or else get paths for Savio
+# ... or else get path on Savio
 else
     const BASE_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_outputs/"
 end
-# make data-dir absolute path
-const DATA_SUBDIR = VAR * MASKING_SUFFIX
-const ABS_DATA_DIR = BASE_DATA_DIR * DATA_SUBDIR
-
-
 
 """
 indicator of whether or not TFRecordReader is defined
@@ -165,27 +103,17 @@ indicator of whether or not TFRecordReader is defined
 # on Savio and on my laptop
 const HAS_TFRECORDREADER = @isdefined TFRecordReader
 
-
 """
 pattern that occurs just before the file number
 """
 const PATT_AFT_FILENUM = "\\.tfrecord\$"
 
 """
-directory where the TFRecord data and mixerfile live
-"""
-const DATA_DIR = relpath(ABS_DATA_DIR)
-
-"""
 kernel size used by GEE to output the TFRecord files
 """
 # kernel size
-if VAR == "NIRv"
-    const KERNEL_SIZE = 288
-else
-    const KERNEL_SIZE = 288
-end
-
+const KERNEL_SIZE = 288
+ 
 """
 half the kernel width (to use in margin-trimming)
 """
@@ -203,43 +131,14 @@ const DEFAULT_VAL = -9999.0
 
 """
 names of the bands saved in the input TFRecord files
+NOTE: ignores the last band, which is the R^2 values
 """
 const INBANDS = ["constant", "sin_1", "cos_1", "sin_2", "cos_2"]
 
 """
 names of the bands to save in the output TFRecord files
 """
-const OUTBANDS = ["asynch", "asynch_R2", "asynch_euc",
-                  "asynch_euc_R2", "asynch_n"]
-
-"""
-max distance out to which to find and include neighbors in
-each pixel's asynchrony calculation (in meters)
-"""
-const NEIGH_RAD = 50_000
-#const NEIGH_RAD = 100_000
-#const NEIGH_RAD = 150_000
-
-"""
-minimum distance per 1 degree of longitude (i.e. the distance, in meters,
-of 1 deg longitude at my highest latitude, which is 60 N/S)
-"""
-const MIN_DIST_°_LON=111_320
-
-"""
-a multiplicative factor to use on the first pass of filtering for candidate
-neighbor pixels (before feeding those candidates into the BallTree query);
-multiplying by this before subsetting using a Euclidean distance calculation
-on °lat-lon values will ensure that I cast a net wide enough to include all
-pixels within the nhood radius in meters
-"""
-const °_NEIGH_RAD_BUFF_FACTOR = 1.05
-
-"""
-use the above vars to determine the max distance in degrees
-(for the first-pass, Euclidean distance-based neighbor filtering)
-"""
-const MAX_DIST_° = (NEIGH_RAD/MIN_DIST_°_LON) * °_NEIGH_RAD_BUFF_FACTOR
+const OUTBANDS = ["asynch", "asynch_R2", "asynch_euc", "asynch_euc_R2", "asynch_n"]
 
 """
 approximate radius of the earth (for the Haversine distance-based,
@@ -264,8 +163,8 @@ const MIN_NUM_NEIGHS = 30
 Uses the data-directory path provided to get and return
 lists of the input and output files' paths.
 """
-function get_infile_outfile_paths(data_dir::String;
-                                  neigh_rad=NEIGH_RAD)::Tuple{Array{String,1}, Array{String,1}}
+function get_infile_outfile_paths(data_dir::String,
+                                  neigh_rad::Int64)::Tuple{Array{String,1}, Array{String,1}}
     # set up IO paths
     infilepaths = glob("*tfrecord", data_dir) 
     # order the infilepaths
@@ -460,56 +359,6 @@ function write_tfrecord_file_new(patches::OrderedDict{Int64, Array{Float32,3}},
 end
 
 
-#"""
-#write a GeoTIFF using the provided array and JSON mixer-file info,
-#writing to the given filename
-#"""
-#function write_geotiff(arr::Array, mix_info::Dict,
-#                       patch_i::Int64, patch_j::Int64,
-#                       filename::String)
-#    crs = mix_info["projection"]["crs"]
-#    wkt_crs = ArchGDAL.toWKT(ArchGDAL.importPROJ4("+init=$crs"))
-#    # fix the geotransform's order
-#    geotrans = mix_info["projection"]["affine"]["doubleMatrix"]
-#    res_x = geotrans[1]
-#    res_y = geotrans[5]
-#    ul_x = geotrans[3] + (patch_j * res_x * mix_info["patchDimensions"][1])
-#    ul_y = geotrans[6] + (patch_i * res_y * mix_info["patchDimensions"][2])
-#    reordered_geotrans::Vector{Float64} = [ul_x, res_x, 0.0, ul_y, 0.0, res_y]
-#    if length(size(arr)) == 2
-#        height, width = size(arr)
-#        nbands = 1
-#    else
-#        height, width, nbands = size(arr)
-#    end
-#    ArchGDAL.create(
-#        filename,
-#        driver = ArchGDAL.getdriver("GTiff"),
-#        width=width,
-#        height=height,
-#        nbands=nbands,
-#        dtype=Float32
-#    ) do dataset
-#    # NOTE: for some reason (perhaps Julia's column major order?) it's writing rasters
-#    # transposed! So, transpose them to offset this!
-#    # NOTE: need to convert back to basic Matrix type because no method for write!(transpose(::Matrix))
-#        if length(size(arr)) == 2
-#            ArchGDAL.write!(dataset,
-#                            convert(Matrix, arr),
-#                            1)
-#        else
-#            for band_n in 1:size(arr)[3]
-#                ArchGDAL.write!(dataset,
-#                                convert(Matrix, arr[:,:,band_n]),
-#                                band_n)
-#            end
-#        end
-#        ArchGDAL.setgeotransform!(dataset, reordered_geotrans)
-#        ArchGDAL.setproj!(dataset, wkt_crs)
-#    end
-#end
-
-
 """
 Takes the overall x and y min values of the TFRecord dataset,
 the x and y resolutions, the patch dimensions, and the column and row
@@ -520,10 +369,6 @@ function get_patch_lons_lats(xmin::Float64, ymin::Float64, xres::Float64, yres::
                              dims::Tuple{Int64,Int64}, hkw::Int64,
                              patch_j::Int64, patch_i::Int64)::Tuple{Array{Float64,2},Array{Float64,2}}
     # calculate the x and y mins of the current patch
-    # DETH: 10-05-21: NEW TAKE ON PATCH COORD CALCULATION:
-    #                 global xmin, minus kernel fringe, plus half cell-width to get to center, plus patch_i*dim*xres, to translate patch over
-    #patch_xmin = xmin + (patch_j * dims[1] * xres)
-    #patch_ymin = ymin + (patch_i * dims[2] * yres)
     kern_xdim, kern_ydim = dims
     real_xdim, real_ydim = [kern_xdim kern_ydim] .- (KERNEL_SIZE)
     patch_xmin = xmin + (patch_j * real_xdim * xres)
@@ -533,32 +378,18 @@ function get_patch_lons_lats(xmin::Float64, ymin::Float64, xres::Float64, yres::
     patch_ymax = patch_ymin + (yres * (kern_ydim-1))
 
     # get lists of xs and ys of all the current patch's pixels
-    # DETH: 10-05-21: NEW TAKE ON PATCH COORD CALCULATION
-    #                 just need min cell center as start,
-    #                 min cell center plus res*dim as end,
-    #                 and dim as length
-    #xs = LinRange(patch_xmin,
-                  # NOTE: start at center of leftmost pixel,
-                  # step to middle of rightmost pixel
-                  # (i.e. step dims[i]-1 pixels to the right),
-                  # getting a list of pixel-center
-                  # coordinates of total length dims[i]
-   #               patch_xmin + (xres * (dims[1] - 1)),
-   #               dims[1])
-   ##ys = LinRange(patch_ymin,
-   #               patch_ymin + (yres * (dims[2] - 1)),
-   #               dims[2])
-   xs = LinRange(patch_xmin, patch_xmax, kern_xdim)
-   ys = LinRange(patch_ymin, patch_ymax, kern_ydim)
-   # get the meshgrids of those coordinates
-   gridx = xs' .* ones(length(xs))
-   gridy = ys .* ones(length(ys))'
-   # check that y values are identical across rows and x values are identical down columns
-   @assert(unique([length(unique(gridy[i,:])) == 1 for i in 1:size(gridy)[1]]) == [1,],
-           "y values are not identical across rows in gridy!")
-   @assert(unique([length(unique(gridx[:,j])) == 1 for j in 1:size(gridx)[2]]) == [1,],
-           "x values are not identical down columns in gridx!")
-   return gridx, gridy
+    
+    xs = LinRange(patch_xmin, patch_xmax, kern_xdim)
+    ys = LinRange(patch_ymin, patch_ymax, kern_ydim)
+    # get the meshgrids of those coordinates
+    gridx = xs' .* ones(length(xs))
+    gridy = ys .* ones(length(ys))'
+    # check that y values are identical across rows and x values are identical down columns
+    @assert(unique([length(unique(gridy[i,:])) == 1 for i in 1:size(gridy)[1]]) == [1,],
+            "y values are not identical across rows in gridy!")
+    @assert(unique([length(unique(gridx[:,j])) == 1 for j in 1:size(gridx)[2]]) == [1,],
+            "x values are not identical down columns in gridx!")
+    return gridx, gridy
 end
 
 
@@ -660,11 +491,12 @@ standardize(a1::Array{Float64,1})::Array{Float64,1} = (a1.-mean(a1))/std(a1)
 
 """
 Uses the dataset's mixer info to create a lookup dict
-containing the number of neighors within the NEIGH_RAD-radius
+containing the number of neighors within the neigh_rad-radius
 neighborhood for each latitudinal band of cells.
 """
 function make_nneighs_lookup_dict(mix_info::Dict{String, Any},
-                                  hkw::Int64)::Dict{Tuple{Int64, Int64}, Int64}
+                                  hkw::Int64,
+                                  neigh_rad::Int64)::Dict{Tuple{Int64, Int64}, Int64}
 
     # get min y value (i.e. northmost)
     # and yres (which will be negative, hence progressing southward)
@@ -723,7 +555,7 @@ function make_nneighs_lookup_dict(mix_info::Dict{String, Any},
         # build a tree containing excess potential coords
         tree = BallTree([vec_potent_lons vec_potent_lats]', Haversine(EARTH_RAD))
         # query the tree and record number of neighs
-        nneighs = length(inrange(tree, [0, lat], NEIGH_RAD))
+        nneighs = length(inrange(tree, [0, lat], neigh_rad))
         # store the number of neighs in the cells_nneighs_dict
         nneighs_lookup_dict[cell_info] = nneighs
     end
@@ -759,15 +591,11 @@ function get_neighbors_info(i::Int64, j::Int64,
                             patch_dims::Tuple{Int64,Int64},
                             patch_i::Int64, nneighs_lookup_dict::Dict{Tuple{Int64, Int64}, Int64},
                             hav_fn::Function,
-                            tree::BallTree{SArray{Tuple{2},Float64,1,2},2,Float64,Haversine{Int64}};
-                            neigh_rad=NEIGH_RAD)::Dict{Tuple{Float64, Float64}, Tuple{Float64, Tuple{Int64, Int64}}}
+                            tree::BallTree{SArray{Tuple{2},Float64,1,2},2,Float64,Haversine{Int64}})::Dict{Tuple{Float64, Float64}, Tuple{Float64, Tuple{Int64, Int64}}}
     # get the tree's data-row numbers for all neighbors
-    # within the NEIGH_RAD-radius neighborhood
-    # (by grabbing the k nearest neighbors, where k comes from the NNEIGHS_LOOKUP_DICT built at the outset)
+    # within the neighborhood (by grabbing the k nearest neighbors, where k comes
+    # from the nneighs_lookup_dict built at the outset with neigh_rad factored in)
     neighs = knn(tree, [foc_x, foc_y], nneighs_lookup_dict[Tuple((patch_i, i))])[1]
-    # DETH: 10-09-21: trying the knn approach above instead of the inrange approach below because
-    #                 I've smashed my head against all the walls and couldn't debug that approach...
-    #neighs = inrange(tree, [foc_x, foc_y], NEIGH_RAD)
     # use the row numbers to subset the pixels' centerpoint coords and
     # their index coordinate pairs
     neigh_ys = vec_ys[neighs]
@@ -841,7 +669,8 @@ and outfile paths (as values, each of which are sub-Dicts)
 for all files (keys).
 """
 function get_row_col_patch_ns_allfiles(data_dir::String,
-                                       patt_aft_filenum::String)::Dict{String,Dict{String,Any}}
+                                       patt_aft_filenum::String,
+                                       neigh_rad::Int64)::Dict{String,Dict{String,Any}}
     # set the starting row, column, and patch counters
     patch_i = 0
     patch_j = 0
@@ -853,7 +682,7 @@ function get_row_col_patch_ns_allfiles(data_dir::String,
      patches_per_row, tot_patches) = get_mixer_info(mix)
 
     # get all the input and output file paths
-    infilepaths, outfilepaths = get_infile_outfile_paths(data_dir)
+    infilepaths, outfilepaths = get_infile_outfile_paths(data_dir, neigh_rad)
 
     # get the regex pattern
     patt = Regex("\\d{5}?(?=$patt_aft_filenum)")
@@ -964,16 +793,16 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
 
     # get the coords, dists, and array-indices
     # of all of the focal pixel's neighbors
-    # TODO: POSSIBLE THAT SAMPLE-SIZE PROBLEM IS JUST BECAUSE NUMBER OF NEIGHS
-    #       IS ACCIDENTALLY BEING DETERMINED AS FUNCTION OF LON INSTEAD OF LAT!?
     coords_dists_inds = get_neighbors_info(i, j, vec_is, vec_js,
                                            foc_y, foc_x, vec_ys, vec_xs,
                                            yres, xres, dims,
                                            patch_i, nneighs_lookup_dict,
                                            hav_fn, tree)
 
-    println("\t\t($foc_x, $foc_y)\n")
-    println("\t\t$(length(coords_dists_inds)) neighbors\n")
+    if verbose
+    	println("\t\t($foc_x, $foc_y)\n")
+    	println("\t\t$(length(coords_dists_inds)) neighbors\n")
+    end
 
     # loop over neighbors
     for (neigh_coords, neigh_info) in coords_dists_inds
@@ -1008,7 +837,9 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
 
     # calc asynchrony for the cell, but only if we have enough valid neighbors
     num_neighs = length(geo_dists)
-    println("$num_neighs NEIGHBORS")
+    if verbose
+        println("$num_neighs NEIGHBORS")
+    end
     if num_neighs ≥ MIN_NUM_NEIGHS
         # get the slope of the overall regression of Euclidean ts dists on geo dist
         # NOTE: just setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
@@ -1114,8 +945,8 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
                                           inpatch, outpatch, patch_n,
                                           yres, xres, dims,
                                           design_mat,
-                                          patch_i, nneighs_lookup_dict, tree,
-                                          verbose=verbose, timeit=timeit)
+                                          patch_i, nneighs_lookup_dict,
+                                          tree, verbose=verbose, timeit=timeit)
                 end
             else
                 if verbose
@@ -1150,68 +981,6 @@ function calc_asynch(inpatches::OrderedDict{Int64, Array{Float32,3}},
 end
 
 
-#----------------------
-# get the design matrix
-#----------------------
-
-"""
-Design matrix from the harmonic regression,
-to be paired with the coefficients in order to
-calculate the 365-day fitted time series
-"""
-const DESIGN_MAT = make_design_matrix()
-
-#---------------
-# get mixer info
-#---------------
-
-"""
-Information read in from the JSON mixer file.
-"""
-const MIX = read_mixer_file(DATA_DIR)
-const (DIMS, CRS, XMIN, YMIN, XRES, YRES,
-       PATCHES_PER_ROW, TOT_PATCHES) = get_mixer_info(MIX)
-
-"""
-Dict containing (patch_i, row_i) as keys and number of neighbor cells as values;
-will be used to subset the correct number (k) of nearest neighbors
-from the Haversine BallTree for each focal cell
-"""
-const NNEIGHS_LOOKUP_DICT = make_nneighs_lookup_dict(MIX, HKW)
-
-"""
-vectors of pixel indices in the i and j array dims
-(which will be subsetted by BallTree neighbor-query output)
-"""
-const VEC_IS, VEC_JS = get_is_js(DIMS)
-
-"""
-a CartesianIndices object to be used for iteration over
-a patch's pixels in calc_asynchrony();
-tried this approach while reading about Julia Array types,
-to help learn better how they are put together and work,
-and while it appears to only offer a very slight speed-up,
-it surely can't hurt
-"""
-const CART_INDS = CartesianIndices(DIMS)
-
-#------------------------------------
-# get files' row, col, and patch info
-#------------------------------------
-
-"""
-Dict containing input filenames as keys and the files' patch, column, and row
-numbers as values.
-Needed in order to parallelize the computation across files while still
-calculating lats and lons correctly for each file's pixels
-"""
-const FILES_DICT = get_row_col_patch_ns_allfiles(DATA_DIR, PATT_AFT_FILENUM)
-
-"""
-Array containing the input filenames
-"""
-const FILENAMES = [fn for fn in FILES_DICT]
-
 
 #----------------------------------------------------
 # define the main function, to be mapped over workers
@@ -1233,17 +1002,46 @@ The argument 'file_info' must be a Dict item object of the form:
         }
       )
 """
-function main_fn(file_info::Tuple{String,Dict{String,Any}};
+function main_fn(file_info::Tuple{String,Int64,String,Dict{String,Any}};
                  verbose=VERBOSE, timeit=TIMEIT, trim_margin=TRIM_MARGIN)::Nothing
+
     # split input info into variables
-    infilepath, file_dict = file_info
-    infilename = splitpath(infilepath)[end]
+    data_dir, neigh_rad, infilepath, file_dict = file_info
+
+    # read in information from the JSON mixer file.
+    mix = read_mixer_file(data_dir)
+    (dims, crs, xmin, ymin, xres, yres,
+     patches_per_row, tot_patches) = get_mixer_info(mix)
+    
+    # make dict containing (patch_i, row_i) as keys and
+    # number of neighbor cells as values;
+    # will be used to subset the correct number (k) of nearest neighbors
+    # from the Haversine BallTree for each focal cell
+    nneighs_lookup_dict = make_nneighs_lookup_dict(mix, HKW, neigh_rad)
+    
+    # get vectors of pixel indices in the i and j array dims
+    # (which will be subsetted by BallTree neighbor-query output)
+    vec_is, vec_js = get_is_js(dims)
+    
+    # a CartesianIndices object to be used for iteration over
+    # a patch's pixels in calc_asynchrony();
+    # tried this approach while reading about Julia Array types,
+    # to help learn better how they are put together and work,
+    # and while it appears to only offer a very slight speed-up,
+    # it surely can't hurt
+    cart_inds = CartesianIndices(dims)
+
+    # make the design matrix from the harmonic regression,
+    # to be paired with the coefficients in order to
+    # calculate the 365-day fitted time series
+    design_mat = make_design_matrix()
+
     outfilepath = file_dict["outfilepath"]
     patch_is::Array{Int64,1} = file_dict["patch_is"]
     patch_js::Array{Int64,1} = file_dict["patch_js"]
     patch_ns::Array{Int64,1} = file_dict["patch_ns"]
     if verbose
-        @info "\nWorker $(myid()) processing file $infilename\n"
+        @info "\nWorker $(myid()) processing file $infilepath\n"
     end
 
     # read the data in, and set up the output patches' data structure
@@ -1251,10 +1049,10 @@ function main_fn(file_info::Tuple{String,Dict{String,Any}};
     #       I make it so that I can run the script for a short amount of
     #       time, then retain the partial result
     #       for interactive introspection
-    inpatches, outpatches = get_inpatches_outpatches(infilepath, INBANDS, DIMS)
+    inpatches, outpatches = get_inpatches_outpatches(infilepath, INBANDS, dims)
 
     if verbose
-        println("RUNNING ASYNCH CALC FOR FILE: $infilename")
+        println("RUNNING ASYNCH CALC FOR FILE: $infilepath")
         for (patch_i, patch_j, patch_n) in zip(patch_is, patch_js, patch_ns)
             println("\tPATCH: $patch_n (patch row: $patch_i, patch col: $patch_j)")
         end
@@ -1262,8 +1060,8 @@ function main_fn(file_info::Tuple{String,Dict{String,Any}};
 
     # run the asynchrony calculation
     outpatches = calc_asynch(inpatches, outpatches,
-                             patch_is, patch_js, patch_ns, VEC_IS, VEC_JS, CART_INDS,
-                             XMIN, YMIN, XRES, YRES, DIMS, DESIGN_MAT, NNEIGHS_LOOKUP_DICT, KERNEL_SIZE, HKW;
+                             patch_is, patch_js, patch_ns, vec_is, vec_js, cart_inds,
+                             xmin, ymin, xres, yres, dims, design_mat, nneighs_lookup_dict, KERNEL_SIZE, HKW,
                              trim_margin=trim_margin, verbose=verbose, timeit=timeit)
 
     # write out the asynch data
@@ -1272,14 +1070,5 @@ function main_fn(file_info::Tuple{String,Dict{String,Any}};
     else
         write_tfrecord_file_new(outpatches, outfilepath, OUTBANDS)
     end
-    # and also write to geotiffs
-    #for (idx, outpatch) in outpatches
-    #    # NOTE: just using a random number because gdal_merge.py will mosaic all anyhow
-    #    randnumstr = "$(round(Int, rand()*10000000))"
-    #    tiff_filename = "$(VAR)_$randnumstr.tif"
-    #    tiff_filepath = join([DATA_DIR, "/", tiff_filename]) 
-    #    println("\nNOW WRITING FILE $tiff_filepath\n")
-    #    write_geotiff(outpatch, MIX, patch_is[idx], patch_js[idx], tiff_filepath)
-    #end
 
 end
