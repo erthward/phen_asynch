@@ -101,9 +101,9 @@ Which variable to calculate asynchrony for?
 #const VAR = "def"
 #const VAR = "pr"
 #const VAR = "tmmn"
-#const VAR = "cloud"
+const VAR = "cloud"
 #const VAR = "SIF"
-const VAR = "NIRv"
+#const VAR = "NIRv"
 
 """
 Which masking mode to use?
@@ -216,8 +216,8 @@ const OUTBANDS = ["asynch", "asynch_R2", "asynch_euc",
 max distance out to which to find and include neighbors in
 each pixel's asynchrony calculation (in meters)
 """
-#const NEIGH_RAD = 50_000
-const NEIGH_RAD = 100_000
+const NEIGH_RAD = 50_000
+#const NEIGH_RAD = 100_000
 #const NEIGH_RAD = 150_000
 
 """
