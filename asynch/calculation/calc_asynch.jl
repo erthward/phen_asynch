@@ -14,10 +14,10 @@ using ArgParse
 # include the asynch functions
 if splitpath(pwd())[3] == "home" || splitpath(pwd())[3] == "scratch"
     @everywhere include("/global/home/users/drewhart/seasonality/seasonal_asynchrony/" *
-		        "asynch/calculation/asynch_fns_REDO.jl")
+		        "asynch/calculation/asynch_fns.jl")
 else
     @everywhere include("/home/deth/Desktop/CAL/research/projects/seasonality/" *
-                        "seasonal_asynchrony/asynch/calculation/asynch_fns_REDO.jl")
+                        "seasonal_asynchrony/asynch/calculation/asynch_fns.jl")
 end
 
 

@@ -13,7 +13,7 @@ neigh_rads_dict[''] = ''
 template_cmd = "python %s %s %s %s %s"
 
 # get path for savio...
-if os.path.split(os.getcwd())[1] == 'global':
+if os.getcwd().split('/')[1] == 'global':
     script_path = ("/global/home/users/drewhart/seasonality/seasonal_asynchrony/"
                    "asynch/calculation/mosaic_results.py")
     data_path = "/global/scratch/users/drewhart/seasonality/GEE_outputs/"

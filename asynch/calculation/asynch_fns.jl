@@ -861,8 +861,10 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
     # if we don't have at least the minimum number of neighbors
     # then just add NaNs to the outpatch, except for the neighbor count
     else
-        print("TOO FEW NEIGHBORS!")
         outpatch[i, j, :] = [NaN, NaN, NaN, NaN, convert(Float32, num_neighs)]
+        if verbose
+            println("TOO FEW NEIGHBORS!")
+	end
     end
 
     # calculate runtime and print, if necessary
