@@ -60,9 +60,9 @@ assert DATA_TYPE in ['c', 'a', 'r2'], ('the third argument must be "c" '
 
 # pattern that occurs just before the file number in each file's number
 if DATA_TYPE in ['c', 'r2']:
-    PATT_B4_FILENUM = '-'
+    PATT_B4_FILENUM = '\D+-'
 else:
-    PATT_B4_FILENUM = '-OUT-'
+    PATT_B4_FILENUM = '\D+-OUT-'
 
 # kernel size used by GEE to output the TFRecord files
 KERNEL_SIZE = 288
@@ -233,7 +233,7 @@ def get_row_col_patch_ns_allfiles(data_dir, patt_b4_filenum):
     # assert that both lists are sorted in ascending numerical order
     # NOTE: if this is not true then my method for tracking the row, col, and
     # patch numbers will break!
-    filenums = np.array([int(f.split(patt_b4_filenum)[1].split(
+    filenums = np.array([int(re.split(patt_b4_filenum, f)[1].split(
                                          '.tfrec')[0]) for f in filepaths])
     filenums_plus1 = np.array(range(1, len(filepaths)+1))
     assert np.all((filenums_plus1 - filenums) == 1), ("Filepaths do not "
