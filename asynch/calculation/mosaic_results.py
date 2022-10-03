@@ -349,36 +349,39 @@ FILES_DICT = get_row_col_patch_ns_allfiles(DATA_DIR, PATT_B4_FILENUM)
 #--------------------------------------------------------
 # loop over all files, patches and write them into output
 #--------------------------------------------------------
+if len(FILES_DICT) > 0:
+    for filepath, patchinfo in FILES_DICT.items():
+        print("INSERTING DATA FOR %s\n" % filepath)
+        # grab patch info
+        row_is = patchinfo['row_is']
+        col_js = patchinfo['col_js']
+        patch_ns = patchinfo['patch_ns']
 
-for filepath, patchinfo in FILES_DICT.items():
-    print("INSERTING DATA FOR %s\n" % filepath)
-    # grab patch info
-    row_is = patchinfo['row_is']
-    col_js = patchinfo['col_js']
-    patch_ns = patchinfo['patch_ns']
+        # read the file's data into an iterator
+        patches = read_tfrecord_file(filepath, DIMS, BANDS)
 
-    # read the file's data into an iterator
-    patches = read_tfrecord_file(filepath, DIMS, BANDS)
+        # loop over and grab data
+        for patch_n, patch in enumerate(patches):
+            # get the OUTPUT indices for this patch's data
+            i_inds, j_inds = get_patch_insert_indices(row_is[patch_n],
+                                                      col_js[patch_n], DIMS)
 
-    # loop over and grab data
-    for patch_n, patch in enumerate(patches):
-        # get the OUTPUT indices for this patch's data
-        i_inds, j_inds = get_patch_insert_indices(row_is[patch_n],
-                                                  col_js[patch_n], DIMS)
+            # if these are unprocessed GEE output (i.e. coefficients),
+            # then trim the margin
+            if DATA_TYPE in ['c', 'r2']:
+                print('\nTRIMMING MARGIN AROUND COEFFICIENTS PATCHES\n')
+                patch = patch[:, HKW:-HKW, HKW:-HKW]
 
-        # if these are unprocessed GEE output (i.e. coefficients),
-        # then trim the margin
-        if DATA_TYPE in ['c', 'r2']:
-            print('\nTRIMMING MARGIN AROUND COEFFICIENTS PATCHES\n')
-            patch = patch[:, HKW:-HKW, HKW:-HKW]
-
-        # insert the data
-        OUTPUT[:, i_inds[0]:i_inds[1], j_inds[0]:j_inds[1]] = patch
+            # insert the data
+            OUTPUT[:, i_inds[0]:i_inds[1], j_inds[0]:j_inds[1]] = patch
 
 
-#--------------------
-# write out to raster
-#--------------------
+    #--------------------
+    # write out to raster
+    #--------------------
 
-print('\nWRITING RESULTS TO FILE...\n')
-write_geotiff(OUTPUT_FILEPATH, OUTPUT, BANDS)
+    print('\nWRITING RESULTS TO FILE...\n')
+    write_geotiff(OUTPUT_FILEPATH, OUTPUT, BANDS)
+
+else:
+    print('\nNO FILES FOUND. MOSAIC UNSUCCESSFUL.\n\n')

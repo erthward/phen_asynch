@@ -62,4 +62,6 @@ for var in ['NIRv', 'NIRv_STRICT', 'SIF', 'SIF_STRICT',
                     lyr,
                     (('(neigh_rad=%s)' % neigh_rad) * (neigh_rad != ''))))
 
+        print('\n\n~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~\n')
+
 print("\n\nALL RESULTS MOSAICKED SUCCESSFULLY!\n\n")
