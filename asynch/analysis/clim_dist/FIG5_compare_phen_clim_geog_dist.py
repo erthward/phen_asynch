@@ -141,8 +141,8 @@ loop_vals = [[*deepcopy(loop_vals)][i] for i in indices]
 
 # get rid of loop vals that already exist in CSV of partial output,
 # if it exists
-if os.path.isfile('clim_dist_all_MMRR_results_%imrad.shp' % neigh_rad):
-    partial_results = gpd.read_file('clim_dist_all_MMRR_results_%imrad.shp' %
+if os.path.isfile('clim_dist_all_MMRR_results_%ikmrad.shp' % neigh_rad):
+    partial_results = gpd.read_file('clim_dist_all_MMRR_results_%ikmrad.shp' %
                                     neigh_rad)
     # map fiona's laundered column names back to original names
     partial_results = partial_results.rename(columns={
@@ -412,7 +412,7 @@ if remaining_n_loop_vals > 0:
         assert np.all(all_loop_MMRR_res_gdf.columns == MMRR_res_gdf.columns)
         if save_all_results:
             all_loop_MMRR_res_gdf.to_file(
-                'clim_dist_all_MMRR_results_%imrad.shp' % neigh_rad,
+                'clim_dist_all_MMRR_results_%ikmrad.shp' % neigh_rad,
                                           index=False)
 
         # increment loop count
@@ -462,7 +462,7 @@ ax.set_ylabel('freq')
 plt.hist(null_fx, bins=100, alpha=0.7)
 ax.axvline(fx_size, *ax.get_ylim(), color='red', linewidth=2)
 ax.set_title(emp_pval)
-fig_null.savefig('mean_cluster_lat_effect_size_null_dist_%imrad.png' % neigh_rad, dpi=700)
+fig_null.savefig('mean_cluster_lat_effect_size_null_dist_%ikmrad.png' % neigh_rad, dpi=700)
 
 # plot clim_dist effect size vs |mean lat|
 fig_scat = plt.figure(figsize=(6,12))
@@ -487,7 +487,7 @@ for i, y_col in enumerate(['clim_dist', 'clim_dist(p)', 'mean_clim_dist']):
                 ax=ax,
                )
 
-fig_scat.savefig('clim_dist_vs_lat_scat_%imrad.png' % neigh_rad, dpi=700)
+fig_scat.savefig('clim_dist_vs_lat_scat_%ikmrad.png' % neigh_rad, dpi=700)
 
 fig_map = plt.figure(figsize=(20,10))
 ax = fig_map.add_subplot(111)
@@ -505,6 +505,6 @@ gdf_for_plot.plot(column='clim_dist',
                   cmap='plasma',
                   ax=ax
                  )
-fig_map.savefig('asynch_clusts_map_%imrad.png' % neigh_rad, dpi=700)
+fig_map.savefig('asynch_clusts_map_%ikmrad.png' % neigh_rad, dpi=700)
 
 plt.show()

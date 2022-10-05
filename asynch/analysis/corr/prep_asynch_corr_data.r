@@ -37,17 +37,15 @@ library(rfUtilities)          # Jeff Evans R package for model selection
 # SET BEHAVIORAL PARAMS
 #######################
 
+args = commandArgs(trailingOnly=T)
+
 # variable for which to prep data
-asynch.var = 'NIRv'
-#asynch.var = 'SIF'
+asynch.var = args[1]
+cat(paste0('\nVAR: ', asynch.var, '\n'))
 
 # set neighborhood radius (in km) to use for asynch analysis
-all_rads = c(50, 100, 150)
-#neigh_rad = 50
-neigh_rad = 100
-#neigh_rad = 150
-# get the radii we aren't using, to filter out the corresponding files
-drop_rads = setdiff(all_rads, neigh_rad)
+neigh.rad = args[2]
+cat(paste0('\nNEIGH RAD: ', neigh.rad, '\n'))
 
 # input and output dirs:
   # if on laptop
@@ -97,7 +95,7 @@ read.file = function(var.str, asynch.file=T, align.to=NA, mask.it=F){
    files = list.files(data.dir)
    # find right file
    if (asynch.file){
-      file.name = files[grep(paste0(var.str, '_asynch_', as.character(neigh_rad), 'km'), files)]
+      file.name = files[grep(paste0(var.str, '_asynch_', as.character(neigh.rad), 'km'), files)]
       stopifnot(length(file.name) == 1)
       # NOTE: TAKING 3RD LYR, THE EUC DIST-BASED ASYNCHRONY VALUE
       data = brick(paste0(data.dir, '/', file.name))[[3]]
@@ -215,7 +213,7 @@ names(vars) = names
 # write stack to file
 raster::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars_",
                                  asynch.var, '_',
-                                 as.character(neigh_rad), "km.tif"), overwrite=T)
+                                 as.character(neigh.rad), "km.tif"), overwrite=T)
 
 # coerce to a data.frame
 df = as.data.frame(vars, xy=T)
@@ -240,8 +238,8 @@ df.strat = df.strat[, !colnames(df.strat) %in% c('strata')]
 # write data.frame to file (for reload in 'analyze' mode),
 write.csv(df, paste0(data.dir, "/asynch_model_all_vars_prepped_",
                      asynch.var, '_',
-                     as.character(neigh_rad), "km.csv"), row.names=F)
+                     as.character(neigh.rad), "km.csv"), row.names=F)
 write.csv(df.strat, paste0(data.dir, "/asynch_model_all_vars_prepped_strat_",
                            asynch.var, '_',
-                           as.character(neigh_rad), "km.csv"), row.names=F)
+                           as.character(neigh.rad), "km.csv"), row.names=F)
 

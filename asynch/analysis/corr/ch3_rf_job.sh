@@ -18,5 +18,13 @@
 ## Command(s) to run:
 
 module load gdal r r-packages r-spatial
-Rscript --vanilla /global/home/users/drewhart/seasonality/seasonal_asynchrony/analysis/asynch_corr/asynch_corr.r > ch3_rf.Rout 
+# run for both vars and for all neigh rads
+for var in NIRv SIF
+do
+   for neigh_rad in 50 100 150
+   do
+      echo "Running for var ${var}, neigh_rad ${neigh_rad}"
+      Rscript --vanilla /global/home/users/drewhart/seasonality/seasonal_asynchrony/analysis/asynch_corr/asynch_corr.r $var $neigh_rad > ch3_rf_${var}_${neigh_rad}.Rout 
+ done
+done
 

@@ -32,7 +32,7 @@ of timing?
 normalize=True
 delete_after_finished = True
 plot_time_series = True
-max_neigh_cell_dist = 2 # at our 0.05deg res, this is up to ~10km away...
+max_neigh_cell_dist = 2 # at our 0.05deg res, this is up to ~11km away...
 seed = 1
 np.random.seed(seed)
 
@@ -59,11 +59,11 @@ filter_end_date = None
 rs_datadir = '/media/deth/SLAB/diss/3-phn/GEE_outputs/final/'
 flux_datadir = '/media/deth/SLAB/diss/3-phn/other/flux/'
 other_datadir = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
-                 'seasonal_asynchony/data/')
+                 'seasonal_asynchrony/data/')
 
 # indicate the RS-based coefficients TIFF to validate
 rs_coeffs_tif = os.path.join(rs_datadir,
-                             '%s_coeffs_%s.tif' % (rs_var, masking_suffix))
+                             '%s_coeffs%s.tif' % (rs_var, masking_suffix))
 
 # variables that differ between main FLUXNET sites and CH4 sites
 # (indexed by the filename patterns that distinguish between the two types)
