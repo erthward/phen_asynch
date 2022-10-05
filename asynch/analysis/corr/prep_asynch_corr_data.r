@@ -37,19 +37,25 @@ library(rfUtilities)          # Jeff Evans R package for model selection
 # SET BEHAVIORAL PARAMS
 #######################
 
+# set neighborhood radius (in km) to use for asynch analysis
+all_rads = c(50, 100, 150)
+#neigh_rad = 50
+neigh_rad = 100
+#neigh_rad = 150
+# get the radii we aren't using, to filter out the corresponding files
+drop_rads = setdiff(all_rads, neigh_rad)
+
 # input and output dirs:
   # if on laptop
 if (strsplit(getwd(), '/')[[1]][2] == 'home'){
        on.laptop=T
-       data.dir = '/media/deth/SLAB/seasonality/other/rf_vars'
-       analysis.dir = '/media/deth/SLAB/seasonality/other/rf_vars'
+       data.dir = '/media/deth/SLAB/diss/3-phn/other/rf_vars'
+       analysis.dir = '/media/deth/SLAB/diss/3-phn/other/rf_vars'
   # if on Savio
 } else {
        on.laptop=F
-       data.dir = '/global/scratch/users/drewhart/seasonality/'
-       # data.dir = '/global/home/groups/fc_landgen/' # directory for Lauren 
-       # analysis.dir = '/global/home/users/ldimaggio/ondemand/' # directory for Lauren 
-       analysis.dir = '/global/scratch/users/drewhart/seasonality/'
+       data.dir = '/global/scratch/users/drewhart/seasonality/corr_data/'
+       analysis.dir = '/global/scratch/users/drewhart/seasonality/corr_data/'
 }
 
 # seed
@@ -89,7 +95,7 @@ read.file = function(var.str, asynch.file=T, align.to=NA, mask.it=F){
    files = list.files(data.dir)
    # find right file
    if (asynch.file){
-      file.name = files[grep(paste0(var.str, '_global_asynch'), files)]
+      file.name = files[grep(paste0(var.str, '_asynch_', as.character(neigh_rad), 'km'), files)]
       stopifnot(length(file.name) == 1)
       # NOTE: TAKING 3RD LYR, THE EUC DIST-BASED ASYNCHRONY VALUE
       data = brick(paste0(data.dir, '/', file.name))[[3]]

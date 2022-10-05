@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 from pprint import pprint
 import rasterstats as rs
+import rioxarray as rxr
 import geopandas as gpd
 import rasterio as rio
 import numpy as np
@@ -33,13 +34,17 @@ from shapely.geometry import Polygon, Point
 from scipy.spatial import ConvexHull
 from collections import Counter as C
 
+# set the neighborhood radii (in km)
+neigh_rads = [50, 100, 150]
+
 # get the variables' filepaths
-neigh_rads = [50_000, 100_000, 150_000]
 DATA_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
             'seasonal_asynchrony/data')
-COEFFS_FILE = os.path.join(DATA_DIR, 'global_seas_coeffs_NIRv.tif')
-ASYNCH_FILES = {rad: os.path.join(DATA_DIR,
-                'global_seas_asynch_NIRv%imrad.tif' % rad) for rad in neigh_rads}
+EXTERNAL_DATA_DIR = '/media/deth/SLAB/diss/3-phn/GEE_outputs/final/'
+COEFFS_FILE = os.path.join(EXTERNAL_DATA_DIR, 'NIRv_coeffs.tif')
+COEFFS_STRICT_FILE = os.path.join(EXTERNAL_DATA_DIR, 'NIRv_STRICT_coeffs.tif')
+ASYNCH_FILES = {rad: os.path.join(EXTERNAL_DATA_DIR,
+                'NIRv_STRICT_asynch_%ikm.tif' % rad) for rad in neigh_rads}
 BOUNDS_DIR = os.path.join(DATA_DIR, 'bounds')
 BIOCLIM_DIR = os.path.join(DATA_DIR, 'bioclim')
 BIOCLIM_INFILEPATHS = glob.glob(os.path.join(BIOCLIM_DIR,"wc2.1_2.5m_bio_*.tif"))
@@ -174,6 +179,7 @@ def gapfill_and_rewrite_raster(rast_filepath, fill_tol=5):
     # read in the raster file
     f = rio.open(rast_filepath)
     rast = f.read()
+    #rast = rxr.open_rasterio(rast_filepath, masked=True)
 
     # fill missing values in each band of the raster,
     # using rasterio.fill.fillnodata
@@ -206,6 +212,7 @@ def get_raster_info_points(rast_filepath, pts, return_format='vals',
     # read in the raster file
     f = rio.open(rast_filepath)
     rast = f.read()
+    #rast = rxr.open_rasterio(rast_filepath, masked=True)
 
     # fill missing values in each band of the raster,
     # using rasterio.fill.fillnodata, if requested

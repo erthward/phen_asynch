@@ -47,7 +47,7 @@ masking_suffix = '_STRICT' * (masking_mode == 'strict')
 
 
 rs_var_units = {'SIF': '$mW\ m^{-2}\ sr^{-1}\ nm^{-1}$',
-                       'NIRv': '$nmol\ m^{-2}\ s^{-1}'
+                       'NIRv': '$nmol\ m^{-2}\ s^{-1}$'
                }
 
 
@@ -56,13 +56,14 @@ filter_end_date = None
 
 
 # data directories
-rs_datadir = ('/media/deth/SLAB/seasonality/GEE_outputs/')
-flux_datadir = ('/media/deth/SLAB/seasonality/other/flux/')
+rs_datadir = '/media/deth/SLAB/diss/3-phn/GEE_outputs/final/'
+flux_datadir = '/media/deth/SLAB/diss/3-phn/other/flux/'
+other_datadir = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+                 'seasonal_asynchony/data/')
 
 # indicate the RS-based coefficients TIFF to validate
 rs_coeffs_tif = os.path.join(rs_datadir,
-                             rs_var + masking_suffix,
-                    'global_seas_coeffs_%s%s.tif' % (rs_var, masking_suffix))
+                             '%s_coeffs_%s.tif' % (rs_var, masking_suffix))
 
 # variables that differ between main FLUXNET sites and CH4 sites
 # (indexed by the filename patterns that distinguish between the two types)
@@ -540,8 +541,8 @@ results_df.to_csv('FLUXNET_validation_results.csv', index=False)
 # ANALYSIS
 
 # load countries data
-countries = gpd.read_file(('/home/deth/Desktop/CAL/research/projects/'
-                           'seasonality/results/maps/NewWorldFile_2020.shp'))
+countries = gpd.read_file(os.path.join(other_datadir,
+                                       'bounds/NewWorldFile_2020.shp'))
 countries = countries.to_crs(4326)
 
 
@@ -668,4 +669,3 @@ for var, cmap in zip(['lat', 'igbp_cat', 'whit'], ['summer_r', 'tab20', 'Pastel1
         ax.axvline(x=10, ymin=-1, ymax=2, linewidth=0.5, alpha=0.6,
                    color='black', linestyle=':')
     g.savefig('flux_val_results_R2_vs_celldist_tslen_%s.png' % var, dpi=600)
-

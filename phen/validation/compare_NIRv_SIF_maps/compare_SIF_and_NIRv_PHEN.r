@@ -1,6 +1,6 @@
 library(sf)
 library(raster)
-librbary(reshape)
+library(reshape)
 library(RColorBrewer)
 library(latex2exp)
 library(ggplot2)
@@ -9,14 +9,15 @@ library(ggplot2)
 pal = colorRampPalette(c('red', 'white', 'blue'))
 
 # data directory
-data.dir = "/home/deth/Desktop/CAL/research/projects/seasonality/results/maps/"
+data.dir = "/home/deth/Desktop/CAL/research/projects/seasonality/seasonal_asynchrony/data/"
+external.data.dir = "/media/deth/SLAB/diss/3-phn/GEE_outputs/final/"
 
 # load country boundaries
-world = st_read(paste0(data.dir, 'NewWorldFile_2020.shp'))
+world = st_read(paste0(data.dir, 'bounds/NewWorldFile_2020.shp'))
 
 # load both rasters
-sif = stack(paste0(data.dir, 'SIF_global_coeffs.tif'))
-nirv = stack(paste0(data.dir, 'NIRv_global_coeffs.tif'))
+sif = stack(paste0(external.data.dir, 'SIF_coeffs.tif'))
+nirv = stack(paste0(external.data.dir, 'NIRv_coeffs.tif'))
 
 # coerce to vectors of single values
 sif_vals = melt(as.data.frame(sif)[, 2:5])$value

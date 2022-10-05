@@ -79,8 +79,8 @@ alpha_vals = [0.25, 0.75, 1.25]
 min_n_clusts = 7
 
 # ANALYSIS PARAMS:
-# asynch neighborhood radius (in m)
-neigh_rad = 100_000
+# asynch neighborhood radius (in km)
+neigh_rad = 100
 
 # a number <= number of random points desired
 n_pts = 1000
@@ -300,7 +300,7 @@ if remaining_n_loop_vals > 0:
             clim_dist = phf.calc_pw_clim_dist_mat(pts, nodata_val=nodata_val)
 
             # get points' pairwise ts dists
-            seas_dist = phf.get_raster_info_points(phf.COEFFS_FILE, pts, 'ts_pdm',
+            seas_dist = phf.get_raster_info_points(phf.COEFFS_STRICT_FILE, pts, 'ts_pdm',
                                                    standardize=standardize_ts)
 
             assert clim_dist.shape[0] == seas_dist.shape[0] == pts.shape[0]
