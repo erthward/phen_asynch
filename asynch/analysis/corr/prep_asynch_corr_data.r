@@ -37,6 +37,10 @@ library(rfUtilities)          # Jeff Evans R package for model selection
 # SET BEHAVIORAL PARAMS
 #######################
 
+# variable for which to prep data
+asynch.var = 'NIRv'
+#asynch.var = 'SIF'
+
 # set neighborhood radius (in km) to use for asynch analysis
 all_rads = c(50, 100, 150)
 #neigh_rad = 50
@@ -119,11 +123,8 @@ read.file = function(var.str, asynch.file=T, align.to=NA, mask.it=F){
 # LOAD RESPONSE VARS
 ####################
 
-# SIF-based asynch
-#phn.asy = read.file('SIF', asynch.file=T)
-
-# NIRv-based asynch
-phn.asy = read.file('NIRv', T)
+# load phenological asynch data
+phn.asy = read.file(paste0(asynch.var, '_STRICT'), T)
 
 
 #################
@@ -212,8 +213,9 @@ names = c('phn.asy',
 names(vars) = names
 
 # write stack to file
-raster::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars_"
-                                 as.character(neigh_rad), ".tif"), overwrite=T)
+raster::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars_",
+                                 asynch.var, '_',
+                                 as.character(neigh_rad), "km.tif"), overwrite=T)
 
 # coerce to a data.frame
 df = as.data.frame(vars, xy=T)
@@ -237,7 +239,9 @@ df.strat = df.strat[, !colnames(df.strat) %in% c('strata')]
 
 # write data.frame to file (for reload in 'analyze' mode),
 write.csv(df, paste0(data.dir, "/asynch_model_all_vars_prepped_",
+                     asynch.var, '_',
                      as.character(neigh_rad), "km.csv"), row.names=F)
-write.csv(df.strat, paste0(data.dir, "/asynch_model_all_vars_prepped_strat_"
-                           as.character(neigh_rad), ".csv"), row.names=F)
+write.csv(df.strat, paste0(data.dir, "/asynch_model_all_vars_prepped_strat_",
+                           asynch.var, '_',
+                           as.character(neigh_rad), "km.csv"), row.names=F)
 
