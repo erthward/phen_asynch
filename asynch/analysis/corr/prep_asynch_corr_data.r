@@ -50,12 +50,10 @@ drop_rads = setdiff(all_rads, neigh_rad)
 if (strsplit(getwd(), '/')[[1]][2] == 'home'){
        on.laptop=T
        data.dir = '/media/deth/SLAB/diss/3-phn/other/rf_vars'
-       analysis.dir = '/media/deth/SLAB/diss/3-phn/other/rf_vars'
   # if on Savio
 } else {
        on.laptop=F
        data.dir = '/global/scratch/users/drewhart/seasonality/corr_data/'
-       analysis.dir = '/global/scratch/users/drewhart/seasonality/corr_data/'
 }
 
 # seed
@@ -214,9 +212,8 @@ names = c('phn.asy',
 names(vars) = names
 
 # write stack to file
-raster::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars.tif"), overwrite=T)
-#vars = rast(vars)
-#terra::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars.tif"), overwrite=T)
+raster::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars_"
+                                 as.character(neigh_rad), ".tif"), overwrite=T)
 
 # coerce to a data.frame
 df = as.data.frame(vars, xy=T)
@@ -239,6 +236,8 @@ df.strat = df %>%
 df.strat = df.strat[, !colnames(df.strat) %in% c('strata')]
 
 # write data.frame to file (for reload in 'analyze' mode),
-write.csv(df, paste0(data.dir, "/asynch_model_all_vars_prepped.csv"), row.names=F)
-write.csv(df.strat, paste0(data.dir, "/asynch_model_all_vars_prepped_strat.csv"), row.names=F)
+write.csv(df, paste0(data.dir, "/asynch_model_all_vars_prepped_",
+                     as.character(neigh_rad), "km.csv"), row.names=F)
+write.csv(df.strat, paste0(data.dir, "/asynch_model_all_vars_prepped_strat_"
+                           as.character(neigh_rad), ".csv"), row.names=F)
 

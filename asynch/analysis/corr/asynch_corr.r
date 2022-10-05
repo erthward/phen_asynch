@@ -61,19 +61,21 @@ library(rfUtilities)          # Jeff Evans R package for model selection
 # SET BEHAVIORAL PARAMS
 #######################
 
+# asynchrony neighborhood radius to use (in km)
+#neigh_rad = 50
+neigh_rad = 100
+#neigh_rad = 150
+
+
 # input and output dirs:
 # if on laptop
 if (strsplit(getwd(), '/')[[1]][2] == 'home'){
   on.laptop=T
-  data.dir = '/media/deth/SLAB/seasonality/other/rf_vars'
-  analysis.dir = '/media/deth/SLAB/seasonality/other/rf_vars'
+  data.dir = '/media/deth/SLAB/diss/3-phn/other/rf_vars'
   # if on Savio
 } else {
   on.laptop=F
-  data.dir = '/global/scratch/users/drewhart/seasonality/'
-  analysis.dir = '/global/scratch/users/drewhart/seasonality/'
-  # data.dir = '/global/home/groups/fc_landgen/' # directory for Lauren
-  # analysis.dir = '/global/home/users/ldimaggio/ondemand/' # directory for Lauren
+  data.dir = '/global/scratch/users/drewhart/seasonality/corr_data/'
 }
 
 # verbose?
@@ -265,11 +267,13 @@ names = c('phn.asy', 'tmp.min.asy',
           'riv.dis', 'eco.dis')
 
 # load rasters of prepped variables
-vars = brick(paste0(data.dir, "/asynch_model_all_vars.tif"))
+vars = brick(paste0(data.dir, "/asynch_model_all_vars_"
+                    as.character(neigh_rad), ".tif"))
 names(vars) = names
 
 # load data frame of prepped variables
-df_full_unproj = read.csv(paste0(data.dir, "/asynch_model_all_vars_prepped.csv"))
+df_full_unproj = read.csv(paste0(data.dir, "/asynch_model_all_vars_prepped_"
+                                 as.character(neigh_rad), ".csv"))
 
 # transform to projected coordinate system, then add cols for polynomial of coords
 # NOTE: NOT DIRECTLY CONVERTING TO SF BECAUSE EPSG SUPPORT BROKEN FOR SOME REASON...
@@ -382,7 +386,12 @@ if (F){
     print(head(hyper_grid_complete, 50))
     # save tuning results
     write.csv(as.data.frame(hyper_grid),
-              paste0(data.dir, 'tuning_results_subset_frac_', subset.frac, '.csv'),
+              paste0(data.dir,
+                     'tuning_results_subset_frac_',
+                     subset.frac,
+                     '_'
+                     as.character(neigh_rad),
+                     'km.csv'),
               row.names=F)
   }
 }
@@ -451,7 +460,7 @@ if (F){
   print(attStats(bor_res))
   
   
-  jpeg(paste0(data.dir, '/boruta_boxplot.jpg'),
+  jpeg(paste0(data.dir, '/boruta_boxplot_', as.character(neigh_rad), '.jpg'),
        width=900,
        height=400,
        units='px',
@@ -506,7 +515,8 @@ p_imp_shap = ggplot(shap_imp, aes(reorder(Variable, Importance), Importance)) +
 varimp_grob = grid.arrange(p_imp_shap, p_imp_permut, ncol=2)
 
 
-ggsave(varimp_grob, file=paste0(data.dir, 'var_import_plots_permut_and_SHAP.png'),
+ggsave(varimp_grob, file=paste0(data.dir, 'var_import_plots_permut_and_SHAP_'
+                                as.character(neigh_rad), 'km.png'),
        width=45, height=35, units='cm', dpi=600)
 
 
@@ -543,7 +553,7 @@ preds_plot = ggplot(tst) +
   theme_bw()
 preds_plot
 
-ggsave(preds_plot, file=paste0(data.dir, 'preds_plot.png'),
+ggsave(preds_plot, file=paste0(data.dir, 'preds_plot_', as.character(neigh_rad), 'km.png'),
        width=30, height=22, units='cm', dpi=500)
 
 
@@ -594,11 +604,12 @@ if (F){
   global_main_plots
   
   # save plots and raster
-  ggsave(global_main_plots, file=paste0(data.dir, 'global_grrf_main_plot.png'),
+  ggsave(global_main_plots, file=paste0(data.dir, 'global_grrf_main_plot_'
+                                        as.character(neigh_rad), 'km.png'),
          width=75, height=55, units='cm', dpi=500)
   
   writeRaster(dfrast,
-              paste0(data.dir, 'global_rf_map_results.tif'),
+              paste0(data.dir, 'global_rf_map_results_', as.character(neigh_rad), 'km.tif'),
               'GTiff',
               overwrite = T
   )
@@ -618,9 +629,11 @@ if (F){
 # map SHAP values
 cat('\n\n\nNOW CALCULATING FULL SHAPLEY VALUES...\n\n\n')
 shap_full = fastshap::explain(rf_final, X = df_full[, 2:ncol(df_full)], pred_wrapper = pfun, nsim = 10)
-write.csv(shap_full, paste0(data.dir, 'rf_SHAP_vals.csv'), row.names=F)
+write.csv(shap_full, paste0(data.dir, 'rf_SHAP_vals_',
+                            as.character(neigh_rad), 'km.csv'), row.names=F)
 shap_full_w_coords = cbind(df_full_unproj[, c('x', 'y')], shap_full)
-write.csv(shap_full_w_coords, paste0(data.dir, 'rf_SHAP_vals_w_coords.csv'), row.names=F)
+write.csv(shap_full_w_coords, paste0(data.dir, 'rf_SHAP_vals_w_coords_'
+                                     as.character(neigh_rad), 'km.csv'), row.names=F)
 #df_shap_full = cbind(df_full_unproj[,c('x', 'y')], shap_full)
 #df_shap_full_rast <- rasterFromXYZ(df_shap_full)
 #names(df_shap_full_rast) = colnames(df_shap_full)[3:ncol(df_shap_full)]
@@ -628,7 +641,8 @@ write.csv(shap_full_w_coords, paste0(data.dir, 'rf_SHAP_vals_w_coords.csv'), row
 # save SHAP rasters
 #for (lyr in names(df_shap_full_rast)){
 #  writeRaster(df_shap_full_rast[[lyr]],
-#              paste0(data.dir, 'rf_SHAP_vals_', lyr, '.tif'),
+#              paste0(data.dir, 'rf_SHAP_vals_', lyr,
+#                     '_', as.character(neigh_rad), 'km.tif'),
 #              'GTiff',
 #              overwrite = T
 #  )
