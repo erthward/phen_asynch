@@ -98,7 +98,7 @@ read.file = function(var.str, asynch.file=T, align.to=NA, mask.it=F){
       file.name = files[grep(paste0(var.str, '_asynch_', as.character(neigh.rad), 'km'), files)]
       stopifnot(length(file.name) == 1)
       # NOTE: TAKING 3RD LYR, THE EUC DIST-BASED ASYNCHRONY VALUE
-      data = brick(paste0(data.dir, '/', file.name))[[3]]
+      data = brick(paste0(data.dir, '/', file.name))[[1]]
    } else {
       file.name = files[grep(var.str, files)]
       stopifnot(length(file.name) == 1)
