@@ -843,7 +843,7 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
     if num_neighs ≥ MIN_NUM_NEIGHS
         # get the slope of the overall regression of Euclidean ts dists on geo dist
         # NOTE: just setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
-        res_ts = run_linear_regression(geo_dists, ts_dists, fit_intercept=true)
+        res_ts = run_linear_regression(geo_dists, ts_dists, fit_intercept=false)
         # extract both results into vars
         asynch_ts = res_ts["slope"]
         R2_ts = res_ts["R2"]

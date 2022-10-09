@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=asy50
+#SBATCH --job-name=asy100
 #
 # Account:
 #SBATCH --account=fc_landgen
@@ -22,8 +22,8 @@ stdbuf -i0 -o0 -e0 command
 module load python julia/1.4.1
 
 # loop over neigh_rads and vars, calculating asynch maps for each
-for neigh_rad in 50
-#for neigh_rad in 100
+#for neigh_rad in 50
+for neigh_rad in 100
 #for neigh_rad in 150
 do
    for var in NIRv NIRv_STRICT SIF SIF_STRICT tmmn pr def cloud 
