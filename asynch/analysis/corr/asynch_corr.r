@@ -516,6 +516,9 @@ shap_imp <- data.frame(
   Variable = names(shap),
   Importance = apply(shap, MARGIN = 2, FUN = function(x) sum(abs(x)))
 )
+write.csv(shap_imp, paste0(data.dir, 'rf_SHAP_importance_',
+                            asynch.var, '_',
+                            as.character(neigh.rad), 'km.csv'), row.names=F)
 p_imp_shap = ggplot(shap_imp, aes(reorder(Variable, Importance), Importance)) +
   geom_col() +
   coord_flip() +
