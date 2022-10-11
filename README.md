@@ -73,7 +73,7 @@ Other directories include:
 1. Run `phen/calculation/GEE/other_datasets/calc_dist_to_ecotone.js` to produce the ecotone-distance map that will be used as a covariate in the phenological asynchrony predictive model.
 2. Run `phen/calculation/GEE/other_datasets/calc_dist_to_water.js` to produce the river-distance map that will be used as a covariate in the phenological asynchrony predictive model.
 3. Download SRTM-based 50 km median vector ruggedness metric (file 'vrm_50KMmd_SRTM/tif') from the [EarthEnv website](http://www.earthenv.org/topography).
-4. Download the CHELSA bio6 (daily min temperature of the coldest month) and bio15 (precipitation seasonality) data from the [CHELSA website](URL: https://chelsa-climate.org/bioclim/) using wget on the files in ***FILENAME HERE***!
+4. Download the CHELSA bio6 (daily min temperature of the coldest month) and bio15 (precipitation seasonality) data from the [CHELSA website](URL: https://chelsa-climate.org/bioclim/) using wget on the files in `asynch/analysis/corr/envidatS3paths.txt`!
 5. Run `asynch/analysis/corr/calc_circular_moving_window_chelsa_rasters.r` to calculate the neighborhood mean and standard deviation of the CHELSA bio6 layer and the neighborhood standard deviation of the bio15 layer within 10-cell (i.e., ~55km at the equator) radii.
 
 
@@ -87,7 +87,6 @@ Other directories include:
 
 1. Manually download all subset data products (using DownThemAll!) from the Fluxnet network's [download page](https://fluxnet.org/data/download-data/).
 2. Call `phen/validation/flux_tower_seasonality_validation/validate_at_all_fluxnet_sites.py` to validate the fitted NIRv seasonality against GPP seasonality at all usable Fluxnet sites (producing **Fig. 1**).
-3. 
 
 
 ## compare NIRv-based and SIF-based phenological asynchrony maps:
@@ -102,10 +101,19 @@ Other directories include:
 
 ## produce asynchrony map and conceptual figure:
 
+1. Run `asynch/viz/FIG3_S3_S4_make_conceptual_fig_and_asynch_maps.py` to create the asynch map figures for the main paper (**Fig. 3**) and the supplements (**Figs. S3, S4**).
+
 
 ## run phenological asynchrony modeling workflow:
+
+1. On Savio, run `asynch/analysis/corr/prep_asynch_corr_data.r NIRv 100` to prep data for random forest analysis of the main phenological asynchrony dataset (i.e., NIRv-based phenological asynchrony using a 100 km radial neighborhood).
+2. In an RStudio session on Savio, run `asynch/analysis/corr/phen_asynch_corr.r` with var set to 'NIRv' and neigh.rad set to '100' (i.e., uncommenting lines at top), to execute the random forest analysis on the main phenological asynchrony dataset (i.e., NIRv-based phenological asynchrony using a 100 km radial neighborhood). Be sure the execute the code blocks captured by `if (F){ ... }`, to run hyperparameter-tuning, Boruta feature selection, and other interactive analyses.
+3. Manually inspect the results of the interactive analysis. Use the results of that to set the hyperparameters (in the code block starting at line 410 in `asynch/analysis/corr/phen_asynch_corr.r`) and the feature selection (code block starting at line 486 in the same file) for the main global RF model that will be used for both datasets (NIRv and SIF) and all 3 neighborhood radii (50 km, 100 km, 150 km).
+4. Run `asynch/analysis/corr/ch3_rf_job.sh` to loop over vars (NIRv, SIF) and neighborhood radii, each time prepping data layers, running the random forest analysis, and generating identical results.
+5. Run ***WHAT SCRIPT??*** to produce final table and figures summarizing random forest results.
 
 
 ## run climate-distance analysis:
 
+1. Run `asynch/analysis/clim_dist/FIG5_compare_phen_clim_geog_dist.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce **Fig. 5**.
 

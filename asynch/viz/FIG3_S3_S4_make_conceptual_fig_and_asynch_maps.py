@@ -2,8 +2,11 @@ import pandas as pd
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import geopandas as gpd
+import rioxarray as rxr
 from matplotlib.patches import Polygon as mplPolygon
 from collections import Counter as C
+import palettable
 from palettable.cartocolors.sequential import PinkYl_7
 from palettable.scientific.sequential import Acton_20_r
 from shapely.geometry import Polygon as shapelyPolygon
@@ -13,6 +16,12 @@ import statsmodels.api as sm
 import sys
 import re
 import os
+
+
+# TODO:
+    #1 get rid of 'flat/steep'
+    #2 add subnational bounds
+    #3 add horizontal colormap below in main fig, and vertical colormaps next to maps in supps
 
 
 # plot params
@@ -27,7 +36,7 @@ scat_label_fontsize = 10
 scat_label_fontcolor = 'black'
 scat_label_linewidth = 3
 fig_width = 10.5
-fig_height = 5.6
+fig_height = 12
 dpi = 400
 n_ticklabels = 5
 subplots_adj_left=0.06
@@ -75,6 +84,14 @@ mpd_h = 1.4
 orientation='landscape'
 savefig=True
 
+
+# set data dirs
+asynch_data_dir = '/media/deth/SLAB/diss/3-phn/GEE_outputs/final'
+countries_data_dir = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+                      'seasonal_asynchrony/data/bounds/')
+
+
+# define functions
 def get_seasonal_curve(betas, plot=True, color='gray',
                        ax=None, linestyle='-', linewidth=1, alpha=0.5,
                        min_seas_dist=None, max_seas_dist=None):
@@ -131,7 +148,7 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
 
     if plot_it:
         fig = plt.figure(dpi=dpi, figsize=(fig_width, fig_height))
-        gs = fig.add_gridspec(nrows=2, ncols=4, width_ratios = [1.1, 0.2, 1, 1])
+        gs = fig.add_gridspec(nrows=4, ncols=4, width_ratios = [1.1, 0.2, 1, 1])
         top_axs = [fig.add_subplot(gs[0,i]) for i in [0,2,3]]
         bot_axs = [fig.add_subplot(gs[1,i]) for i in [0,2,3]]
     else:
@@ -327,18 +344,114 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
                         top=subplots_adj_top,
                         wspace=subplots_adj_wspace,
                         hspace=subplots_adj_hspace)
-        return(fig, mod)
+        return(fig, gs, mod)
+
+
+def map_asynch(fig, gs=None, main_fig=True, var='NIRv'):
+
+    assert var in ['NIRv', 'SIF']
+
+    countries = gpd.read_file(os.path.join(countries_data_dir,
+                                           'NewWorldFile_2020.shp'))
+
+    files = [f for f in os.listdir(asynch_data_dir) if
+                                        re.search('%s_STRICT_asynch' % var, f)]
+
+    # cut down to just one file, if this is for the main fig
+    if main_fig:
+        files = [f for f in files if re.search('asynch_100km', f)]
+    # otherwise arrange in top-down order of increasing neighborhood radius
+    else:
+        reordered_files = []
+        for neigh_rad in [50, 100, 150]:
+            neigh_rad_file = [f for f in files if re.search('asynch_%ikm' %
+                                                            neigh_rad, f)]
+            assert len(neigh_rad_file) == 1
+            reordered_files.append(neigh_rad_file[0])
+        files = reordered_files
+
+    for ax_ct, file in enumerate(files):
+        # get the neighborhood radius
+        neigh_rad = int(re.search('(?<=asynch_)\d{2,3}(?=km\.tif)',
+                                  file).group())
+
+        # either grab the lower half of the main fig
+        if main_fig:
+            #ax = fig.add_subplot(gs[3:, :])
+            ax = fig.add_subplot(2,1,2)
+        # or grab the next row of the supp fig
+        else:
+            ax = fig.add_subplot(3,1,ax_ct+1)
+
+        # read in the raster data and prepare it
+        rast = rxr.open_rasterio(os.path.join(asynch_data_dir, file), masked=True)[0]
+        rast = rast.rio.write_crs(4326).rio.reproject(8857)
+        cmap = mpl.cm.plasma.copy()
+        #cmap.set_bad('#717171')
+        try:
+            rast.plot.imshow(ax=ax,
+                             zorder=0,
+                             cmap=cmap,
+                             vmin=np.nanpercentile(rast, 1),
+                             vmax=np.nanpercentile(rast, 99),
+                             add_colorbar=True,
+                            )
+        # NOTE: skip over the dumb rioxarray error
+        # that keeps occurring when I plot a single layer
+        except AttributeError as e:
+            print('\n\nAttributeError thrown:\n\t%s\n\n' % e)
+        countries.to_crs(8857).plot(ax=ax,
+                                    color='none',
+                                    edgecolor='black',
+                                    linewidth=1,
+                                    alpha=0.8,
+                                    zorder=1,
+                                   )
+        # format axes
+        ax.set_xlim(rast.rio.bounds()[0::2])
+        ax.set_ylim(rast.rio.bounds()[1::2])
+        # NOTE: chopping off western edge because the equal earth projection
+        #       makes NZ appear twice
+        ax.set_xlim(0.95 * ax.get_xlim()[0], ax.get_xlim()[1])
+        ax.set_xlabel('')
+        ax.set_ylabel('')
+        ax.set_xticks(())
+        ax.set_yticks(())
+        # add axis title, if not main figure
+        if main_fig:
+            ax.set_title('')
+        else:
+            ax.set_title('%i km neighborhood' % neigh_rad,
+                         fontdict={'fontsize': 42})
+
+        del rast
 
 
 if __name__ == '__main__':
     plt.close('all')
+    # make the conceptual figure
     min_seas_dist, max_seas_dist = plot_all(betas, rad=rad, dims=dims,
                                             plot_it=False)
-    fig, mod = plot_all(betas, rad=rad, dims=dims, min_seas_dist=min_seas_dist,
+    fig, gs, mod = plot_all(betas, rad=rad, dims=dims, min_seas_dist=min_seas_dist,
                    max_seas_dist=max_seas_dist, plot_it=True)
-    if savefig:
-        fig.savefig('seasonal_asynch_conceptual_figure.png',
-                    dpi=dpi, orientation=orientation)
-    else:
-        fig.show()
+
+    # add the asynch map below
+    map_asynch(fig, gs=gs, main_fig=True, var='NIRv')
+
+    # add labels for parts A. and B.
+    fig.axes[0].text(-6.1, -5, 'A.', size=24, weight='bold')
+    fig.axes[-1].text(1.035*fig.axes[-1].get_xlim()[0],
+                      1.065*fig.axes[-1].get_ylim()[1],
+                      'B.', size=24, weight='bold')
+
+    # adjust subplots and save
+    fig.subplots_adjust(bottom=0.02, top=0.92, left=0.02, right=0.98)
+    fig.savefig('FIG_3_asynch_concept_and_map.png', dpi=700)
+
+    # make both vars' supp figs (each one stacking all 3 neighborhood radii)
+    for n, var in enumerate(['NIRv', 'SIF']):
+        fig_supp = plt.figure(figsize=(16,24))
+        map_asynch(fig_supp, gs=None, main_fig=False, var=var)
+        fig_supp.subplots_adjust(bottom=0.02, top=0.95, left=0.02, right=0.98)
+        fig_supp.savefig('FIG_S%i_%s_asynch_maps.png' % (3+n, var), dpi=700)
 

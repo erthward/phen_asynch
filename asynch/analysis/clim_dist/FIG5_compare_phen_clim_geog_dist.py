@@ -4,8 +4,6 @@
 """
 # TODO:
 
-    - include Whittaker plot?
-
     - attend remaining TODO's
 
     - need to record places where alpha is increased, or get rid of that, or is
@@ -52,6 +50,7 @@ from scipy.spatial import distance
 from collections import Counter as C
 import itertools
 import warnings
+import h3
 
 # local modules
 from MMRR import MMRR
@@ -92,6 +91,12 @@ standardize_ts = True
 MMRR_nperm=499
 
 
+# plot formatting params
+axlabel_fontdict = {'fontsize': 25}
+ticklabel_size = 16
+partlabel_size = 36
+
+
 
 #####################################
 # PART I: CLUSTER HIGH-ASYNCH REGIONS
@@ -122,15 +127,10 @@ assert len(tmp_file) == 1
 tmp_file = tmp_file[0]
 tmp = rxr.open_rasterio(tmp_file, masked=True)[0]
 
-# determine if in interactive mode,
-# then set accordingly the parameterizations to loop over
-interactive = hasattr(sys, 'ps1')
-if interactive:
-    loop_vals = itertools.product(dbscan_eps_vals,
-                                  dbscan_minsamp_vals,
-                                  alpha_vals)
-else:
-    loop_vals = [[float(arg.strip()) for arg in sys.argv[1:]]]
+# set the parameterizations to loop over
+loop_vals = itertools.product(dbscan_eps_vals,
+                              dbscan_minsamp_vals,
+                              alpha_vals)
 
 # randomize order of the loop vals
 # (so that I can rerun to try different parameterizations
@@ -429,6 +429,9 @@ else:
 # PART III: ANALYSIS
 ####################
 
+fig = plt.figure(figsize=(26,7))
+gs = fig.add_gridspec(nrows=100, ncols=300)
+
 # run single, overarching OLS model of clim_dist coeff as a function of mean
 # cluster latitude
 x = all_loop_MMRR_res_gdf['mean_lat']
@@ -451,60 +454,185 @@ for _ in range(1000):
     null_fx.append(null_fx_size)
 
 # display empirical p-value (i.e., percent of null results >= real result)
-emp_pval = '\n\nEMPIRICAL P-VALUE: %0.3f\n' % np.mean(np.array(null_fx) >= fx_size)
-print(emp_pval)
+emp_pval = np.mean(np.array(null_fx) >= fx_size)
+emp_pval_str = '\n\nEMPIRICAL P-VALUE: %0.3f\n' % emp_pval
+print(emp_pval_str)
+
+
+#........................
+# PART C: empirical p-val
+#........................
 
 # plot clim_dist effect size vs. empirical null dist
-fig_null = plt.figure(figsize=(6,6))
-ax = fig_null.add_subplot(111)
-ax.set_xlabel('effect size of mean cluster latitude on MMRR clim_dist coeff')
-ax.set_ylabel('freq')
-plt.hist(null_fx, bins=100, alpha=0.7)
+ax = fig.add_subplot(gs[80:, 215:])
+ax.hist(null_fx, bins=100, alpha=0.7)
 ax.axvline(fx_size, *ax.get_ylim(), color='red', linewidth=2)
-ax.set_title(emp_pval)
-fig_null.savefig('mean_cluster_lat_effect_size_null_dist_%ikmrad.png' % neigh_rad, dpi=700)
+ax.set_xlabel(('$\\Delta \\beta_{clim\\_dist}\\ /\\ '
+               '\\Delta\\overline{x}_{lat}$'),
+              fontdict=axlabel_fontdict)
+ax.set_ylabel('freq', fontdict=axlabel_fontdict)
+xticks = np.linspace(ax.get_xticks()[0], ax.get_xticks()[-1], 5) 
+ax.set_xticks(xticks, ['%0.3f' % t for t in xticks])
+ax.set_yticks(())
+ax.set_ylabel('')
+ax.tick_params(labelsize=ticklabel_size)
+ax.text(0.6*ax.get_xlim()[1],
+        0.8*ax.get_ylim()[1],
+        '%0.3f' % fx_size,
+        color='red',
+        size=12,
+       )
+ax.text(0.6*ax.get_xlim()[1],
+        0.6*ax.get_ylim()[1],
+        '$(P=%0.3f)$' % emp_pval,
+        color='red',
+        size=12,
+       )
+
+
+# add label for part C
+ax.text(ax.get_xlim()[0] - (0.2*(ax.get_xlim()[1]-ax.get_xlim()[0])),
+        1.05*ax.get_ylim()[1],
+        'C.', size=partlabel_size, weight='bold')
+
+
+#.....................
+# PART B: scatter plot
+#.....................
 
 # plot clim_dist effect size vs |mean lat|
-fig_scat = plt.figure(figsize=(6,12))
-ylabels = {'clim_dist': ('effect size of mean cluster clim_dist\n'
-                         'on mean cluster seas_dist'),
-           'clim_dist(p)': 'p-value of clim_dist coefficient in MMRR',
-           'mean_clim_dist': 'cluster mean climate distance',
-          }
-for i, y_col in enumerate(['clim_dist', 'clim_dist(p)', 'mean_clim_dist']):
-    ax = fig_scat.add_subplot(311+i)
-    if i == 2:
-        ax.set_xlabel('|mean cluster latitude|')
+ylabel = 'effect size of mean cluster clim_dist\non mean cluster seas_dist'
+ax = fig.add_subplot(gs[:60, 215:])
+ax.scatter(np.abs(all_loop_MMRR_res_gdf['mean_lat']),
+            all_loop_MMRR_res_gdf['clim_dist'],
+            c='black', s=35)
+sns.regplot(x=np.abs(all_loop_MMRR_res_gdf['mean_lat']),
+            y=all_loop_MMRR_res_gdf['clim_dist'],
+            scatter=False,
+            ax=ax,
+           )
+ax.set_xlabel('$|\\overline{x}_{lat}|$', fontdict=axlabel_fontdict)
+ax.set_ylabel('$\\beta_{clim\\_dist}$', fontdict=axlabel_fontdict)
+ax.tick_params(labelsize=ticklabel_size)
+
+# add label for part B
+ax.text(ax.get_xlim()[0] - (0.2*(ax.get_xlim()[1]-ax.get_xlim()[0])),
+        1.05*ax.get_ylim()[1],
+        'B.', size=partlabel_size, weight='bold')
+
+
+
+#........................
+# PART A: summary hex map
+#........................
+
+# NOTE: based on code taken from:
+    # https://towardsdatascience.com/uber-h3-for-data-analysis-with-python-1e54acdcc908
+ax = fig.add_subplot(gs[:, :190])
+
+# add bottom axes for a colorbar
+divider = make_axes_locatable(ax)
+bcax = divider.append_axes('bottom', size='7%', pad=0.2)
+
+# make dataframe to hold h3-converted data
+h3_df = pd.DataFrame([], columns=['row_id', 'h3_id',
+                                  'h3_geo_boundary', 'h3_centroid'])
+
+# loop over results rows and convert to H3 hexes
+for i, row in all_loop_MMRR_res_gdf.iterrows():
+    p = row['geometry']
+    if isinstance(p, MultiPolygon):
+        ps = list(p)
     else:
-        ax.set_xlabel('')
-    ax.set_ylabel(ylabels[y_col])
-    ax.scatter(np.abs(all_loop_MMRR_res_gdf['mean_lat']),
-                all_loop_MMRR_res_gdf[y_col],
-                c='black', s=35)
-    sns.regplot(x=np.abs(all_loop_MMRR_res_gdf['mean_lat']),
-                y=all_loop_MMRR_res_gdf[y_col],
-                scatter=False,
-                ax=ax,
-               )
+        ps = [p]
+    for poly in ps:
+        poly_json = gpd.GeoSeries([poly]).__geo_interface__
+        poly_json = poly_json['features'][0]['geometry']
+        h3_hexes = h3.polyfill_geojson(poly_json, 3)
+        for h3_hex in h3_hexes:
+            h3_geo_boundary = Polygon(
+                h3.h3_to_geo_boundary(h3_hex,geo_json=True))
+            h3_centroid = h3.h3_to_geo(h3_hex)
+            h3_df.loc[len(h3_df)] = [i, h3_hex, h3_geo_boundary, h3_centroid]
 
-fig_scat.savefig('clim_dist_vs_lat_scat_%ikmrad.png' % neigh_rad, dpi=700)
+# coerce to GeoDataFrame
+geoms = [Polygon(row['h3_geo_boundary']) for i,
+                                            row in h3_df.iterrows()]
+h3_df['geometry'] = geoms
+h3_gdf = gpd.GeoDataFrame(h3_df, geometry='geometry', crs=4326)
 
-fig_map = plt.figure(figsize=(20,10))
-ax = fig_map.add_subplot(111)
-subnational.to_crs(4326).plot(color='none', edgecolor='black', zorder=0, ax=ax,
-                             alpha=0.6)
-countries.to_crs(4326).plot(color='none', edgecolor='black', zorder=1, ax=ax)
-gdf_for_plot = deepcopy(all_loop_MMRR_res_gdf)
-gdf_for_plot.geometry = gdf_for_plot.boundary
-gdf_for_plot.plot(column='clim_dist',
-                  alpha=0.8,
-                  #s=50,
-                  #edgecolor='black',
-                  linewidth=2,
-                  zorder=2,
-                  cmap='plasma',
-                  ax=ax
-                 )
-fig_map.savefig('asynch_clusts_map_%ikmrad.png' % neigh_rad, dpi=700)
+# deduplicate hexes
+h3_gdf = h3_gdf.drop_duplicates(subset='geometry')
 
-plt.show()
+# summarize results within hexes
+mean_clim_dist_vals = []
+for i, row in h3_gdf.iterrows():
+    mean_clim_dist_val = float(all_loop_MMRR_res_gdf[
+        all_loop_MMRR_res_gdf.intersects(row['geometry'])].mean()['clim_dist'])
+    mean_clim_dist_vals.append(mean_clim_dist_val)
+assert len(mean_clim_dist_vals) == len(h3_gdf)
+h3_gdf['clim_dist_mean'] = mean_clim_dist_vals
+
+# transform to equal-area projection and plot
+subnational.plot(color='none',
+                 edgecolor='black',
+                 zorder=0,
+                 ax=ax,
+                 alpha=0.6,
+                )
+countries.plot(color='none',
+                            edgecolor='black',
+                            linewidth=1,
+                            zorder=1,
+                            ax=ax,
+                            )
+hex_subplot = h3_gdf.to_crs(8857).plot('clim_dist_mean',
+                                       cmap='magma',
+                                       alpha=0.9,
+                                       zorder=2,
+                                       ax=ax,
+                                      )
+ax.set_xlabel('')
+ax.set_ylabel('')
+ax.set_xticks(())
+ax.set_yticks(())
+ax.set_title('')
+
+# clip off longitudinally and latitudinally
+ax.set_xlim(0.85 * ax.get_xlim()[0], 0.87*ax.get_xlim()[1])
+
+ax.set_ylim(1.11*np.min(h3_gdf.to_crs(8857).geometry.centroid.y),
+            1.175*np.max(h3_gdf.to_crs(8857).geometry.centroid.y))
+
+# add label for part A
+ax.text(1.08*ax.get_xlim()[0],
+        1.065*ax.get_ylim()[1],
+        'A.', size=partlabel_size, weight='bold')
+
+# add the colorbar
+# NOTE: need to create a custom ScalarMappable to feed into the colormap call
+sm = plt.cm.ScalarMappable(cmap='magma',
+                        norm=plt.Normalize(vmin=np.min(h3_gdf.clim_dist_mean),
+                                           vmax=np.max(h3_gdf.clim_dist_mean)))
+plt.colorbar(sm, cax=bcax, orientation='horizontal')
+xticks = np.linspace(np.min(h3_gdf.clim_dist_mean),
+                     np.max(h3_gdf.clim_dist_mean), 5)
+bcax.set_xlabel('$average\\ \\beta_{clim\\_dist}$',
+                fontdict=axlabel_fontdict)
+bcax.set_xticks(xticks, ['%0.2f' % t for t in xticks], size=ticklabel_size)
+bcax.set_ylabel('')
+bcax.set_yticks(())
+
+
+
+# adjust subplots and write to disk
+fig.subplots_adjust(top=0.92,
+                    bottom=0.12,
+                    right=0.98,
+                    left=0.03,
+                    wspace=0.5,
+                    hspace=0.3,
+                   )
+
+fig.savefig('FIG5_seas_dist_vs_clim_dist.png', dpi=700)
+

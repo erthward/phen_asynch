@@ -13,8 +13,11 @@ countries_data_dir = "/home/deth/Desktop/CAL/research/projects/seasonality/seaso
 # load country boundaries
 countries = gpd.read_file(os.path.join(countries_data_dir, 'NewWorldFile_2020.shp'))
 
+
 # loop over neighborhood radii (in km)
-for neigh_rad in ['50', '100', '150']:
+fig = plt.figure(figsize=(34,30))
+gs = fig.add_gridspec(nrows=3, ncols=4, width_ratios=[1,1,0.1,1])
+for neigh_rad_i, neigh_rad in enumerate(['50', '100', '150']):
 
     print('\n\nRUNNING COMPARISON FOR %s KM-RADIUS NEIGHBORHOOD...\n\n' % neigh_rad)
 
@@ -35,8 +38,7 @@ for neigh_rad in ['50', '100', '150']:
     max_abs_val = max(np.abs((np.nanpercentile(diff_scale, 0.01),
                               np.nanpercentile(diff_scale, 99.99))))
 
-    fig = plt.figure(figsize=(20,10))
-    ax = fig.add_subplot(111)
+    ax = fig.add_subplot(gs[neigh_rad_i, :2])
     countries.to_crs(diff_scale.rio.crs).plot(ax=ax,
                                               color='none',
                                               edgecolor='black',
@@ -46,24 +48,24 @@ for neigh_rad in ['50', '100', '150']:
                            vmin=-max_abs_val,
                            vmax=max_abs_val,
                            zorder=0)
+    # increase colorbar ticklabel size and label the colorbar
+    fig.axes[-1].tick_params(labelsize=20)
+    fig.axes[-1].set_ylabel('$NIR_{V\ stand}-SIF_{stand}$',
+                            fontdict={'fontsize': 30})
+
     ax.set_xlabel('')
     ax.set_ylabel('')
     ax.set_xticks(())
     ax.set_yticks(())
-    ax.set_title('$NIR_{V,scaled}-SIF_{scaled}$, neigh_rad = %s km' % neigh_rad,
-                 fontdict={'fontsize': 16})
-    fig.subplots_adjust(top=0.95, bottom=0.02, left=0.02, right=1.1)
-
-    fig.savefig('scaled_NIRv-scaled_SIF_map_%skm.png' % neigh_rad, dpi=700)
-
+    ax.set_title('neigh_rad = %s km' % neigh_rad,
+                 fontdict={'fontsize': 45})
 
     # scatter samples against one another and fit SLR
-    fig = plt.figure(figsize=(10,10))
-    ax = fig.add_subplot(111)
+    ax = fig.add_subplot(gs[neigh_rad_i, 3])
     ax.scatter(sif.values.ravel(),
                nirv.values.ravel(),
                s=0.1,
-               c='gray',
+               c='black',
                alpha=0.01,
               )
 
@@ -87,13 +89,16 @@ for neigh_rad in ['50', '100', '150']:
             get_text_pos(ax.get_ylim(), 0.1),
             '$R^{2}=%0.2f$' % lm.rsquared,
             color='red',
-            size=20,
+            size=26,
            )
-    ax.set_xlabel('$SIF$ asynchrony', fontdict={'fontsize': 16})
-    ax.set_ylabel('$NIR_{V}$ asynchrony', fontdict={'fontsize': 16})
-    ax.set_title('$NIR_{V,scaled}\ vs.\ SIF_{scaled}$, neigh_rad = %s km' % neigh_rad,
-                 fontdict={'fontsize': 20})
-    fig.subplots_adjust(top=0.95, bottom=0.06, left=0.12, right=0.98)
+    ax.set_xlabel('$SIF$ asynchrony', fontdict={'fontsize': 30})
+    ax.set_ylabel('$NIR_{V}$ asynchrony', fontdict={'fontsize': 30})
+    ax.tick_params(labelsize=20, rotation=45)
 
-    fig.savefig('scaled_NIRv_vs_scaled_SIF_scat_%skm.png' % neigh_rad, dpi=700)
-
+fig.subplots_adjust(top=0.95,
+                    bottom=0.08,
+                    left=0.02,
+                    right=0.96,
+                    hspace=0.2,
+                    wspace=0)
+fig.savefig('scaled_NIRv_vs_scaled_SIF.png', dpi=700)

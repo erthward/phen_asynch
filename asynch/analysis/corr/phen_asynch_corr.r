@@ -65,10 +65,12 @@ args = commandArgs(trailingOnly=T)
 
 # phen-asynch var to use
 asynch.var = args[1]
+#asynch.var = 'NIRv'
 cat('\nVAR: ', asynch.var, '\n')
 
 # asynchrony neighborhood radius to use (in km)
 neigh.rad = args[2]
+#neigh.rad = '100'
 cat('\nNEIGH RAD: ', neigh.rad, '\n')
 
 
@@ -405,11 +407,11 @@ if (F){
   }
 }
 
-# set global RF params based on output above
+# set global RF hyperparams based on output above
 ntree = 300
 replace = F
 rf.sample.fraction = 0.8
-mtry = 5
+mtry = 3
 min.node.size = 1
 
 # and choose data subset based on output above

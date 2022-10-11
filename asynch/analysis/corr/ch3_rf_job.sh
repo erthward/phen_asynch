@@ -25,7 +25,7 @@ do
    do
       echo "Running for var ${var}, neigh_rad ${neigh_rad}"
       Rscript --vanilla /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/analysis/corr/prep_asynch_corr_data.r $var $neigh_rad > ch3_rf_data_prep_${var}_${neigh_rad}.Rout 
-      Rscript --vanilla /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/analysis/corr/asynch_corr.r $var $neigh_rad > ch3_rf_${var}_${neigh_rad}.Rout 
+      Rscript --vanilla /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/analysis/corr/phen_asynch_corr.r $var $neigh_rad > ch3_rf_${var}_${neigh_rad}.Rout 
  done
 done
 
