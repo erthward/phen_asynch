@@ -532,7 +532,7 @@ ax = fig.add_subplot(gs[:, :190])
 
 # add bottom axes for a colorbar
 divider = make_axes_locatable(ax)
-bcax = divider.append_axes('bottom', size='7%', pad=0.2)
+cax = divider.append_axes('bottom', size='7%', pad=0.2)
 
 # make dataframe to hold h3-converted data
 h3_df = pd.DataFrame([], columns=['row_id', 'h3_id',
@@ -614,14 +614,14 @@ ax.text(1.08*ax.get_xlim()[0],
 sm = plt.cm.ScalarMappable(cmap='magma',
                         norm=plt.Normalize(vmin=np.min(h3_gdf.clim_dist_mean),
                                            vmax=np.max(h3_gdf.clim_dist_mean)))
-plt.colorbar(sm, cax=bcax, orientation='horizontal')
+plt.colorbar(sm, cax=cax, orientation='horizontal')
 xticks = np.linspace(np.min(h3_gdf.clim_dist_mean),
                      np.max(h3_gdf.clim_dist_mean), 5)
-bcax.set_xlabel('$average\\ \\beta_{clim\\_dist}$',
+cax.set_xlabel('$average\\ \\beta_{clim\\_dist}$',
                 fontdict=axlabel_fontdict)
-bcax.set_xticks(xticks, ['%0.2f' % t for t in xticks], size=ticklabel_size)
-bcax.set_ylabel('')
-bcax.set_yticks(())
+cax.set_xticks(xticks, ['%0.2f' % t for t in xticks], size=ticklabel_size)
+cax.set_ylabel('')
+cax.set_yticks(())
 
 
 
@@ -634,5 +634,5 @@ fig.subplots_adjust(top=0.92,
                     hspace=0.3,
                    )
 
-fig.savefig('FIG5_seas_dist_vs_clim_dist.png', dpi=700)
+fig.savefig('FIG_5_seas_dist_vs_clim_dist.png', dpi=700)
 

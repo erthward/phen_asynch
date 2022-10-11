@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import geopandas as gpd
 import rioxarray as rxr
 from matplotlib.patches import Polygon as mplPolygon
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from collections import Counter as C
 import palettable
 from palettable.cartocolors.sequential import PinkYl_7
@@ -17,11 +18,10 @@ import sys
 import re
 import os
 
+sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+                    'seasonal_asynchrony/etc/'))
+import phen_helper_fns as phf
 
-# TODO:
-    #1 get rid of 'flat/steep'
-    #2 add subnational bounds
-    #3 add horizontal colormap below in main fig, and vertical colormaps next to maps in supps
 
 
 # plot params
@@ -67,9 +67,9 @@ rand_pix_marker = '*'
 rand_pix_markersize=80
 scat_markersize=5
 scat_markeralpha=0.75
-scat_label_text = {'high': '$steep\ =\ high\ asynch$',
-                   'low': '$flat\ =\ low\ asynch$',
-                  }
+#scat_label_text = {'high': '$steep\ =\ high\ asynch$',
+#                  'low': '$flat\ =\ low\ asynch$',
+#                 }
 betas = [5, 1, 2, 1, 1]
 noise_max = 0.25
 rad = 10
@@ -85,10 +85,15 @@ orientation='landscape'
 savefig=True
 
 
-# set data dirs
-asynch_data_dir = '/media/deth/SLAB/diss/3-phn/GEE_outputs/final'
-countries_data_dir = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
-                      'seasonal_asynchrony/data/bounds/')
+# load shapefiles
+countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
+                                       'NewWorldFile_2020.shp'))
+# load level-1 subnational jurisdictions (downloaded from:
+#                                 https://gadm.org/download_country.html)
+subnational = []
+for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
+    subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,f)).to_crs(8857))
+    subnational = pd.concat(subnational)
 
 
 # define functions
@@ -291,10 +296,10 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             #         [preds[2], preds[5], preds[5]], ':',
             #         color=scat_label_fontcolor,
             #         linewidth=scat_label_linewidth)
-            ax3.text(0.05, 0.85, scat_label_text[asynch],
-                     transform=ax3.transAxes,
-                     fontdict={'fontsize': scat_label_fontsize,
-                               'color': scat_label_fontcolor})
+            #ax3.text(0.05, 0.85, scat_label_text[asynch],
+            #         transform=ax3.transAxes,
+            #         fontdict={'fontsize': scat_label_fontsize,
+            #                   'color': scat_label_fontcolor})
 
 
             # dress it up
@@ -351,10 +356,7 @@ def map_asynch(fig, gs=None, main_fig=True, var='NIRv'):
 
     assert var in ['NIRv', 'SIF']
 
-    countries = gpd.read_file(os.path.join(countries_data_dir,
-                                           'NewWorldFile_2020.shp'))
-
-    files = [f for f in os.listdir(asynch_data_dir) if
+    files = [f for f in os.listdir(phf.EXTERNAL_DATA_DIR) if
                                         re.search('%s_STRICT_asynch' % var, f)]
 
     # cut down to just one file, if this is for the main fig
@@ -383,29 +385,48 @@ def map_asynch(fig, gs=None, main_fig=True, var='NIRv'):
         else:
             ax = fig.add_subplot(3,1,ax_ct+1)
 
+        # partition off a separate axis for the colormap
+        divider = make_axes_locatable(ax)
+        if main_fig:
+            where = 'bottom'
+        else:
+            where = 'right'
+        cax = divider.append_axes(where, size='7%', pad=0.2)
+
         # read in the raster data and prepare it
-        rast = rxr.open_rasterio(os.path.join(asynch_data_dir, file), masked=True)[0]
+        rast = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
+                                              file), masked=True)[0]
         rast = rast.rio.write_crs(4326).rio.reproject(8857)
         cmap = mpl.cm.plasma.copy()
         #cmap.set_bad('#717171')
-        try:
-            rast.plot.imshow(ax=ax,
-                             zorder=0,
-                             cmap=cmap,
-                             vmin=np.nanpercentile(rast, 1),
-                             vmax=np.nanpercentile(rast, 99),
-                             add_colorbar=True,
-                            )
-        # NOTE: skip over the dumb rioxarray error
-        # that keeps occurring when I plot a single layer
-        except AttributeError as e:
-            print('\n\nAttributeError thrown:\n\t%s\n\n' % e)
+        # NOTE: annoying AttributeError is because da.attrs['long_name']
+        #       is retained as a tuple of names (rather than being subsetted
+        #       by indexing) when I index a single layer out of an
+        #       xarray.core.dataarray.DataArray;
+        #       for now, a hacky fix is just assigning a string to that attr
+        rast.attrs['long_name'] = ''
+        rast.plot.imshow(ax=ax,
+                         zorder=0,
+                         cmap=cmap,
+                         vmin=np.nanpercentile(rast, 1),
+                         vmax=np.nanpercentile(rast, 99),
+                         add_colorbar=True,
+                         cbar_ax=cax,
+                        )
+        cax.tick_params(labelsize=cbarlab_fontsize)
+        cax.set_ylabel('asynchrony', fontdict={'fontsize': 25})
+        subnational.to_crs(8857).plot(ax=ax,
+                                      color='none',
+                                      edgecolor='black',
+                                      zorder=1,
+                                      alpha=0.6,
+                                     )
         countries.to_crs(8857).plot(ax=ax,
                                     color='none',
                                     edgecolor='black',
                                     linewidth=1,
                                     alpha=0.8,
-                                    zorder=1,
+                                    zorder=2,
                                    )
         # format axes
         ax.set_xlim(rast.rio.bounds()[0::2])
@@ -450,7 +471,7 @@ if __name__ == '__main__':
 
     # make both vars' supp figs (each one stacking all 3 neighborhood radii)
     for n, var in enumerate(['NIRv', 'SIF']):
-        fig_supp = plt.figure(figsize=(16,24))
+        fig_supp = plt.figure(figsize=(18,24))
         map_asynch(fig_supp, gs=None, main_fig=False, var=var)
         fig_supp.subplots_adjust(bottom=0.02, top=0.95, left=0.02, right=0.98)
         fig_supp.savefig('FIG_S%i_%s_asynch_maps.png' % (3+n, var), dpi=700)

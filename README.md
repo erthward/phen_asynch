@@ -86,7 +86,7 @@ Other directories include:
 ## run flux-tower validation:
 
 1. Manually download all subset data products (using DownThemAll!) from the Fluxnet network's [download page](https://fluxnet.org/data/download-data/).
-2. Call `phen/validation/flux_tower_seasonality_validation/validate_at_all_fluxnet_sites.py` to validate the fitted NIRv seasonality against GPP seasonality at all usable Fluxnet sites (producing **Fig. 1**).
+2. Call `phen/validation/flux_tower_seasonality_validation/validate_at_all_fluxnet_sites_FIG_1.py` to validate the fitted NIRv seasonality against GPP seasonality at all usable Fluxnet sites (producing **Fig. 1**).
 
 
 ## compare NIRv-based and SIF-based phenological asynchrony maps:
@@ -96,12 +96,12 @@ Other directories include:
 
 ## produce RGB phenology map:
 
-1. Run `phen/analysis/div/FIG2_rotate_eof0_and_map.py` to produce **Fig. 2**'s global and regionally-zoomed RGB land surface phenology maps.
+1. Run `phen/analysis/div/fold_eof0_and_map_FIG_2.py` to produce **Fig. 2**'s global and regionally-zoomed RGB land surface phenology maps.
 
 
 ## produce asynchrony map and conceptual figure:
 
-1. Run `asynch/viz/FIG3_S3_S4_make_conceptual_fig_and_asynch_maps.py` to create the asynch map figures for the main paper (**Fig. 3**) and the supplements (**Figs. S3, S4**).
+1. Run `asynch/viz/make_conceptual_fig_and_asynch_maps_FIG_3_S3_S4.py` to create the asynch map figures for the main paper (**Fig. 3**) and the supplements (**Figs. S3, S4**).
 
 
 ## run phenological asynchrony modeling workflow:
@@ -115,5 +115,5 @@ Other directories include:
 
 ## run climate-distance analysis:
 
-1. Run `asynch/analysis/clim_dist/FIG5_compare_phen_clim_geog_dist.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce **Fig. 5**.
+1. Run `asynch/analysis/clim_dist/compare_phen_clim_geog_dist_FIG_5.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce **Fig. 5**.
 

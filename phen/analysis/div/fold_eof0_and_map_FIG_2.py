@@ -354,7 +354,7 @@ del eofs_for_map
 fig_eof.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98,
                         hspace=0.05)
 if save_it:
-    fig_eof.savefig('ch3_fig_%s_EOF_maps%s.png' % (dataset,
+    fig_eof.savefig('FIG_2_%s_EOF_maps%s.png' % (dataset,
                                                    mask_filename_ext), dpi=700)
 
 

@@ -628,7 +628,7 @@ ax2.set_ylabel('MAP ($mm$)',
 ax2.tick_params(labelsize=14)
 fig2.subplots_adjust(top=0.98, bottom=0.06, left=0.07, right=0.94)
 fig2.show()
-fig2.savefig('flux_val_results_MAT_MAP.png', dpi=600)
+fig2.savefig('FIG_1_flux_val_results_whittaker_plot.png', dpi=600)
 
 # plot R2 against cell-dist and GPP ts length, colored by lat and by IGBP LC
 results_df['igbp_cat'] = pd.Categorical(results_df.igbp)
