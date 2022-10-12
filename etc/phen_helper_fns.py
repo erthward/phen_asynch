@@ -41,6 +41,7 @@ neigh_rads = [50, 100, 150]
 DATA_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
             'seasonal_asynchrony/data')
 EXTERNAL_DATA_DIR = '/media/deth/SLAB/diss/3-phn/GEE_outputs/final/'
+EXTERNAL_CORR_DATA_DIR = '/media/deth/SLAB/diss/3-phn/corr_data'
 COEFFS_FILE = os.path.join(EXTERNAL_DATA_DIR, 'NIRv_coeffs.tif')
 COEFFS_STRICT_FILE = os.path.join(EXTERNAL_DATA_DIR, 'NIRv_STRICT_coeffs.tif')
 ASYNCH_FILES = {rad: os.path.join(EXTERNAL_DATA_DIR,

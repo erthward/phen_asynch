@@ -15,7 +15,7 @@ for var in ['NIRv', 'SIF']:
 
         print('\n\nPROCESSING VAR %s, NEIGH RAD %i...\n\n' % (var, neigh_rad))
 
-        # get CSV Shapley results
+        # get CSV of SHAP values
         csv = pd.read_csv(os.path.join(data_dir,
                                        'rf_SHAP_vals_w_coords_%s_%ikm.csv' % (var,
                                                                              neigh_rad)))

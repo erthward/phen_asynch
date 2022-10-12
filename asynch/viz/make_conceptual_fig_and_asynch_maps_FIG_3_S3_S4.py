@@ -30,7 +30,7 @@ rowlab_fontsize = 18
 axislab_fontsize = 11
 ticklab_fontsize = 12
 cbarlab_fontsize = 12
-cbarticklab_fontsize = 10
+cbar_ticklab_fontsize = 10
 annot_fontsize = 14
 scat_label_fontsize = 10
 scat_label_fontcolor = 'black'
@@ -93,7 +93,7 @@ countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
 subnational = []
 for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
     subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,f)).to_crs(8857))
-    subnational = pd.concat(subnational)
+subnational = pd.concat(subnational)
 
 
 # define functions
@@ -249,8 +249,8 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
                           )
             cbar.set_ticks(np.linspace(0,364,5))
             cbar.set_ticklabels(['Jan', 'Apr', 'Jul', 'Oct', 'Jan'])
-            cbar.ax.tick_params(labelsize=cbarticklab_fontsize)
-            cbar.ax.tick_params(labelsize=cbarticklab_fontsize, length=0)
+            cbar.ax.tick_params(labelsize=cbar_ticklab_fontsize)
+            cbar.ax.tick_params(labelsize=cbar_ticklab_fontsize, length=0)
             ax1.imshow(np.invert(geo_dist_arr>rad), cmap=plt.cm.gray,
                        vmin=0, vmax=1, alpha=rad_mask_alpha)
             #for i in range(dims[0]):
@@ -352,7 +352,8 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
         return(fig, gs, mod)
 
 
-def map_asynch(fig, gs=None, main_fig=True, var='NIRv'):
+def map_asynch(fig, gs=None, main_fig=True, var='NIRv',
+               cbar_axlab_fontsize=13, cbar_ticklab_fontsize=10):
 
     assert var in ['NIRv', 'SIF']
 
@@ -389,9 +390,13 @@ def map_asynch(fig, gs=None, main_fig=True, var='NIRv'):
         divider = make_axes_locatable(ax)
         if main_fig:
             where = 'bottom'
+            orientation = 'horizontal'
+            size = '7%'
         else:
             where = 'right'
-        cax = divider.append_axes(where, size='7%', pad=0.2)
+            orientation = 'vertical'
+            size = '4%'
+        cax = divider.append_axes(where, size=size, pad=0.2)
 
         # read in the raster data and prepare it
         rast = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
@@ -412,9 +417,13 @@ def map_asynch(fig, gs=None, main_fig=True, var='NIRv'):
                          vmax=np.nanpercentile(rast, 99),
                          add_colorbar=True,
                          cbar_ax=cax,
+                         cbar_kwargs = {'orientation': orientation},
                         )
-        cax.tick_params(labelsize=cbarlab_fontsize)
-        cax.set_ylabel('asynchrony', fontdict={'fontsize': 25})
+        cax.tick_params(labelsize=cbar_ticklab_fontsize)
+        if main_fig:
+            cax.set_xlabel('asynchrony', fontdict={'fontsize': rowlab_fontsize})
+        else:
+            cax.set_ylabel('asynchrony', fontdict={'fontsize': 36})
         subnational.to_crs(8857).plot(ax=ax,
                                       color='none',
                                       edgecolor='black',
@@ -451,6 +460,7 @@ def map_asynch(fig, gs=None, main_fig=True, var='NIRv'):
 if __name__ == '__main__':
     plt.close('all')
     # make the conceptual figure
+    print('\n\nNOW PRODUCING FIG 3..\n\n')
     min_seas_dist, max_seas_dist = plot_all(betas, rad=rad, dims=dims,
                                             plot_it=False)
     fig, gs, mod = plot_all(betas, rad=rad, dims=dims, min_seas_dist=min_seas_dist,
@@ -460,19 +470,21 @@ if __name__ == '__main__':
     map_asynch(fig, gs=gs, main_fig=True, var='NIRv')
 
     # add labels for parts A. and B.
-    fig.axes[0].text(-6.1, -5, 'A.', size=24, weight='bold')
-    fig.axes[-1].text(1.035*fig.axes[-1].get_xlim()[0],
-                      1.065*fig.axes[-1].get_ylim()[1],
+    fig.axes[0].text(-5.8, -5, 'A.', size=24, weight='bold')
+    fig.axes[-2].text(1.11*fig.axes[-2].get_xlim()[0],
+                      1.065*fig.axes[-2].get_ylim()[1],
                       'B.', size=24, weight='bold')
 
     # adjust subplots and save
-    fig.subplots_adjust(bottom=0.02, top=0.92, left=0.02, right=0.98)
+    fig.subplots_adjust(bottom=0.05, top=0.92, left=0.04, right=0.98)
     fig.savefig('FIG_3_asynch_concept_and_map.png', dpi=700)
 
     # make both vars' supp figs (each one stacking all 3 neighborhood radii)
     for n, var in enumerate(['NIRv', 'SIF']):
-        fig_supp = plt.figure(figsize=(18,24))
-        map_asynch(fig_supp, gs=None, main_fig=False, var=var)
-        fig_supp.subplots_adjust(bottom=0.02, top=0.95, left=0.02, right=0.98)
+        print('\n\nNOW PRODUCING SUPPLEMENTAL FIG FOR %s..\n\n' % var)
+        fig_supp = plt.figure(figsize=(19,24))
+        map_asynch(fig_supp, gs=None, main_fig=False, var=var,
+                   cbar_axlab_fontsize=30, cbar_ticklab_fontsize=24)
+        fig_supp.subplots_adjust(bottom=0.02, top=0.95, left=0.0, right=0.88)
         fig_supp.savefig('FIG_S%i_%s_asynch_maps.png' % (3+n, var), dpi=700)
 

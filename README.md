@@ -110,7 +110,9 @@ Other directories include:
 2. In an RStudio session on Savio, run `asynch/analysis/corr/phen_asynch_corr.r` with var set to 'NIRv' and neigh.rad set to '100' (i.e., uncommenting lines at top), to execute the random forest analysis on the main phenological asynchrony dataset (i.e., NIRv-based phenological asynchrony using a 100 km radial neighborhood). Be sure the execute the code blocks captured by `if (F){ ... }`, to run hyperparameter-tuning, Boruta feature selection, and other interactive analyses.
 3. Manually inspect the results of the interactive analysis. Use the results of that to set the hyperparameters (in the code block starting at line 410 in `asynch/analysis/corr/phen_asynch_corr.r`) and the feature selection (code block starting at line 486 in the same file) for the main global RF model that will be used for both datasets (NIRv and SIF) and all 3 neighborhood radii (50 km, 100 km, 150 km).
 4. Run `asynch/analysis/corr/ch3_rf_job.sh` to loop over vars (NIRv, SIF) and neighborhood radii, each time prepping data layers, running the random forest analysis, and generating identical results.
-5. Run ***WHAT SCRIPT??*** to produce final table and figures summarizing random forest results.
+5. Run `asynch/analysis/corr/rasterize_SHAP_vals.py` to convert output CSVs of global SHAP values to GeoTIFFs.
+6. Run `asynch/analysis/corr/tabulate_SHAP_importance_vals.py` to combine all SHAP importance values into a single output table, for supplmental materials.
+7. Run `asynch/analysis/corr/plot_RF_summary_FIG_4.py` to produce final table and figures summarizing random forest results.
 
 
 ## run climate-distance analysis:
