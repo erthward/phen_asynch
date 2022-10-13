@@ -429,7 +429,7 @@ else:
 # PART III: ANALYSIS
 ####################
 
-fig = plt.figure(figsize=(26,7))
+fig = plt.figure(figsize=(23,7))
 gs = fig.add_gridspec(nrows=100, ncols=300)
 
 # run single, overarching OLS model of clim_dist coeff as a function of mean
@@ -605,19 +605,20 @@ ax.set_ylim(1.11*np.min(h3_gdf.to_crs(8857).geometry.centroid.y),
             1.175*np.max(h3_gdf.to_crs(8857).geometry.centroid.y))
 
 # add label for part A
-ax.text(1.08*ax.get_xlim()[0],
-        1.065*ax.get_ylim()[1],
+ax.text(1.1*ax.get_xlim()[0],
+        1.06*ax.get_ylim()[1],
         'A.', size=partlabel_size, weight='bold')
 
 # add the colorbar
 # NOTE: need to create a custom ScalarMappable to feed into the colormap call
-sm = plt.cm.ScalarMappable(cmap='magma',
+scalmap = plt.cm.ScalarMappable(cmap='magma',
                         norm=plt.Normalize(vmin=np.min(h3_gdf.clim_dist_mean),
                                            vmax=np.max(h3_gdf.clim_dist_mean)))
-plt.colorbar(sm, cax=cax, orientation='horizontal')
+plt.colorbar(scalmap, cax=cax, orientation='horizontal')
 xticks = np.linspace(np.min(h3_gdf.clim_dist_mean),
                      np.max(h3_gdf.clim_dist_mean), 5)
-cax.set_xlabel('$average\\ \\beta_{clim\\_dist}$',
+cax.set_xlabel(('$\overline{\\beta}_{dist_{clim}}\ \ \ \ '
+                '_{(\Delta dist_{seas}/\Delta dist_{clim})}$'),
                 fontdict=axlabel_fontdict)
 cax.set_xticks(xticks, ['%0.2f' % t for t in xticks], size=ticklabel_size)
 cax.set_ylabel('')
@@ -627,9 +628,9 @@ cax.set_yticks(())
 
 # adjust subplots and write to disk
 fig.subplots_adjust(top=0.92,
-                    bottom=0.12,
+                    bottom=0.125,
                     right=0.98,
-                    left=0.03,
+                    left=0.026,
                     wspace=0.5,
                     hspace=0.3,
                    )

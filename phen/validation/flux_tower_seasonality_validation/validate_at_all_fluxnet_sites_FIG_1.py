@@ -1,15 +1,16 @@
 import pandas as pd
 import geopandas as gpd
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.patches import Polygon
 from shapely.geometry import Point
+from shapely.geometry import Polygon as shapelyPolygon
 from matplotlib.collections import PatchCollection
 import numpy as np
 import xarray as xr
 import rasterio as rio
 import rioxarray as rxr
-import matplotlib.pyplot as plt
 from datetime import datetime
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error, r2_score
@@ -27,6 +28,10 @@ of timing?
 - figure out how to fix towers that are falling out of analysis
 
 """
+
+# plotting params
+axlabel_fontdict={'fontsize': 14}
+ticklabel_fontsize=10
 
 # main behavioral params
 normalize=True
@@ -547,7 +552,7 @@ countries = countries.to_crs(4326)
 
 
 # map results
-fig1, ax1 = plt.subplots(1, 1)
+fig_map, ax1 = plt.subplots(1, 1)
 divider = make_axes_locatable(ax1)
 cax1 = divider.append_axes('right', size='5%', pad=0.1)
 countries.plot(facecolor='none',
@@ -563,11 +568,10 @@ scat = ax1.scatter(results_df['lon'],
                   edgecolor='black',
                   linewidth=0.75)
 plt.colorbar(scat, cax=cax1)
-fig1.suptitle(('$R^2$ between RS-fitted seasonality '
+fig_map.suptitle(('$R^2$ between RS-fitted seasonality '
               'and fitted FLUXNET GPP seasonality'))
-fig1.subplots_adjust(top=0.98, bottom=0.06, left=0.07, right=0.94)
-fig1.show()
-fig1.savefig('flux_val_results_map.png', dpi=600)
+fig_map.subplots_adjust(top=0.98, bottom=0.06, left=0.07, right=0.94)
+fig_map.show()
 
 
 
@@ -588,84 +592,204 @@ def add_label_newline(label):
 biomes = []
 biome_labels = []
 centroids = []
+polygons = []
 patches = []
 for biome in whittaker['biome'].unique():
     subwhit = whittaker[whittaker.biome == biome].loc[:, ['temp_c', 'precp_mm']].values
     centroids.append(np.mean(subwhit, axis=0))
+    shapely_poly = shapelyPolygon(subwhit)
+    polygons.append(shapely_poly)
     poly = Polygon(subwhit, True)
     patches.append(poly)
     biomes.append(biome)
     biome_labels.append(biome.replace('/', ' & '))
 
-colors = 255 * np.linspace(0, 1, len(patches))
-p = PatchCollection(patches, alpha=0.25, edgecolor='k', cmap='Pastel1')
-p.set_array(colors)
-# get dict of colors, to use in last plots
-col_dict = dict(zip(biomes, p.get_facecolors()))
-fig2 = plt.figure(figsize=(13,12))
-ax2 = fig2.add_subplot(1, 1, 1)
-divider = make_axes_locatable(ax2)
-cax2 = divider.append_axes('right', size='5%', pad=0.1)
-ax2.add_collection(p)
-for lab,c in zip(biome_labels, centroids):
-    ax2.text(c[0], c[1], add_label_newline(lab), size=16)
-scat = ax2.scatter(results_df['mat'],
+# make whittaker biomes GeoDataFrame
+gdf = gpd.GeoDataFrame(pd.DataFrame({'biome': biomes,
+                                     'geometry': polygons,
+                                    }), geometry='geometry', crs=4236)
+
+biome_cmap = plt.get_cmap('tab20b', 17)
+# choose 9 colors that perform best for colorblindness
+color_indices = [0, 2, 3, 12, 13, 15, 4, 5, 7]
+colors = []
+hex_colors = []
+for i in color_indices:
+    rgba = biome_cmap(i)
+    hex_color = mpl.colors.rgb2hex(rgba)
+    rgba_colors.append(rgba)
+    hex_colors.append(hex_color)
+
+# NOTE: colors manually pulled from the tab20b palette display, and a little
+# from other palettes on the matplotlib reference page,
+# after cross-checking with a colorblindness simulator
+hex_colors = [
+              '#393B79', # dark blue
+              '#9C9EDE', # light blue
+              '#FFD92F', # yellow
+              '#E7969C', # light pink
+              '#B5CF6B', # light green
+              '#637939', # drab olive green
+              '#31A354', # jungle green
+              '#D6616B', # rose-magenta
+              '#843C39', # dark magenta
+             ]
+rgba_colors = [mpl.colors.hex2color(h) for h in hex_colors]
+
+fig_1 = plt.figure(figsize=(4.5,8))
+gs = fig_1.add_gridspec(nrows=14,ncols=1)
+ax1 = fig_1.add_subplot(gs[:6,:])
+divider = make_axes_locatable(ax1)
+cax1 = divider.append_axes('right', size='5%', pad=0.1)
+p = PatchCollection(patches, alpha=1, edgecolor='k')#, cmap=custom_biome_cmap)
+p.set_color(rgba_colors)
+ax1.add_collection(p)
+#for lab,c in zip(biome_labels, centroids):
+#    ax1.text(c[0], c[1], add_label_newline(lab), size=8)
+scat = ax1.scatter(results_df['mat'],
            results_df['map'],
            c = results_df['r2'],
-           edgecolor='black',
-           s=normalize_data(results_df['gpp_ts_len'], 10, 150),
+           edgecolor='none',
+           #s=normalize_data(results_df['gpp_ts_len'], 5, 90),
+           s=5,
            alpha=0.75,
-           cmap='plasma_r')
-cbar = plt.colorbar(scat, cax=cax2)
-cbar.set_label('$R^2$', fontdict={'fontsize': 16})
-cbar.ax.tick_params(labelsize=12)
-ax2.set_xlabel('MAT ($^{\circ}C$)',
-              fontdict={'fontsize': 16})
-ax2.set_ylabel('MAP ($mm$)',
-              fontdict={'fontsize': 16})
-#fig2.suptitle(('$R^2$ between RS-fitted seasonality '
-#              'and fitted FLUXNET GPP seasonality, vs MAT and MAP'))
-ax2.tick_params(labelsize=14)
-fig2.subplots_adjust(top=0.98, bottom=0.06, left=0.07, right=0.94)
-fig2.show()
-fig2.savefig('FIG_1_flux_val_results_whittaker_plot.png', dpi=600)
+           cmap='gray')
+cbar = plt.colorbar(scat, cax=cax1)
+cbar.set_label('$R^2$', fontdict=axlabel_fontdict)
+cbar.ax.tick_params(labelsize=ticklabel_fontsize)
+ax1.set_xlabel('MAT ($^{\circ}C$)',
+              fontdict=axlabel_fontdict)
+ax1.set_ylabel('MAP ($mm$)',
+              fontdict=axlabel_fontdict)
+ax1.tick_params(labelsize=ticklabel_fontsize)
 
-# plot R2 against cell-dist and GPP ts length, colored by lat and by IGBP LC
-results_df['igbp_cat'] = pd.Categorical(results_df.igbp)
-for var, cmap in zip(['lat', 'igbp_cat', 'whit'], ['summer_r', 'tab20', 'Pastel1']):
-    if var == 'lat':
-        hue_vals = np.abs(results_df['lat'])
-        hue_order = None
-    elif var == 'igbp_cat':
-        hue_vals = results_df['igbp_cat']
-        hue_order = None
-    elif var == 'whit':
-        biome_idxs = []
-        for n, row in results_df.iterrows():
-            biome_idx_list = [i for i, poly in enumerate(patches) if
-                              poly.contains_point(row[['mat', 'map']])]
-            assert len(biome_idx_list) < 2
-            if len(biome_idx_list) == 0:
-                biome_idxs.append(np.nan)
-            else:
-                biome_idxs.append(biome_idx_list[0])
-        hue_vals = pd.Series([biomes[idx] if pd.notnull(idx) else idx for idx in biome_idxs])
-        hue_order = biomes
-    #subdf = results_df[pd.notnull(hue_vals)]
-    g = sns.FacetGrid(results_df, col='cell_dist', legend_out=True)
-    g.map_dataframe(sns.scatterplot,
-                    'gpp_ts_len',
-                    'r2',
-                    hue=hue_vals,
-                    hue_order=hue_order,
-                    palette=cmap,
-                    edgecolor='black',
-                    alpha=0.75,
-                    s = 35,
-                   )
-    g.add_legend()
-    # add vertical line indicating length of NIRV ts, for comparison
-    for ax in g.axes[0]:
-        ax.axvline(x=10, ymin=-1, ymax=2, linewidth=0.5, alpha=0.6,
-                   color='black', linestyle=':')
-    g.savefig('flux_val_results_R2_vs_celldist_tslen_%s.png' % var, dpi=600)
+
+ax2 = fig_1.add_subplot(gs[10:,:])
+pt_biomes = []
+for i, row in results_df.iterrows():
+    if pd.notnull(row['mat']) and pd.notnull(row['map']):
+        pt = Point(row['mat'], row['map'])
+        pt_biome = gdf[[pt.within(geom) for geom in gdf.geometry]].biome.values
+        try:
+            assert len(pt_biome) == 1
+            pt_biomes.append(pt_biome[0])
+        except Exception as e:
+            pt_biomes.append(np.nan)
+    else:
+        pt_biomes.append(np.nan)
+
+# tweak formatting to thin the legend
+pt_biomes = [b.replace('/', '/\n') if (pd.notnull(b) and
+                                       'savanna' in b)
+                                       else b for b in pt_biomes]
+biomes = [b.replace('/', '/\n') if 'savanna' in b else b for b in biomes]
+results_df['biome'] = pt_biomes
+
+# add a column indicating whether each site is in 'natural vegetation' or not
+# (where I'm condsidering the following IGBP land cover classes as not
+# 'natural', in the sense that they don't necessarily reflect the land cover
+# class implied by the Whittaker biome plot):
+    # CRO = croplands
+    # CVM = crop/natural veg mosaic
+    # URB = urban
+    # WAT = water bodies
+    # SNO = snow and ice
+nat_veg = []
+for i, row in results_df.iterrows():
+    if pd.isnull(row['igbp']):
+        nat_veg.append(np.nan)
+    elif row['igbp'] in ['CRO', 'CVM', 'URB', 'WAT', 'SNO']:
+        nat_veg.append(0)
+    else:
+        nat_veg.append(1)
+results_df['nat_veg'] = nat_veg
+
+# add a similar column indicating whether each row's IGBP classification
+# fits its Whittaker plot implication
+crosswalk = {
+    'Boreal forest': ['DNF', 'ENF', 'MF'],
+    'Subtropical desert': ['BSV', 'OSH'],
+    'Temperate grassland/desert': ['GRA', 'BSV', 'OSH'],
+    'Temperate seasonal forest': ['DBF', 'DNF', 'ENF', 'MF', 'EBF'],
+    'Tropical rain forest': ['EBF'],
+    'Tropical seasonal forest/\nsavanna': ['DBF', 'MF', 'WSA', 'SAV', 'EBF'],
+    'Tundra': ['BSV', 'SNO'],
+    'Woodland/shrubland': ['OSH', 'CSH', 'WSA', 'SAV', 'MF', 'DBF', 'EBF',
+                           'ENF', 'DNF'],
+}
+match_veg = []
+for i, row in results_df.iterrows():
+    if pd.isnull(row['igbp']) or pd.isnull(row['biome']):
+        match_veg.append(np.nan)
+    elif row['igbp'] in crosswalk[row['biome']]:
+        match_veg.append(1)
+    else:
+        if row['igbp'] == 'WET':
+            match_veg.append(2)
+        else:
+            match_veg.append(0)
+results_df['match_veg'] = match_veg
+
+
+# add dotted vertical lines for each year,
+# and a solid line indicating length of NIRV ts, for comparison
+for yrs in np.arange(1, np.max(results_df['gpp_ts_len'])+1, 1):
+    if yrs != 10:
+        ax2.axvline(x=yrs, ymin=-1, ymax=2, linewidth=0.5, alpha=0.6,
+                    color='black', linestyle=':', zorder=0)
+    else:
+        ax2.axvline(x=10, ymin=-1, ymax=2, linewidth=1, alpha=1,
+                    color='black', linestyle='-', zorder=0)
+
+sns.set_palette(sns.color_palette(hex_colors))
+
+scat = sns.scatterplot(x=results_df['gpp_ts_len'] + np.random.uniform(-0.25,
+                                                                      0.25,
+                                                            len(results_df)),
+                       y='r2',
+                       data=results_df.sort_values('r2', ascending=False),
+                       hue='biome',
+                       hue_order=biomes,
+                       #style='match_veg',
+                       #markers=['X', 'o', '*'],
+                       style_order=[0, 1, 2],
+                       color='black',
+                       edgecolor='none',
+                       alpha=0.8,
+                       s = 80,
+                       legend=True,
+                       #ax=ax2,
+                      )
+
+scat.legend(loc='upper center',
+            bbox_to_anchor=(0.5, 1.75),
+            ncol=2,
+            fontsize=9,
+            labelspacing=0.3,
+            columnspacing=0.1
+           )
+ax2.set_xlim(0, np.max(results_df['gpp_ts_len'])+1)
+ax2.set_ylim(0,1)
+ax2.set_xlabel('GPP time series length (years)', fontdict=axlabel_fontdict)
+ax2.set_ylabel('$GPP~NIR_{V}\ R^2$', fontdict=axlabel_fontdict)
+ax2.tick_params(labelsize=ticklabel_fontsize)
+
+# add part labels
+ax1.text(ax1.get_xlim()[0]-(0.28*np.diff(ax1.get_xlim())),
+         1.009*ax1.get_ylim()[1],
+         'A.',
+         weight='bold',
+         size=20,
+        )
+ax2.text(-5.6,
+         1,
+         'B.',
+         weight='bold',
+         size=20,
+        )
+
+
+fig_1.subplots_adjust(top=0.94, bottom=0.07, left=0.19, right=0.85)
+
+fig_1.savefig('FIG_1_flux_val_results.png', dpi=700)
+
