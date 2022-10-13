@@ -41,10 +41,12 @@ args = commandArgs(trailingOnly=T)
 
 # variable for which to prep data
 asynch.var = args[1]
+#asynch.var = 'NIRv'
 cat(paste0('\nVAR: ', asynch.var, '\n'))
 
 # set neighborhood radius (in km) to use for asynch analysis
 neigh.rad = args[2]
+#neigh.rad = 100
 cat(paste0('\nNEIGH RAD: ', neigh.rad, '\n'))
 
 # input and output dirs:

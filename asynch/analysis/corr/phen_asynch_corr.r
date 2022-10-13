@@ -10,6 +10,7 @@ library(rsample)              # function for stratified random sampling
 library(RRF)                  # fast RF var selection (w/ conservative results in Bag et al. 2022)
 library(ranger)               # faster RFs
 library(randomForest)         # regular RFs
+library(spatialRF)            # toolkit for running RFs on spatial data
 #library(h2o)                  # distributed RFs (on cloud)
 library(Boruta)               # feature selection w/ boruta algo (i.e., shadow features)
 library(fastshap)             # SHAP values
@@ -32,27 +33,6 @@ library(caret)                # Recursive Feature selection
 library(rfUtilities)          # Jeff Evans R package for model selection
 
 
-
-# TODO:
-# 1. if runtime is slow then use ranger instead (but then have to figure out how to not make range::importance clobber randomForest::importance that grf depends on!)
-# 2. check that no factor/non-numeric variables being fed into RF
-
-
-
-# WORKFLOW:
-
-# X. draw subsample (COMPARE RUNNNING WITH AND WITHOUT, LATER)
-# X. check that it's small enough that independent bootstraps can be drawn from it (how??) (OR IS IT JUST MEASURE VARIANCE ACROSS BOOTSTRAPS?)
-# 1. RF model (or GB?)
-#1.5 MAYBE LATER CONSIDER GRADIENT-BOOSTING AS WELL/INSTEAD?
-# 2. boruta to select vars
-# 3. rerun parsimonious model (use Lauren's and HOML approach to choosing reasonable starting param values and to tuning)
-# 4. plot and assess var importance
-# 5. map SHAP values (and how to get globally integrated ones??)
-# 6. run geo-weighted RF and map top vars
-
-
-
 ##########################################################################
 # SETUP
 
@@ -72,6 +52,11 @@ cat('\nVAR: ', asynch.var, '\n')
 neigh.rad = args[2]
 #neigh.rad = '100'
 cat('\nNEIGH RAD: ', neigh.rad, '\n')
+
+# include coordinates in RF?
+coords.as.covars = args[3]
+#coords.as.covars = 'y'
+cat('\nCOORDS AS COVARS? ', coords.as.covars, '\n')
 
 
 # input and output dirs:
@@ -411,7 +396,7 @@ if (F){
 ntree = 300
 replace = F
 rf.sample.fraction = 0.8
-mtry = 3
+mtry = 5
 min.node.size = 1
 
 # and choose data subset based on output above
@@ -486,23 +471,54 @@ if (F){
   # remove any vars rejected by boruta
   # from trn, tst, df, and df_full
   
-  # ...
+  # ... NONE DROPPED!
 }
+
+
+
+###########################
+# DROP COLLINEAR COVARIATES
+###########################
+
+# filter covariates using correlation and variance inflation factor (VIF) thresholds
+predictor.var.names = spatialRF::auto_cor(
+         x = trn,
+         cor.threshold = 0.75,
+)  %>% spatialRF::auto_vif(
+         vif.threshold=5,
+)
+
+# NOTE: says to remove var y, but leaving that because it is just intended
+#       to help account for spatial process
+
 
 ###########################################
 # BUILD TUNED, PARSIMONIOUS GLOBAL RF MODEL
 ###########################################
-
-rf_final = ranger(phn.asy ~ .,
-                  data=trn,
-                  num.trees=ntree,
-                  mtry=mtry,
-                  importance='permutation',
-                  verbose=verbose,
-                  replace=replace,
-                  sample.fraction=rf.sample.fraction,
-                  min.node.size=min.node.size,
-)
+if (coords.as.covars == 'y'){
+  rf_final = ranger(phn.asy ~ .,
+                    data=trn,
+                    num.trees=ntree,
+                    mtry=mtry,
+                    importance='permutation',
+                    verbose=verbose,
+                    replace=replace,
+                    sample.fraction=rf.sample.fraction,
+                    min.node.size=min.node.size,
+  )
+} else {
+  rf_final = ranger(phn.asy ~ tmp.min.asy + tmp.min.nsd + ppt.asy + ppt.sea.nsd +
+                              def.asy + cld.asy + vrm.med + riv.dis + veg.ent,
+                    data=trn,
+                    num.trees=ntree,
+                    mtry=mtry,
+                    importance='permutation',
+                    verbose=verbose,
+                    replace=replace,
+                    sample.fraction=rf.sample.fraction,
+                    min.node.size=min.node.size,
+  )
+}
 
 # take a look at the results
 print(rf_final)
@@ -515,6 +531,7 @@ pfun <- function(object, newdata) {
 # and save permutation-based importance values
 permut_imp <- as.data.frame(ranger::importance(rf_final))
 write.csv(permut_imp, paste0(data.dir, 'rf_permut_importance_',
+                             coords.as.covars, 'COORDS_',
                              asynch.var, '_',
                              as.character(neigh.rad), 'km.csv'), row.names=T)
 # ... and with SHAP values
@@ -524,6 +541,7 @@ shap_imp <- data.frame(
   Importance = apply(shap, MARGIN = 2, FUN = function(x) sum(abs(x)))
 )
 write.csv(shap_imp, paste0(data.dir, 'rf_SHAP_importance_',
+                             coords.as.covars, 'COORDS_',
                             asynch.var, '_',
                             as.character(neigh.rad), 'km.csv'), row.names=F)
 p_imp_shap = ggplot(shap_imp, aes(reorder(Variable, Importance), Importance)) +
@@ -535,6 +553,7 @@ varimp_grob = grid.arrange(p_imp_shap, p_imp_permut, ncol=2)
 
 
 ggsave(varimp_grob, file=paste0(data.dir, 'var_import_plots_permut_and_SHAP_',
+                                coords.as.covars, 'COORDS_',
                                 asynch.var, '_',
                                 as.character(neigh.rad), 'km.png'),
        width=45, height=35, units='cm', dpi=600)
@@ -573,7 +592,7 @@ preds_plot = ggplot(tst) +
   theme_bw()
 preds_plot
 
-ggsave(preds_plot, file=paste0(data.dir, 'preds_plot_', asynch.var, '_', as.character(neigh.rad), 'km.png'),
+ggsave(preds_plot, file=paste0(data.dir, 'preds_plot_', coords.as.covars, 'COORDS_', asynch.var, '_', as.character(neigh.rad), 'km.png'),
        width=30, height=22, units='cm', dpi=500)
 
 
@@ -583,6 +602,7 @@ ggsave(preds_plot, file=paste0(data.dir, 'preds_plot_', asynch.var, '_', as.char
   full_preds = predict(rf_final, df_full)$predictions
   df.res = df_full %>% mutate(preds = full_preds, err = full_preds - df_full[,'phn.asy'])
   write.csv(df.res, paste0(data.dir, 'rf_full_preds_',
+                            coords.as.covars, 'COORDS_',
                             asynch.var, '_',
                             as.character(neigh.rad), 'km.csv'), row.names=F)
   ## cbind original coords (saved up above) with true, predicted, and error values
@@ -654,10 +674,12 @@ ggsave(preds_plot, file=paste0(data.dir, 'preds_plot_', asynch.var, '_', as.char
 cat('\n\n\nNOW CALCULATING FULL SHAPLEY VALUES...\n\n\n')
 shap_full = fastshap::explain(rf_final, X = df_full[, 2:ncol(df_full)], pred_wrapper = pfun, nsim = 10)
 write.csv(shap_full, paste0(data.dir, 'rf_SHAP_vals_',
+                            coords.as.covars, 'COORDS_',
                             asynch.var, '_',
                             as.character(neigh.rad), 'km.csv'), row.names=F)
 shap_full_w_coords = cbind(df_full_unproj[, c('x', 'y')], shap_full)
 write.csv(shap_full_w_coords, paste0(data.dir, 'rf_SHAP_vals_w_coords_',
+                                     coords.as.covars, 'COORDS_',
                                      asynch.var, '_',
                                      as.character(neigh.rad), 'km.csv'), row.names=F)
 #df_shap_full = cbind(df_full_unproj[,c('x', 'y')], shap_full)
@@ -674,101 +696,3 @@ write.csv(shap_full_w_coords, paste0(data.dir, 'rf_SHAP_vals_w_coords_',
 #              overwrite = T
 #  )
 #}
-
-
-######################
-# RUN LOCAL GWRF MODEL
-######################
-
-# code adapted from https://zia207.github.io/geospatial-r-github.io/geographically-wighted-random-forest.html
-
-# NOTE: only for interactive
-if (F){
-  # local RF params
-  bw.local = 150
-  ntree.local = ntree
-  replace.local = replace
-  rf.sample.fraction.local = rf.sample.fraction
-  mtry.local = mtry
-  
-  coords = st_coordinates(trn)
-  
-  rf_local <- SpatialML::grf(formula=phn.asy ~ tmp.min.asy + tmp.min.nsd +
-                               ppt.asy + ppt.sea.nsd + def.asy + cld.asy +
-                               vrm.med + riv.dis + veg.ent,
-                             dframe=trn,
-                             bw=bw.local,
-                             kernel="adaptive",
-                             coords=coords,
-                             ntree=ntree.local,
-                             mtry=mtry.local,                 
-                             importance = TRUE,
-                             forests = FALSE
-  )
-  
-  # global model summary
-  glob.imp = as.data.frame(randomForest::importance(rf_local$Global.Model, type=1)) # %IncMSE
-  colnames(glob.imp) = c('pct.inc.mse')
-  glob.imp = glob.imp %>% arrange(desc(pct.inc.mse))
-  
-  print(paste0('GLOBAL MODEL MSE: ', mean(rf_local$Global.Model$mse)))
-  
-  print(paste0('GLOBAL MODEL Rsq: ', mean(rf_local$Global.Model$rsq)))
-  
-  
-  # local model summary and variable importance
-  print(rf_local$LocalModelSummary)
-  
-  #imp.var.to.use = "Local.Pc.IncMSE"
-  imp.var.to.use = "Local.IncNodePurity"
-  var.imp.loc = rf_local[[imp.var.to.use]]
-  
-  # plot local var importance, with plots in order of decreasing global var imp
-  plots = lapply(seq(nrow(glob.imp)), function(n){
-    var = rownames(glob.imp)[n]
-    glob.imp.val = glob.imp[var,]
-    cbar.limits = rep(max(abs(quantile(var.imp.loc[,var], c(0.01, 0.99), na.rm=T, type=8))),2) * c(-1,1)
-    p = ggplot() +
-      geom_polygon(data=world, aes(x=long, y=lat, group=group),
-                   color="black", fill="white" ) +
-      geom_point(aes(x=trn$x, y=trn$y, col=var.imp.loc[,var]), alpha=0.5, size=0.75) +
-      scale_color_cmocean(name='curl', direction=-1, limits=cbar.limits) +
-      ggtitle(paste0(var, ": Global ", imp.var.to.use, ": ", glob.imp.val)) +
-      labs(col=var)
-    return(p)
-  })
-  
-  for (plot_i in seq(length(plots))){
-    plot = plots[[i]]
-    name = colnames(trn)[4:ncol(trn)][i]
-    ggsave(plot, file=paste0('rf_local_var_import_map_', name, '.png'),
-           width=75, height=55, units='cm', dpi=700)  
-  }
-  
-  
-  
-  
-  # map goodness of fit
-  gof.loc = rf_local$LGofFit
-  
-  # plot local var importance, with plots in order of decreasing global var imp
-  plots = lapply(seq(ncol(gof.loc)), function(n){
-    var = colnames(gof.loc)[n]
-    cbar.limits = rep(max(abs(quantile(gof.loc[,var], c(0.01, 0.99), na.rm=T, type=8))),2) * c(-1,1)
-    p = ggplot() +
-      geom_polygon(data=world, aes(x=long, y=lat, group=group),
-                   color="black", fill="white" ) +
-      geom_point(aes(x=rf_local$Locations[,1], y=grf.model$Locations[,2],
-                     col=gof.loc[,var]), alpha=0.5, size=0.75) +
-      scale_color_cmocean(name='curl', direction=-1, limits=cbar.limits) +
-      ggtitle(paste0("GoF metric: ", var)) +
-      labs(col=var)
-    return(p)
-  })
-  local_rf_gof_plots = grid.arrange(plots[[1]], plots[[2]], plots[[3]],
-                                    plots[[4]], plots[[5]], plots[[6]], plots[[7]],
-                                    ncol=4)
-  
-  ggsave(local_rf_main_plots, file='rf_local_gof_plot.png',
-         width=75, height=55, units='cm', dpi=1000)
-}
