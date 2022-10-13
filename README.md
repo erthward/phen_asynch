@@ -113,7 +113,7 @@ NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` w
 4. Run `asynch/analysis/corr/ch3_rf_job.sh` to loop over vars (NIRv, SIF) and neighborhood radii, each time prepping data layers, running the random forest analysis, and generating identical results.
 5. Run `asynch/analysis/corr/rasterize_SHAP_vals.py` to convert output CSVs of global SHAP values to GeoTIFFs.
 6. Run `asynch/analysis/corr/tabulate_importance_vals.py` to combine all permuation-based and SHAP-based importance values into a single output table, for supplmental materials.
-7. Run `asynch/analysis/corr/plot_RF_summary_FIG_4.py` to produce final table and figures summarizing random forest results.
+7. Run `asynch/analysis/corr/plot_RF_summary_FIG_4.py` to produce final figure summarizing random forest results.
 
 
 ## run climate-distance analysis:
