@@ -27,6 +27,29 @@ TODO:
     something used to label rows at the right
     - in interp map, use asynch-clustering from final analysis to mask map instead of
       pixel-wise asynch values?
+
+                            IMPORT          VAR         SHAP
+
+              PRED MAP
+
+                            IMPORT          VAR         SHAP
+
+
+
+                                            VAR          SHAP
+
+
+
+                                            VAR          SHAP
+                    SHAP INTERP
+
+
+                                            VAR          SHAP
+
+
+
+
+
 """
 
 
@@ -61,8 +84,15 @@ top_covars = {'tmp.min.nsd': ('CHELSA_bio6_1981-2010_V.2.1_5km_'
 
 
 # set up figure
-fig = plt.figure(figsize=(28, 21))
-gs = fig.add_gridspec(ncols=120, nrows=90)
+fig = plt.figure(figsize=(26.25, 15.25))
+gs = fig.add_gridspec(ncols=260, nrows=150)
+
+
+# TODO:
+    # 1. pick up here
+    # 2. rearrange as laid out above
+    # 3. get working
+    # 4. run on final results
 
 
 #------------------------------------------
@@ -193,7 +223,7 @@ bg_color = None
 #bg_color = '#ffffff'
 
 # set top asynch percentile below which to mask out pixels
-asynch_pctile = 90
+asynch_pctile = 75
 
 # get all valid files
 shap_files = [f for f in os.listdir(data_dir) if (f.startswith('SHAP_map') and
@@ -233,7 +263,7 @@ asynch_data_dir = phf.EXTERNAL_DATA_DIR
 asynch = rxr.open_rasterio(os.path.join(asynch_data_dir,
                     '%s_asynch_%ikm.tif' % (var, neigh_rad)), masked=True)[0]
 
-# TODO: DELETE ME
+# TODO: DELETE ME?
 asynch = asynch.rio.reproject_match(out_da)
 
 out_da = out_da.where(pd.notnull(asynch), np.nan)

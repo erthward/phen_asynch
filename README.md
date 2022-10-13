@@ -70,11 +70,12 @@ Other directories include:
 
 ## prepare other physiographic covariates:
 
-1. Run `phen/calculation/GEE/other_datasets/calc_dist_to_ecotone.js` to produce the ecotone-distance map that will be used as a covariate in the phenological asynchrony predictive model.
+1. Run `phen/calculation/GEE/other_datasets/calc_veg_entropy.js` to produce the vegetation cover entropy map that will be used as a covariate in the phenological asynchrony predictive model.
 2. Run `phen/calculation/GEE/other_datasets/calc_dist_to_water.js` to produce the river-distance map that will be used as a covariate in the phenological asynchrony predictive model.
 3. Download SRTM-based 50 km median vector ruggedness metric (file 'vrm_50KMmd_SRTM/tif') from the [EarthEnv website](http://www.earthenv.org/topography).
 4. Download the CHELSA bio6 (daily min temperature of the coldest month) and bio15 (precipitation seasonality) data from the [CHELSA website](URL: https://chelsa-climate.org/bioclim/) using wget on the files in `asynch/analysis/corr/envidatS3paths.txt`!
 5. Run `asynch/analysis/corr/calc_circular_moving_window_chelsa_rasters.r` to calculate the neighborhood mean and standard deviation of the CHELSA bio6 layer and the neighborhood standard deviation of the bio15 layer within 10-cell (i.e., ~55km at the equator) radii.
+NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` will also be used as covariates in the phenological asynchrony predictive model.
 
 
 ## run gridded SIF orbital-gap seasonality validation:
@@ -111,7 +112,7 @@ Other directories include:
 3. Manually inspect the results of the interactive analysis. Use the results of that to set the hyperparameters (in the code block starting at line 410 in `asynch/analysis/corr/phen_asynch_corr.r`) and the feature selection (code block starting at line 486 in the same file) for the main global RF model that will be used for both datasets (NIRv and SIF) and all 3 neighborhood radii (50 km, 100 km, 150 km).
 4. Run `asynch/analysis/corr/ch3_rf_job.sh` to loop over vars (NIRv, SIF) and neighborhood radii, each time prepping data layers, running the random forest analysis, and generating identical results.
 5. Run `asynch/analysis/corr/rasterize_SHAP_vals.py` to convert output CSVs of global SHAP values to GeoTIFFs.
-6. Run `asynch/analysis/corr/tabulate_SHAP_importance_vals.py` to combine all SHAP importance values into a single output table, for supplmental materials.
+6. Run `asynch/analysis/corr/tabulate_importance_vals.py` to combine all permuation-based and SHAP-based importance values into a single output table, for supplmental materials.
 7. Run `asynch/analysis/corr/plot_RF_summary_FIG_4.py` to produce final table and figures summarizing random forest results.
 
 

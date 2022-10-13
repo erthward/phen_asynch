@@ -134,7 +134,7 @@ tmp.min.asy = read.file('tmmn', asynch.file=T,
                     align.to=phn.asy, mask.it=F)
 
 # 50km neighborhood mean daily min temp, coldest month
-# NOTE: DROPPED BECUASE HAS R2=0.996 WITH NEIGHBORHOOD MEAN!
+# NOTE: DROPPED BECAUSE HAS R^2=0.996 WITH NEIGHBORHOOD MEAN!
 #tmp.min.nmn = read.file('CHELSA_bio6_1981-2010_V.2.1_5km_10CELLRAD_NEIGHMEAN',
 #                        asynch.file=F, align.to=phn.asy, mask.it=F)
 
@@ -172,17 +172,12 @@ vrm.med = read.file('vrm_50KMmd', asynch.file=F,
 riv.dis = read.file('dist_to_rivers', asynch.file=F,
                     align.to=phn.asy, mask.it=F)
 
-# distance from ecotones
-# NOTE: has gaps in it because GEE didn't calculate distance beyond a max,
-#       and too computationally intensive to quickly extrapolate into them,
-#       so for now just backfilling with the max
-#       TODO: come back to this? even though it's likely not that influential...
-eco.dis = read.file('dist_to_ecotone', asynch.file=F,
+# 100 km neighborood entropy in MODIS IGBP vegetation type
+# (reclassed to forest, shrubland, savanna, grassland, permanent wetland, or invalid)
+veg.ent = read.file('MODIS_IGBP_veg_entropy', asynch.file=F,
                     align.to=phn.asy, mask.it=F)
-# NOTE: backfill NAs with max val
-eco.dis[is.na(eco.dis)] = cellStats(eco.dis, max)
-# then mask to other datasets
-eco.dis = raster::mask(eco.dis, phn.asy)
+# mask to other datasets
+veg.ent = raster::mask(veg.ent, phn.asy)
 
 
 
@@ -193,7 +188,7 @@ eco.dis = raster::mask(eco.dis, phn.asy)
 # gather into a stack
 vars = stack(phn.asy, tmp.min.asy, tmp.min.nsd,
              ppt.asy, ppt.sea.nsd, def.asy, cld.asy, vrm.med,
-             riv.dis, eco.dis)
+             riv.dis, veg.ent)
 
 # aggregate to coarser res, if working on laptop
 if (on.laptop){
@@ -206,7 +201,7 @@ names = c('phn.asy',
           'ppt.asy', 'ppt.sea.nsd',
           'def.asy', 'cld.asy',
           'vrm.med', 'riv.dis',
-          'eco.dis')
+          'veg.ent')
 
 names(vars) = names
 

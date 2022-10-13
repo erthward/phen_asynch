@@ -19,7 +19,7 @@ TODO:
 include_latlon = False
 
 # only use top-importance covars?
-only_top_import_covars = False
+only_top_import_covars = True
 
 # set top asynch percentile below which to mask out pixels
 asynch_pctile = 90
@@ -30,7 +30,8 @@ neigh_rad = int(sys.argv[2])
 
 # get all valid files
 data_dir = '/media/deth/SLAB/diss/3-phn/corr_data/'
-shap_files = [f for f in os.listdir(data_dir) if f.endswith('.tif')]
+shap_files = [f for f in os.listdir(data_dir) if (f.startswith('SHAP_map')
+                                                  and f.endswith('.tif'))]
 shap_files = [f for f in shap_files if (var in f) and (str(neigh_rad)+'km' in f)]
 if not include_latlon:
     shap_files = [f for f in shap_files if
@@ -106,6 +107,9 @@ ax = fig.add_subplot(111)
 countries.to_crs(out_da.rio.crs).plot(color='black',
                                       ax=ax,
                                       zorder=0)
+# NOTE: replace 'long_name' attr with a str
+#       as a hack around the xarray AttributeError
+#out_da.attrs.long_name = ''
 im = out_da.plot.imshow(cmap=cmap, ax=ax, zorder=1)
 cbar = im.colorbar
 ymin, ymax = cbar.ax.get_ylim()

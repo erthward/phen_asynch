@@ -271,7 +271,7 @@ world = map_data('world')
 names = c('phn.asy', 'tmp.min.asy',
           'tmp.min.nsd', 'ppt.asy',
           'ppt.sea.nsd', 'def.asy', 'cld.asy', 'vrm.med',
-          'riv.dis', 'eco.dis')
+          'riv.dis', 'veg.ent')
 
 # load rasters of prepped variables
 vars = brick(paste0(data.dir, "/asynch_model_all_vars_",
@@ -407,7 +407,7 @@ if (F){
   }
 }
 
-# set global RF hyperparams based on output above
+# set RF hyperparams based on output above
 ntree = 300
 replace = F
 rf.sample.fraction = 0.8
@@ -512,6 +512,11 @@ p_imp_permut = plot.ranger.import(rf_final)
 pfun <- function(object, newdata) {
   predict(object, data = newdata)$predictions
 }
+# and save permutation-based importance values
+permut_imp <- as.data.frame(ranger::importance(rf_final))
+write.csv(permut_imp, paste0(data.dir, 'rf_permut_importance_',
+                             asynch.var, '_',
+                             as.character(neigh.rad), 'km.csv'), row.names=T)
 # ... and with SHAP values
 shap <- fastshap::explain(rf_final, X = df[, 2:ncol(df)], pred_wrapper = pfun, nsim = 10)
 shap_imp <- data.frame(
@@ -574,73 +579,76 @@ ggsave(preds_plot, file=paste0(data.dir, 'preds_plot_', asynch.var, '_', as.char
 
 # make predictions for full dataset (to map as raster)
 # NOTE: only if interactive
-if (F){
+#if (F){
   full_preds = predict(rf_final, df_full)$predictions
   df.res = df_full %>% mutate(preds = full_preds, err = full_preds - df_full[,'phn.asy'])
-  # cbind original coords (saved up above) with true, predicted, and error values
-  dfrast <- rasterFromXYZ(cbind(df_full_unproj[, c('x', 'y')], df.res[, c('phn.asy', 'preds', 'err')]))
-  #re_df = as.data.frame(dfrast, xy=T)
-  #colnames(re_df) = c('x', 'y', 'phn.asy', 'preds', 'err')
-  asy.cbar.limits = quantile(df.res$phn.asy, c(0.01, 0.99), na.rm=T, type=8)
-  err.cbar.limits = rep(max(abs(quantile(df.res$err, c(0.01, 0.99), na.rm=T, type=8))),2) * c(-1,1)
-  orig.x = df_full_unproj[, 'x']
-  orig.y = df_full_unproj[, 'y']
-  obs_map = ggplot() +
-    geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
-    geom_raster(data=df.res, aes(x=orig.x, y=orig.y, fill=phn.asy)) +
-    scale_fill_cmocean(name='dense', direction=-1, limits=asy.cbar.limits) +
-    theme_bw() +
-    theme(legend.key.size = unit(2, 'cm'),
-          legend.key.width = unit(1, 'cm'),
-          legend.text = element_text(size=13),
-          legend.title = element_text(size=16))
-  preds_map = ggplot() +
-    geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
-    geom_raster(data=df.res, aes(x=orig.x, y=orig.y, fill=preds)) +
-    scale_fill_cmocean(name='dense', direction=-1, limits=asy.cbar.limits) +
-    theme_bw() +
-    theme(legend.key.size = unit(2, 'cm'),
-          legend.key.width = unit(1, 'cm'),
-          legend.text = element_text(size=13),
-          legend.title = element_text(size=16))
-  err_map = ggplot() +
-    geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
-    geom_raster(data=df.res, aes(x=orig.x, y=orig.y, fill=err)) +
-    scale_fill_cmocean(name='curl', direction=-1, limits=err.cbar.limits) +
-    theme_bw() +
-    theme(legend.key.size = unit(2, 'cm'),
-          legend.key.width = unit(1, 'cm'),
-          legend.text = element_text(size=13),
-          legend.title = element_text(size=16))
-  obs_vs_pred = ggplot() +
-    geom_point(data=df.res, aes(x=phn.asy, y=preds), alpha=0.05) +
-    geom_abline(intercept=0, slope=1)
-  global_main_plots = cowplot::plot_grid(obs_map, preds_map, err_map, obs_vs_pred, nrow=2, ncol=2)
-  global_main_plots
-  
-  # save plots and raster
-  ggsave(global_main_plots, file=paste0(data.dir, 'global_grrf_main_plot_',
-                                        asynch.var, '_',
-                                        as.character(neigh.rad), 'km.png'),
-         width=75, height=55, units='cm', dpi=500)
-  
-  writeRaster(dfrast,
-              paste0(data.dir, 'global_rf_map_results_', asynch.var, '_', as.character(neigh.rad), 'km.tif'),
-              'GTiff',
-              overwrite = T
-  )
-  
-  # plot SHAP values
-  p1 <- autoplot(shap)
-  p2 <- autoplot(shap, type = "dependence", feature = "ppt.asy", X = df[,3:ncol(df)], alpha = 0.5,
-                 color_by = "ppt.sea.nsd", smooth = TRUE, smooth_color = "black") +
-    scale_color_viridis_c()
-  gridExtra::grid.arrange(p1, p2, nrow = 1)
-  p2 <- autoplot(shap, type = "dependence", feature = "tmp.min.asy", X = df[,3:ncol(df)], alpha = 0.5,
-                 color_by = "tmp.min.nsd", smooth = TRUE, smooth_color = "black") +
-    scale_color_viridis_c()
-  gridExtra::grid.arrange(p1, p2, nrow = 1)
-}
+  write.csv(df.res, paste0(data.dir, 'rf_full_preds_',
+                            asynch.var, '_',
+                            as.character(neigh.rad), 'km.csv'), row.names=F)
+  ## cbind original coords (saved up above) with true, predicted, and error values
+  #dfrast <- rasterFromXYZ(cbind(df_full_unproj[, c('x', 'y')], df.res[, c('phn.asy', 'preds', 'err')]))
+  ##re_df = as.data.frame(dfrast, xy=T)
+  ##colnames(re_df) = c('x', 'y', 'phn.asy', 'preds', 'err')
+  #asy.cbar.limits = quantile(df.res$phn.asy, c(0.01, 0.99), na.rm=T, type=8)
+  #err.cbar.limits = rep(max(abs(quantile(df.res$err, c(0.01, 0.99), na.rm=T, type=8))),2) * c(-1,1)
+  #orig.x = df_full_unproj[, 'x']
+  #orig.y = df_full_unproj[, 'y']
+  #obs_map = ggplot() +
+  #  geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
+  #  geom_raster(data=df.res, aes(x=orig.x, y=orig.y, fill=phn.asy)) +
+  #  scale_fill_cmocean(name='dense', direction=-1, limits=asy.cbar.limits) +
+  #  theme_bw() +
+  #  theme(legend.key.size = unit(2, 'cm'),
+  #        legend.key.width = unit(1, 'cm'),
+  #        legend.text = element_text(size=13),
+  #        legend.title = element_text(size=16))
+  #preds_map = ggplot() +
+  #  geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
+  #  geom_raster(data=df.res, aes(x=orig.x, y=orig.y, fill=preds)) +
+  #  scale_fill_cmocean(name='dense', direction=-1, limits=asy.cbar.limits) +
+  #  theme_bw() +
+  #  theme(legend.key.size = unit(2, 'cm'),
+  #        legend.key.width = unit(1, 'cm'),
+  #        legend.text = element_text(size=13),
+  #        legend.title = element_text(size=16))
+  #err_map = ggplot() +
+  #  geom_polygon(data=world, aes(x=long, y=lat, group=group), color="black", fill="white" ) +
+  #  geom_raster(data=df.res, aes(x=orig.x, y=orig.y, fill=err)) +
+  #  scale_fill_cmocean(name='curl', direction=-1, limits=err.cbar.limits) +
+  #  theme_bw() +
+  #  theme(legend.key.size = unit(2, 'cm'),
+  #        legend.key.width = unit(1, 'cm'),
+  #        legend.text = element_text(size=13),
+  #        legend.title = element_text(size=16))
+  #obs_vs_pred = ggplot() +
+  #  geom_point(data=df.res, aes(x=phn.asy, y=preds), alpha=0.05) +
+  #  geom_abline(intercept=0, slope=1)
+  #global_main_plots = cowplot::plot_grid(obs_map, preds_map, err_map, obs_vs_pred, nrow=2, ncol=2)
+  #global_main_plots
+  #
+  ## save plots and raster
+  #ggsave(global_main_plots, file=paste0(data.dir, 'global_grrf_main_plot_',
+  #                                      asynch.var, '_',
+  #                                      as.character(neigh.rad), 'km.png'),
+  #       width=75, height=55, units='cm', dpi=500)
+  #
+  #writeRaster(dfrast,
+  #            paste0(data.dir, 'global_rf_map_results_', asynch.var, '_', as.character(neigh.rad), 'km.tif'),
+  #            'GTiff',
+  #            overwrite = T
+  #)
+  #
+  ## plot SHAP values
+  #p1 <- autoplot(shap)
+  #p2 <- autoplot(shap, type = "dependence", feature = "ppt.asy", X = df[,3:ncol(df)], alpha = 0.5,
+  #               color_by = "ppt.sea.nsd", smooth = TRUE, smooth_color = "black") +
+  #  scale_color_viridis_c()
+  #gridExtra::grid.arrange(p1, p2, nrow = 1)
+  #p2 <- autoplot(shap, type = "dependence", feature = "tmp.min.asy", X = df[,3:ncol(df)], alpha = 0.5,
+  #               color_by = "tmp.min.nsd", smooth = TRUE, smooth_color = "black") +
+  #  scale_color_viridis_c()
+  #gridExtra::grid.arrange(p1, p2, nrow = 1)
+#}
   
 # map SHAP values
 cat('\n\n\nNOW CALCULATING FULL SHAPLEY VALUES...\n\n\n')
@@ -687,7 +695,7 @@ if (F){
   
   rf_local <- SpatialML::grf(formula=phn.asy ~ tmp.min.asy + tmp.min.nsd +
                                ppt.asy + ppt.sea.nsd + def.asy + cld.asy +
-                               vrm.med + riv.dis + eco.dis,
+                               vrm.med + riv.dis + veg.ent,
                              dframe=trn,
                              bw=bw.local,
                              kernel="adaptive",
