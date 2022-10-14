@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=ch3_rf
+#SBATCH --job-name=rastshap
 #
 # Account:
 #SBATCH --account=fc_landgen
@@ -19,4 +19,4 @@
 
 module load python
 # run the SHAP-rasterization script
-python /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/analysis/rf/rasterize_SHAP_vals.py
+python /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/analysis/rf/rasterize_SHAP_vals.py > rast_shap.pyout
