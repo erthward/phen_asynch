@@ -27,7 +27,7 @@ do
       Rscript --vanilla /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/analysis/rf/prep_phen_asynch_rf_data.r $var $neigh_rad > ch3_rf_data_prep_${var}_${neigh_rad}.Rout 
       for coords_as_covars in y n
       do
-         Rscript --vanilla /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/analysis/rf/phen_asynch_rf.r $var $neigh_rad $coords_as_covars > ch3_rf_${var}_${neigh_rad}_${coords_as_covars}.Rout 
+         Rscript --vanilla /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/analysis/rf/run_phen_asynch_rf.r $var $neigh_rad $coords_as_covars > ch3_rf_${var}_${neigh_rad}_${coords_as_covars}.Rout 
       done
  done
 done

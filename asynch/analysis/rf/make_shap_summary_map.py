@@ -27,12 +27,15 @@ asynch_pctile = 75
 # get var (SIF or NIRv) and neigh_rad (in km) for which to compare shap maps
 var = sys.argv[1]
 neigh_rad = int(sys.argv[2])
+include_coords = sys.argv[3]
 
 # get all valid files
 data_dir = '/media/deth/SLAB/diss/3-phn/rf_data/'
 shap_files = [f for f in os.listdir(data_dir) if (f.startswith('SHAP_map')
                                                   and f.endswith('.tif'))]
-shap_files = [f for f in shap_files if (var in f) and (str(neigh_rad)+'km' in f)]
+shap_files = [f for f in shap_files if (var in f and
+                                        str(neigh_rad)+'km' in f and
+                                        f'{include_coords}COORDS' in f)]
 if not include_latlon:
     shap_files = [f for f in shap_files if
                   not re.search('(?<=^SHAP_map_)[xy].?1?_%s' % var, f)]

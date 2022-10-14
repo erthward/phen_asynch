@@ -2,12 +2,14 @@ import pandas as pd
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 import geopandas as gpd
 import rioxarray as rxr
 from matplotlib.patches import Polygon as mplPolygon
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from collections import Counter as C
 import palettable
+import cmocean
 from palettable.cartocolors.sequential import PinkYl_7
 from palettable.scientific.sequential import Acton_20_r
 from shapely.geometry import Polygon as shapelyPolygon
@@ -57,8 +59,12 @@ rad_alpha = 0.75
 rad_mask_alpha = 0.175
 arr_cmap = plt.cm.twilight_shifted
 arr_mask_color = '#555555'
-curve_cmap = plt.cm.viridis
-asynch_scat_cmap = curve_cmap
+curve_cmap = plt.cm.bone
+#asynch_cmap = 'viridis'
+asynch_cmap = 'cmo.thermal'
+#asynch_cmap = 'cmo.dense_r'
+#asynch_cmap = mpl.cm.plasma.copy()
+#asynch_cmap.set_bad('#717171')
 rand_pix_to_track = 208
 rand_pix_color = 'red'
 rand_pix_linewidth = 1.5
@@ -268,19 +274,18 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
                         edgecolor='k', linewidth=0.5)
 
             # ax3
+            # NOTE: adjusting ys downward a bit, to make the low-high
+            #       difference clearer
+            reduction = 1
+            ys = [y - reduction for y in ys]
             y = np.array(ys).T
-            X = np.stack((np.ones((len(xs))), np.array(xs))).T
-            #X = np.array(xs).T
-            mod = sm.OLS(y, X, hasconst=True).fit()
-            #mod = sm.OLS(y, X, hasconst=False).fit()
-            pred_xs = np.stack((np.ones(10), np.linspace(0.9*np.min(xs), 1.1*np.max(xs), 10))).T
-            #pred_xs = np.linspace(0.9*np.min(xs), 1.1*np.max(xs), 10)
+            X = np.array(xs).T
+            mod = sm.OLS(y, X, hasconst=False).fit()
+            pred_xs = np.linspace(0.9*np.min(xs), 1.1*np.max(xs), 10)
             preds = mod.predict(pred_xs)
-            #ax3.scatter(xs, ys, c=cols, s=scat_markersize,
-            #            cmap=asynch_scat_cmap)
             ax3.scatter(xs, ys, c='k', s=scat_markersize,
                         alpha=scat_markeralpha)
-            ax3.scatter(rand_pix_geo_dist, rand_pix_seas_dist,
+            ax3.scatter(rand_pix_geo_dist, rand_pix_seas_dist-reduction,
                         c=rand_pix_color, s=rand_pix_markersize,
                         marker=rand_pix_marker, edgecolor='k', linewidth=0.5)
             # cover the (0,0) point, to avoid confusion
@@ -289,18 +294,9 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
                 ax3.set_ylim((min_seas_dist, max_seas_dist))
             else:
                 ax3.set_ylim((min_seas_dist, max_seas_dist))
-            ax3.plot(pred_xs[:,1], preds, '-', color=scat_label_fontcolor)
-            #ax3.plot(pred_xs, preds, '-k')
-            #ax3.plot([pred_xs[2,1], pred_xs[2,1], pred_xs[5,1]],
-            #ax3.plot([pred_xs[2], pred_xs[2], pred_xs[5]],
-            #         [preds[2], preds[5], preds[5]], ':',
-            #         color=scat_label_fontcolor,
-            #         linewidth=scat_label_linewidth)
-            #ax3.text(0.05, 0.85, scat_label_text[asynch],
-            #         transform=ax3.transAxes,
-            #         fontdict={'fontsize': scat_label_fontsize,
-            #                   'color': scat_label_fontcolor})
-
+            ax3.plot(pred_xs, preds, '-k')
+            # make sure origin is bottom-left corner
+            ax3.set_xlim(0, ax3.get_xlim()[1])
 
             # dress it up
             ax1.set_xticks(())
@@ -402,9 +398,7 @@ def map_asynch(fig, gs=None, main_fig=True, var='NIRv',
         rast = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
                                               file), masked=True)[0]
         rast = rast.rio.write_crs(4326).rio.reproject(8857)
-        cmap = mpl.cm.plasma.copy()
-        #cmap.set_bad('#717171')
-        # NOTE: annoying AttributeError is because da.attrs['long_name']
+                # NOTE: annoying AttributeError is because da.attrs['long_name']
         #       is retained as a tuple of names (rather than being subsetted
         #       by indexing) when I index a single layer out of an
         #       xarray.core.dataarray.DataArray;
@@ -412,7 +406,7 @@ def map_asynch(fig, gs=None, main_fig=True, var='NIRv',
         rast.attrs['long_name'] = ''
         rast.plot.imshow(ax=ax,
                          zorder=0,
-                         cmap=cmap,
+                         cmap=asynch_cmap,
                          vmin=np.nanpercentile(rast, 1),
                          vmax=np.nanpercentile(rast, 99),
                          add_colorbar=True,
