@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import rioxarray as rxr
 import os, re
 
-data_dir = '/media/deth/SLAB/diss/3-phn/corr_data'
+data_dir = '/media/deth/SLAB/diss/3-phn/rf_data'
 
 for var in ['NIRv', 'SIF']:
     for neigh_rad in [50, 100, 150]:

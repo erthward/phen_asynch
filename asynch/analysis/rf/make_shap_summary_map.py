@@ -19,24 +19,24 @@ TODO:
 include_latlon = False
 
 # only use top-importance covars?
-only_top_import_covars = True
+use_only_top_import_covars = False
 
 # set top asynch percentile below which to mask out pixels
-asynch_pctile = 90
+asynch_pctile = 75
 
 # get var (SIF or NIRv) and neigh_rad (in km) for which to compare shap maps
 var = sys.argv[1]
 neigh_rad = int(sys.argv[2])
 
 # get all valid files
-data_dir = '/media/deth/SLAB/diss/3-phn/corr_data/'
+data_dir = '/media/deth/SLAB/diss/3-phn/rf_data/'
 shap_files = [f for f in os.listdir(data_dir) if (f.startswith('SHAP_map')
                                                   and f.endswith('.tif'))]
 shap_files = [f for f in shap_files if (var in f) and (str(neigh_rad)+'km' in f)]
 if not include_latlon:
     shap_files = [f for f in shap_files if
                   not re.search('(?<=^SHAP_map_)[xy].?1?_%s' % var, f)]
-if only_top_import_covars:
+if use_only_top_import_covars:
     shap_files = [f for f in shap_files if ('ppt' in f or
                                             'tmp.min' in f or
                             # NOTE: need x and y in case include_latlon == True
@@ -76,54 +76,8 @@ out_da = out_da.where(pd.notnull(asynch), np.nan)
 # mask to only top Nth percentile of asynch values
 out_da = out_da.where(asynch>=np.nanpercentile(asynch, asynch_pctile))
 
-# set colormap for the covars
-# NOTE: using 12-color palette at http://tsitsul.in/blog/coloropt/
-color_hex = ['#ebac23',
-             '#b80058',
-             '#008cf9',
-             '#006e00',
-             '#00bbad',
-             '#d163e6',
-             '#b24502',
-             '#ff9287',
-             '#5954d6',
-             '#00c6f8',
-             '#878500',
-             '#00a76c',
-             '#bdbdbd',
-            ]
-cmap = ListedColormap(color_hex[:len(covar_names)])
-# make missing values black (to make colors more discernable)
-#cmap.set_bad('#ffffff')
-
-# load countries boundaries
-countries_dir = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
-                 'seasonal_asynchrony/data/bounds')
-countries = gpd.read_file(os.path.join(countries_dir, 'NewWorldFile_2020.shp'))
-
-# plot it
-fig = plt.figure(figsize=(22, 10))
-ax = fig.add_subplot(111)
-countries.to_crs(out_da.rio.crs).plot(color='black',
-                                      ax=ax,
-                                      zorder=0)
-# NOTE: replace 'long_name' attr with a str
-#       as a hack around the xarray AttributeError
-#out_da.attrs.long_name = ''
-im = out_da.plot.imshow(cmap=cmap, ax=ax, zorder=1)
-cbar = im.colorbar
-ymin, ymax = cbar.ax.get_ylim()
-tick_locs = np.linspace(ymax/len(covar_names)/2,
-                        ymax - (ymax/len(covar_names)/2),
-                        len(covar_names))
-cbar.ax.set_yticks(tick_locs, covar_names)
-# format
-ax.set_xticks([])
-ax.set_yticks([])
-ax.set_xlabel('')
-ax.set_ylabel('')
-ax.set_title('predomnant covars, by |SHAP| (%s, %i km)' % (var, neigh_rad))
-fig.subplots_adjust(left=0.01, right=1.06, bottom=0.01, top=0.95)
-fig.savefig('SHAP_interp_map_%s_%ikm%s%s.png' % (var, neigh_rad,
-                            '_LATLON' * include_latlon,
-                            '_TOPIMPORT' * only_top_import_covars), dpi=700)
+# write to file
+filename = 'SHAP_interp_map_%s_%ikm%s%s.tif' % (var, neigh_rad,
+                                                '_LATLON' * include_latlon,
+                                        '_TOPIMPORT' * use_only_top_import_covars)
+out_da.rio.to_raster(os.path.join(data_dir, filename))

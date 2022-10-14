@@ -685,52 +685,6 @@ pt_biomes = [b.replace('/', '/\n') if (pd.notnull(b) and
 biomes = [b.replace('/', '/\n') if 'savanna' in b else b for b in biomes]
 results_df['biome'] = pt_biomes
 
-# add a column indicating whether each site is in 'natural vegetation' or not
-# (where I'm condsidering the following IGBP land cover classes as not
-# 'natural', in the sense that they don't necessarily reflect the land cover
-# class implied by the Whittaker biome plot):
-    # CRO = croplands
-    # CVM = crop/natural veg mosaic
-    # URB = urban
-    # WAT = water bodies
-    # SNO = snow and ice
-nat_veg = []
-for i, row in results_df.iterrows():
-    if pd.isnull(row['igbp']):
-        nat_veg.append(np.nan)
-    elif row['igbp'] in ['CRO', 'CVM', 'URB', 'WAT', 'SNO']:
-        nat_veg.append(0)
-    else:
-        nat_veg.append(1)
-results_df['nat_veg'] = nat_veg
-
-# add a similar column indicating whether each row's IGBP classification
-# fits its Whittaker plot implication
-crosswalk = {
-    'Boreal forest': ['DNF', 'ENF', 'MF'],
-    'Subtropical desert': ['BSV', 'OSH'],
-    'Temperate grassland/desert': ['GRA', 'BSV', 'OSH'],
-    'Temperate seasonal forest': ['DBF', 'DNF', 'ENF', 'MF', 'EBF'],
-    'Tropical rain forest': ['EBF'],
-    'Tropical seasonal forest/\nsavanna': ['DBF', 'MF', 'WSA', 'SAV', 'EBF'],
-    'Tundra': ['BSV', 'SNO'],
-    'Woodland/shrubland': ['OSH', 'CSH', 'WSA', 'SAV', 'MF', 'DBF', 'EBF',
-                           'ENF', 'DNF'],
-}
-match_veg = []
-for i, row in results_df.iterrows():
-    if pd.isnull(row['igbp']) or pd.isnull(row['biome']):
-        match_veg.append(np.nan)
-    elif row['igbp'] in crosswalk[row['biome']]:
-        match_veg.append(1)
-    else:
-        if row['igbp'] == 'WET':
-            match_veg.append(2)
-        else:
-            match_veg.append(0)
-results_df['match_veg'] = match_veg
-
-
 # add dotted vertical lines for each year,
 # and a solid line indicating length of NIRV ts, for comparison
 for yrs in np.arange(1, np.max(results_df['gpp_ts_len'])+1, 1):
@@ -756,7 +710,7 @@ scat = sns.scatterplot(x=results_df['gpp_ts_len'] + np.random.uniform(-0.25,
                        color='black',
                        edgecolor='none',
                        alpha=0.8,
-                       s = 80,
+                       s = 15,
                        legend=True,
                        #ax=ax2,
                       )

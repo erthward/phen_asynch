@@ -7,7 +7,13 @@ from collections import Counter as C
 import os
 
 # set working directory
-data_dir = '/media/deth/SLAB/diss/3-phn/corr_data/'
+
+# get path for savio...
+if os.getcwd().split('/')[1] == 'global':
+    data_dir = "/global/scratch/users/drewhart/seasonality/rf_data/"
+# ... or on laptop
+else:
+    data_dir = "/media/deth/SLAB/diss/3-phn/rf_data/"
 
 # loop over vars and neigh_rads (in km)
 for var in ['NIRv', 'SIF']:

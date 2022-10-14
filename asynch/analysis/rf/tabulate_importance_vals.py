@@ -7,7 +7,7 @@ from collections import Counter as C
 import os
 
 # set working directory
-data_dir = '/media/deth/SLAB/diss/3-phn/corr_data/'
+data_dir = '/media/deth/SLAB/diss/3-phn/rf_data/'
 
 for coords_as_covars in ['y', 'n']:
     out_dfs = {}
