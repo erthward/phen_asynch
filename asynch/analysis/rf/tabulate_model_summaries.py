@@ -4,15 +4,17 @@ import xarray as xr
 import rioxarray as rxr
 from affine import Affine
 from collections import Counter as C
-import os
+import os, re
 
 # set working directory
 data_dir = '/media/deth/SLAB/diss/3-phn/rf_data/'
 
 for coords_as_covars in ['y', 'n']:
     out_dfs = {}
+    out_model_dfs = []
     for import_metric in ['permut', 'SHAP']:
         dfs = []
+        model_dfs = []
         # loop over vars and neigh_rads (in km)
         for var in ['NIRv', 'SIF']:
             for neigh_rad in [50, 100, 150]:
@@ -20,7 +22,7 @@ for coords_as_covars in ['y', 'n']:
                 # get CSV of Shapley importance values
                 df = pd.read_csv(os.path.join(data_dir,
                     'rf_%s_importance_%sCOORDS_%s_%ikm.csv' % (import_metric,
-                                                               coords_as_covars
+                                                               coords_as_covars,
                                                                var,
                                                                neigh_rad)))
                 # rename columns in permut to match those in SHAP importance
@@ -30,7 +32,23 @@ for coords_as_covars in ['y', 'n']:
                 df.loc[:, 'neigh_radius'] = neigh_rad
                 dfs.append(df)
 
+                # get the model R2 and RMSE values as well
+                output_filename = os.path.join(data_dir,
+                        f'ch3_rf_{var}_{neigh_rad}_{coords_as_covars}.Rout')
+                with open(output_filename, 'r') as f:
+                    text = f.read()
+                mse = float(re.search('(?<=OOB prediction error \(MSE\):).*(?=\n)',
+                                text).group())
+                r2 = float(re.search('(?<=R squared \(OOB\):).*(?=\n)',
+                                     text).group())
+                model_df = pd.DataFrame({'metric':['R2',
+                                                   'MSE'], 'value':[r2, mse]})
+                model_df.loc[:, 'dataset'] = var
+                model_df.loc[:, 'neigh_radius'] = neigh_rad
+                model_dfs.append(model_df)
+
         all_df = pd.concat(dfs)
+        all_model_df = pd.concat(model_dfs)
 
         out_df = all_df.set_index(['dataset', 'neigh_radius']).pivot(
                     columns=['Variable']).T.reset_index().set_index('Variable').drop(
@@ -40,9 +58,16 @@ for coords_as_covars in ['y', 'n']:
         out_df.columns.names = ['', '']
         out_dfs[import_metric] = out_df
 
+        # finalize the model-summary df
+        out_model_df = all_model_df.set_index(['dataset', 'neigh_radius']).pivot(
+                    columns=['metric']).T.reset_index().set_index('metric').drop(
+                    labels=['level_0'], axis=1)
+        out_model_df.index.name = ''
+        out_model_df.columns.names = ['', '']
+
     # write to file
     with pd.ExcelWriter(os.path.join(data_dir,
-                    'var_importance_table_%sCOORDS.xlsx' % coords_as_covars),
+                    'model_summary_table_%sCOORDS.xlsx' % coords_as_covars),
                         engine='xlsxwriter') as w:
         for import_metric, out_df in out_dfs.items():
             out_df.to_excel(w, sheet_name='%s_importance' % import_metric)
@@ -53,3 +78,5 @@ for coords_as_covars in ['y', 'n']:
                                           'min_color': '#faeccf',
                                           'max_color': '#f77307',
                                          })
+        out_model_df.to_excel(w, sheet_name='model_summary')
+

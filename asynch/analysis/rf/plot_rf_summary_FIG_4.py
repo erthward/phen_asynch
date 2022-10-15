@@ -118,7 +118,7 @@ if orientation == 'vertical':
     axis = 'y'
 else:
     axis = 'x'
-getattr(cax, f'set_{axis}label')('prediction error', cbarlabel_fontdict)
+getattr(cax, f'set_{axis}label')('prediction error', maps_axlabel_fontdict)
 subnational.to_crs(plot_crs).plot(ax=ax,
                                   color='none',
                                   edgecolor='black',
@@ -161,15 +161,16 @@ ax.text(1.11 * ax.get_xlim()[0],
 
 dfs = []
 # TODO: ADD IN OTHER IMPORTANCE METRIC
-#for import_metric in ['SHAP', 'info']:
-for import_metric in ['SHAP', 'SHAP']:
+for import_metric in ['SHAP', 'permut']:
     import_df = pd.read_csv(os.path.join(data_dir,
         f'rf_{import_metric}_importance_{include_coords}COORDS_{var}_{neigh_rad}km.csv'))
     import_df.columns = ['covariate', 'importance']
     import_df.sort_values(by='importance', ascending=False, inplace=True)
     import_df['metric'] = import_metric
+    # minmax normalize, to be able to display on common axis
+    minmax_scale = lambda vals: (vals-np.min(vals))/(np.max(vals)-np.min(vals))
+    import_df['importance'] = minmax_scale(import_df['importance'])
     dfs.append(import_df)
-    # TODO: NEED TO STANDARDIZE EACH METRIC SO THAT THEY CAN SHARE THE X?
 df = pd.concat(dfs)
 # make top rows the SHAP rows, sorted by descending importance
 df = df.sort_values(by=['metric', 'importance'], ascending=[True, False])
@@ -185,14 +186,14 @@ g = sns.barplot(data=df,
                 ax=ax,
                )
 g.legend(loc='upper center',
-         bbox_to_anchor=(0.5, 1.25),
+         bbox_to_anchor=(0.5, 1.12),
          ncol=2,
-         fontsize=cbarticklabel_fontsize,
+         fontsize=11,
          #title='feature importance',
          #title_fontsize=maps_axlabel_fontdict['fontsize'],
         )
 ax.set_ylabel('')
-ax.set_xlabel('importance', fontdict=cbarlabel_fontdict)
+ax.set_xlabel('scaled importance', fontdict=maps_axlabel_fontdict)
 ax.tick_params(labelsize=cbarticklabel_fontsize)
 for tick in ax.get_yticklabels():
     tick.set_rotation(30)
@@ -236,16 +237,23 @@ shap_files = [f for f in shap_files if (var in f and
                                         f'{include_coords}COORDS' in f)]
 if not include_latlon:
     shap_files = [f for f in shap_files if not
-                      re.search('(?<=^SHAP_map_)[xy].?1?_%s' % var, f)]
+                      re.search('(?<=^SHAP_map_[yn]COORDS_)[xy].?1?_%s' % var, f)]
 if use_only_top_import_covars:
     shap_files = [f for f in shap_files if ('ppt' in f or
                                             'tmp.min' in f or
                         # NOTE: need x and y in case include_latlon == True
-                            re.search('(?<=^SHAP_map_)[xy].?1?_%s' % var, f))]
-# read all covars
-covar_names = [re.search('(?<=^SHAP_map_).*(?=_%s)' % var,
-                         f).group() for f in shap_files]
+                            re.search('(?<=^SHAP_map_[yn]COORDS_)[xy].?1?_%s' % var, f))]
 
+# I sorted the shap_files list in the previous script, to ensure
+# identical order every time I run that script and then this one
+# NOTE: having this regex code duplicated across two serially-used files
+#       is definitely an insecure part of the code, but I'm carefully
+#       cross-checking, so should be good...
+shap_files = np.sort(shap_files)
+
+# read all covars
+covar_names = [re.search('(?<=^SHAP_map_[yn]COORDS_).*(?=_%s)' % var,
+                         f).group() for f in shap_files]
 
 # use a special color for the background?
 bg_color = None
@@ -302,6 +310,7 @@ ax.set_title('')
 cax.tick_params(length=0, labelsize=interp_map_ticklabel_fontsize)
 for tick in cax.get_yticklabels():
     tick.set_rotation(45)
+cax.set_xlabel('max-SHAP covariate', fontdict=maps_axlabel_fontdict)
 
 # add part label
 ax.text(1.06 * ax.get_xlim()[0],

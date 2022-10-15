@@ -112,7 +112,7 @@ NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` w
 3. Manually inspect the results of the interactive analysis. Use the results of that to set the hyperparameters (in the code block starting at line 410 in `asynch/analysis/rf/run_phen_asynch_rf.r`) and the feature selection (code block starting at line 486 in the same file) for the main global RF model that will be used for both datasets (NIRv and SIF) and all 3 neighborhood radii (50 km, 100 km, 150 km).
 4. Run `asynch/analysis/rf/ch3_rf_job.sh` to loop over vars (NIRv, SIF) and neighborhood radii, each time prepping data layers, running the random forest analysis, and generating identical results.
 5. Run `asynch/analysis/rf/ch3_rasterize_SHAP_job.sh` to convert output CSVs of global SHAP values to GeoTIFFs.
-6. Run `asynch/analysis/rf/tabulate_importance_vals.py` to combine all permuation-based and SHAP-based importance values into a single output table, for supplmental materials.
+6. Run `asynch/analysis/rf/tabulate_model_summaries.py` to combine all permuation-based and SHAP-based importance values and model $R^2$s and MSEs into a single output table, for supplmental materials.
 7. Run `python asynch/analysis/rf/make_shap_summary_map.py NIRv 100 y` to produce the SHAP-value interpretation map (for the 100 km-neighborhood NIRv-asynchrony analysis that included the geo-coordinate polynomials as covariates) and save result as a GeoTIFF.
 8. Run `asynch/analysis/rf/plot_rf_summary_FIG_4.py` to produce final figure summarizing random forest results.
 
