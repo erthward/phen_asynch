@@ -351,10 +351,14 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
 def map_asynch(fig, gs=None, main_fig=True, var='NIRv',
                cbar_axlab_fontsize=13, cbar_ticklab_fontsize=10):
 
-    assert var in ['NIRv', 'SIF']
+    assert var in ['NIRv', 'SIF', 'tmmn', 'tmmx', 'ppt', 'def', 'cld']
 
-    files = [f for f in os.listdir(phf.EXTERNAL_DATA_DIR) if
+    if var in ['NIRv', 'SIF']:
+        files = [f for f in os.listdir(phf.EXTERNAL_DATA_DIR) if
                                         re.search('%s_STRICT_asynch' % var, f)]
+    else:
+        files = [f for f in os.listdir(phf.EXTERNAL_DATA_DIR) if
+                                        re.search('%s_asynch' % var, f)]
 
     # cut down to just one file, if this is for the main fig
     if main_fig:

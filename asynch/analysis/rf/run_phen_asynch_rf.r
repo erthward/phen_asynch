@@ -254,6 +254,7 @@ world = map_data('world')
 # get band names
 names = c('phn.asy',
           'tmp.min.asy',
+          'tmp.max.asy',
           'ppt.asy',
           'def.asy',
           'cld.asy',
@@ -510,7 +511,7 @@ if (coords.as.covars == 'y'){
                     min.node.size=min.node.size,
   )
 } else {
-  rf_final = ranger(phn.asy ~ tmp.min.asy + ppt.asy +
+  rf_final = ranger(phn.asy ~ tmp.min.asy + tmp.max.asy + ppt.asy +
                               def.asy + cld.asy +
                               vrm.med + riv.dis + veg.ent,
                     data=trn,

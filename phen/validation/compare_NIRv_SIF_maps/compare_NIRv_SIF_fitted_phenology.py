@@ -1,4 +1,4 @@
-import pandas as pd
+8mport pandas as pd
 import geopandas as gpd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -26,10 +26,16 @@ masking_suffix = '_STRICT' * (masking_mode == 'strict')
 
 # data directory
 if os.getcwd().split('/')[1] == 'global':
+    on_savio = True
     coeffs_data_dir = '/global/scratch/users/drewhart/seasonality/GEE_outputs/final_tifs/'
 else:
+    on_savio = False
     coeffs_data_dir = '/media/deth/SLAB/diss/3-phn/GEE_outputs/final/'
     other_data_dir = '/home/deth/Desktop/CAL/research/projects/seasonality/seasonal_asynchrony/data/'
+    sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+                                            'seasonal_asynchrony/etc/'))
+    import phen_helper_fns as phf
+
 
 def make_design_matrix():
     """
@@ -117,41 +123,46 @@ def get_fitted_seas(coeffs_rast, x, y, design_mat):
     return pred
 
 
+if on_savio:
+    # load the RS-based coefficients files
+    rs_coeffs_tif_filename = os.path.join(coeffs_data_dir, '%s_coeffs%s.tif')
+    nirv_filename = rs_coeffs_tif_filename % ('NIRv', masking_suffix)
+    sif_filename = rs_coeffs_tif_filename % ('SIF', masking_suffix)
+    nirv = load_rs_coeffs(nirv_filename)
+    sif = load_rs_coeffs(sif_filename)
+    # light check on coregistration, since I already know by now that they
+    # basically need to be coregistered
+    assert nirv.rio.crs == sif.rio.crs and np.all(nirv.shape == sif.shape)
 
-# load the RS-based coefficients files
-rs_coeffs_tif_filename = os.path.join(coeffs_data_dir, '%s_coeffs%s.tif')
-nirv_filename = rs_coeffs_tif_filename % ('NIRv', masking_suffix)
-sif_filename = rs_coeffs_tif_filename % ('SIF', masking_suffix)
-nirv = load_rs_coeffs(nirv_filename)
-sif = load_rs_coeffs(sif_filename)
-# light check on coregistration, since I already know by now that they
-# basically need to be coregistered
-assert nirv.rio.crs == sif.rio.crs and np.all(nirv.shape == sif.shape)
+    # make design matrix used to estimate rs-based coeffs' fitted seasonality
+    design_mat = make_design_matrix()
 
-# make design matrix used to estimate rs-based coeffs' fitted seasonality
-design_mat = make_design_matrix()
+    # dataset to store results
+    r2s = deepcopy(nirv[0]*0)
 
-# dataset to store results
-r2s = deepcopy(nirv[0]*0)
+    # loop over pixels, calclating and storing R^2 between
+    # fitted NIRv and SIF seasonal phenologies
+    for i in range(r2s.shape[0]):
+        print(f'\n\tprocessing row {i}...\n')
+        for j in range(r2s.shape[1]):
 
-# loop over pixels, calclating and storing R^2 between
-# fitted NIRv and SIF seasonal phenologies
-for i in range(r2s.shape[0]):
-    print(f'\n\tprocessing row {i}...\n')
-    for j in range(r2s.shape[1]):
+            if np.nan in nirv[:,i,j] or np.nan in sif[:,i,j]:
+                r2s[i,j] = np.nan
 
-        if np.nan in nirv[:,i,j] or np.nan in sif[:,i,j]:
-            r2s[i,j] = np.nan
+            else:
+                nirv_preds = get_fitted_seas(nirv, i, j, design_mat)
+                sif_preds = get_fitted_seas(sif, i, j, design_mat)
+                assert len(nirv_preds) == len(sif_preds) == 365
+                r2 = calc_r2(nirv_preds, sif_preds)
+                r2s[i, j] = r2
 
-        else:
-            nirv_preds = get_fitted_seas(nirv, i, j, design_mat)
-            sif_preds = get_fitted_seas(sif, i, j, design_mat)
-            assert len(nirv_preds) == len(sif_preds) == 365
-            r2 = calc_r2(nirv_preds, sif_preds)
-            r2s[i, j] = r2
+    # write results to disk
+    r2s.rio.to_raster(os.path.join(coeffs_data_dir, 'NIRv_SIF_seas_R2s.tif'))
 
-# write results to disk
-r2s.rio.to_raster(os.path.join(coeffs_data_dir, 'NIRv_SIF_seas_R2s.tif'))
+else:
+    r2s = rxr.open_rasterio(os.path.join(coeffs_data_dir,
+                                         'NIRv_SIF_seas_R2s.tif'), masked=True)
+
 
 # plot simple histogram
 fig_hist, ax_hist = plt.subplots(1)
@@ -159,7 +170,7 @@ ax_hist.hist(r2s.values.ravel(), bins=100)
 fig_hist.savefig('NIRv_SIF_seas_R2s_hist.png', dpi=400)
 
 # load country boundaries
-if os.getcwd().split('/')[1] == 'global':
+if not on_savio:
     countries = gpd.read_file(os.path.join(other_data_dir,
                                        'bounds/NewWorldFile_2020.shp'))
     countries = countries.to_crs(4326)
@@ -168,19 +179,22 @@ if os.getcwd().split('/')[1] == 'global':
     subnational = []
     for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
         subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                                      f)).to_crs(plot_crs))
+                                                      f)).to_crs(r2s.rio.crs))
     subnational = pd.concat(subnational)
-    
-# plot it up
-fig = plt.figure(figsize=(20,10))
-ax = fig.add_subplot(1,1,1)
-divider = make_axes_locatable(ax1)
-cax1 = divider.append_axes('bottom', size='5%', pad=0.1)
 
-r2s.plot.imshow(ax=ax,
-                  cmap='gray',
-                  add_colorbar=True,
-                  cbar_ax=cax,
+# plot it up
+fig = plt.figure(figsize=(20,9))
+ax = fig.add_subplot(1,1,1)
+divider = make_axes_locatable(ax)
+cax = divider.append_axes('bottom', size='5%', pad=0.1)
+
+r2s[0].plot.imshow(ax=ax,
+                   cmap='gray',
+                   add_colorbar=True,
+                   cbar_ax=cax,
+                   cbar_kwargs={'orientation': 'horizontal'},
+                   vmin=0,
+                   vmax=1,
                   zorder=0,
                  )
 subnational.to_crs(r2s.rio.crs).plot(ax=ax,
@@ -204,13 +218,15 @@ ax.set_yticks([])
 ax.set_xlabel('')
 ax.set_ylabel('')
 ax.set_title('')
-ax.set_xlim(nirv.rio.bounds()[::2])
-ax.set_ylim(nirv.rio.bounds()[1::2])
+ax.set_xlim(r2s.rio.bounds()[::2])
+ax.set_ylim(r2s.rio.bounds()[1::2])
 cax.tick_params(length=0, labelsize=20)
 cax.set_yticks(())
+cax.set_xlabel('$R^2$', fontdict={'fontsize':22})
+cax.set_ylabel('')
 
-fig.subplots_adjust(left=0.01,
-                    right=0.99,
+fig.subplots_adjust(left=0.02,
+                    right=0.98,
                     bottom=0.08,
                     top=0.99,
                    )

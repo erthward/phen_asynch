@@ -131,8 +131,10 @@ phn.asy = read.file(paste0(asynch.var, '_STRICT'), T)
 # LOAD PREDICTORS
 #################
 
-# asynchrony in min temperature
+# asynchrony in min and max temperatures
 tmp.min.asy = read.file('tmmn', asynch.file=T,
+                    align.to=phn.asy, mask.it=F)
+tmp.max.asy = read.file('tmmx', asynch.file=T,
                     align.to=phn.asy, mask.it=F)
 
 # 50km neighborhood mean daily min temp, coldest month
@@ -182,6 +184,7 @@ veg.ent = raster::mask(veg.ent, phn.asy)
 # gather into a stack
 vars = stack(phn.asy,
              tmp.min.asy,
+             tmp.max.asy,
              ppt.asy,
              def.asy,
              cld.asy,
@@ -197,6 +200,7 @@ if (on.laptop){
 # rename all bands 
 names = c('phn.asy',
           'tmp.min.asy',
+          'tmp.max.asy',
           'ppt.asy',
           'def.asy',
           'cld.asy',
