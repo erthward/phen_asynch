@@ -14,11 +14,6 @@ from datetime import datetime
 import seaborn as sns
 import re, os, sys, time
 
-sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
-                                        'seasonal_asynchrony/etc/'))
-import phen_helper_fns as phf
-
-
 # main behavioral params
 rescale=True
 delete_after_finished = True
@@ -30,8 +25,11 @@ masking_suffix = '_STRICT' * (masking_mode == 'strict')
 
 
 # data directory
-coeffs_data_dir = phf.EXTERNAL_DATA_DIR
-other_data_dir = phf.DATA_DIR
+if os.getcwd().split('/')[1] == 'global':
+    coeffs_data_dir = '/global/scratch/users/drewhart/seasonality/GEE_outputs/final_tifs/'
+else:
+    coeffs_data_dir = '/media/deth/SLAB/diss/3-phn/GEE_outputs/final/'
+    other_data_dir = '/home/deth/Desktop/CAL/research/projects/seasonality/seasonal_asynchrony/data/'
 
 def make_design_matrix():
     """
@@ -138,7 +136,7 @@ r2s = deepcopy(nirv[0]*0)
 
 # loop over pixels, calclating and storing R^2 between
 # fitted NIRv and SIF seasonal phenologies
-for i in range(600, 602):
+for i in range(r2s.shape[0]):
     print(f'\n\tprocessing row {i}...\n')
     for j in range(r2s.shape[1]):
 
@@ -161,17 +159,18 @@ ax_hist.hist(r2s.values.ravel(), bins=100)
 fig_hist.savefig('NIRv_SIF_seas_R2s_hist.png', dpi=400)
 
 # load country boundaries
-countries = gpd.read_file(os.path.join(other_data_dir,
+if os.getcwd().split('/')[1] == 'global':
+    countries = gpd.read_file(os.path.join(other_data_dir,
                                        'bounds/NewWorldFile_2020.shp'))
-countries = countries.to_crs(4326)
-# load level-1 subnational jurisdictions (downloaded from:
-#                                 https://gadm.org/download_country.html)
-subnational = []
-for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
-    subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                                  f)).to_crs(plot_crs))
-subnational = pd.concat(subnational)
-
+    countries = countries.to_crs(4326)
+    # load level-1 subnational jurisdictions (downloaded from:
+    #                                 https://gadm.org/download_country.html)
+    subnational = []
+    for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
+        subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,
+                                                      f)).to_crs(plot_crs))
+    subnational = pd.concat(subnational)
+    
 # plot it up
 fig = plt.figure(figsize=(20,10))
 ax = fig.add_subplot(1,1,1)

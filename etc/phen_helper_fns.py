@@ -51,7 +51,7 @@ BOUNDS_DIR = os.path.join(DATA_DIR, 'bounds')
 BIOCLIM_DIR = os.path.join(DATA_DIR, 'bioclim')
 BIOCLIM_INFILEPATHS = glob.glob(os.path.join(BIOCLIM_DIR,"wc2.1_2.5m_bio_*.tif"))
 BIOCLIM_INFILEPATHS = sorted(BIOCLIM_INFILEPATHS)
-
+    
 
 #-----------
 # set params

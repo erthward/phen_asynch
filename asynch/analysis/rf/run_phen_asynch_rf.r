@@ -400,7 +400,7 @@ if (F){
 ntree = 300
 replace = F
 rf.sample.fraction = 0.8
-mtry = 5
+mtry = 4
 min.node.size = 1
 
 # and choose data subset based on output above
@@ -492,8 +492,7 @@ predictor.var.names = spatialRF::auto_cor(
          vif.threshold=5,
 )
 
-# NOTE: says to remove var y, but leaving that because it is just intended
-#       to help account for spatial process
+# ...NONE COLLINEAR!
 
 
 ###########################################
