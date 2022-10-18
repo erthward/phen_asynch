@@ -11,7 +11,6 @@ import xarray as xr
 import rasterio as rio
 import rioxarray as rxr
 from datetime import datetime
-import zipfile36 as zipfile
 import seaborn as sns
 import re, os, sys, time
 
