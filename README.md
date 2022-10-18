@@ -23,7 +23,7 @@ Analyses were run in two major stages, so the two major directories of content a
   2. `/asynch/`: calculation of global maps of phenological asynchrony, and associated analysis
 Other directories include:
   - `/data_prep`: code used to download the SIF dataset used, convert to Geotiff, and upload to Google Earth Enginge (GEE)
-  - `/data`: ancillary data (i.e., not our main datasets) that lives in this repo and is used in analysis
+  - `/data`: ancillary data (not our main datasets) that lives in this repo and is used in analysis
   - `/etc`: a script full of helper functions, and other odds and ends
 
 ***NOTE:*** **All GEE Javascript code must be run in GEE. Other code was designed either to be run on UC Berkeley's Savio compute cluster or on a local machine.**

@@ -18,23 +18,18 @@ import zipfile36 as zipfile
 import seaborn as sns
 import re, os
 
-"""
-TODO:
+sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+                                                            'seasonal_asynchrony/etc/'))
+import phen_helper_fns as phf
 
-- how to test sig?? just permuting doesn't sound adequate at all? use DTW with
-global constraints to not allow warping across time, so as not to lose signal
-of timing?
 
-- figure out how to fix towers that are falling out of analysis
-
-"""
 
 # plotting params
 axlabel_fontdict={'fontsize': 14}
 ticklabel_fontsize=10
 
 # main behavioral params
-normalize=True
+rescale=True
 delete_after_finished = True
 plot_time_series = True
 max_neigh_cell_dist = 2 # at our 0.05deg res, this is up to ~11km away...
@@ -61,10 +56,9 @@ filter_end_date = None
 
 
 # data directories
-rs_datadir = '/media/deth/SLAB/diss/3-phn/GEE_outputs/final/'
-flux_datadir = '/media/deth/SLAB/diss/3-phn/other/flux/'
-other_datadir = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
-                 'seasonal_asynchrony/data/')
+rs_datadir = phf.EXTERNAL_DATA_DIR
+flux_datadir = phf.EXTERNAL_FLUX_DATA_DIR
+other_datadir = phf.DATA_DIR
 
 # indicate the RS-based coefficients TIFF to validate
 rs_coeffs_tif = os.path.join(rs_datadir,
@@ -205,7 +199,7 @@ def get_all_nearby_cells(x, y, cell_res, max_neigh_cell_dist):
 
 
 def predict_rs_detretend_vals(coeffs_rast, x, y, design_mat,
-                              max_neigh_cell_dist, normalize=True):
+                              max_neigh_cell_dist, rescale=True):
     """
     Calculates the predicted time series at pixel at x,y in a rioxarray raster,
     using the coefficients for the constant and the
@@ -244,9 +238,9 @@ def predict_rs_detretend_vals(coeffs_rast, x, y, design_mat,
     #       of fitted daily values for the pixel
     pred = np.sum(coeffs * design_mat, axis=1)
 
-    # normalize it
-    if normalize:
-        pred = normalize_data(pred)
+    # rescale it
+    if rescale:
+        pred = rescale_data(pred)
 
     # pair it with a date range object, then make into a df
     dates = pd.date_range(start='1/1/2021', end='12/31/2021')
@@ -264,7 +258,7 @@ def calc_euc_dist(a1, a2):
     return dist
 
 
-def normalize_data(data, lo=0, hi=1):
+def rescale_data(data, lo=0, hi=1):
     assert hi>lo, 'hi must be > lo!'
     norm_data = (data - np.min(data))/(np.max(data)-np.min(data))
     norm_data = lo + (norm_data*(hi-lo))
@@ -297,7 +291,7 @@ def make_design_matrix():
 
 
 # predict the detrended values
-def predict_fluxnet_detrended_vals(df, mod, normalize=True):
+def predict_fluxnet_detrended_vals(df, mod, rescale=True):
     # sines and cosines of annual and semiannual components
     sin_ann = [np.sin(n) for n in df['ann']]
     cos_ann = [np.cos(n) for n in df['ann']]
@@ -307,16 +301,16 @@ def predict_fluxnet_detrended_vals(df, mod, normalize=True):
 
     predicted = mod.intercept_ + np.sum(X * mod.coef_[0][1:], axis=1)
 
-    # normalize it
-    if normalize:
-        predicted = normalize_data(predicted)
+    # rescale it
+    if rescale:
+        predicted = rescale_data(predicted)
 
     df['pred'] = predicted
 
 
 # process the site's data and return the processed df
 def process_site_data(zip_filename,
-                      normalize=True,
+                      rescale=True,
                       filter_start_date=None,
                       filter_end_date=None,
                       delete_after_finished=False):
@@ -374,7 +368,7 @@ def process_site_data(zip_filename,
     # fit the regression, then add the predicted, detrended vals col
     reg = fit_harmonic_regression(gpp, response_var)
 
-    predict_fluxnet_detrended_vals(gpp, reg, normalize=normalize)
+    predict_fluxnet_detrended_vals(gpp, reg, rescale=rescale)
 
     # delete the file, if requested
     if delete_after_finished:
@@ -386,7 +380,7 @@ def process_site_data(zip_filename,
 # get and compare flux-based and RS-based predicted GPP values for a site
 def compare_rs_flux_predicted_vals(zip_filename, coeffs_rast, design_mat,
                                    max_neigh_cell_dist,
-                                   normalize=True,
+                                   rescale=True,
                                    filter_start_date=None,
                                    filter_end_date=None,
                                    delete_after_finished=False,
@@ -398,7 +392,7 @@ def compare_rs_flux_predicted_vals(zip_filename, coeffs_rast, design_mat,
     rs_pred, cell_dist = predict_rs_detretend_vals(coeffs_rast, lon, lat,
                                                    design_mat,
                                                    max_neigh_cell_dist,
-                                                   normalize=normalize)
+                                                   rescale=rescale)
 
     # return NaN, if this flux tower is not located within striking distance
     # of a valid seasonality-fitted pixel
@@ -413,7 +407,7 @@ def compare_rs_flux_predicted_vals(zip_filename, coeffs_rast, design_mat,
         # get df with fluxnet-predicted seasonality,
         # and length of GPP time series being used to fit the regression
         flux_pred_df, gpp_ts_len = process_site_data(zip_filename,
-                                         normalize=normalize,
+                                         rescale=rescale,
                                          filter_start_date=filter_start_date,
                                          filter_end_date=filter_end_date,
                                     delete_after_finished=delete_after_finished)
@@ -448,7 +442,7 @@ def compare_rs_flux_predicted_vals(zip_filename, coeffs_rast, design_mat,
             ax.plot(merged['rs_pred'], '-k', label='RS')
             ax.plot(merged['flux_pred'], ':r', label='FLUX')
             ax.set_xlabel("day of year", fontdict={'fontsize':9})
-            ax.set_ylabel(("normalized metric of seasonality\n"
+            ax.set_ylabel(("rescaled metric of seasonality\n"
                            "'RS'=%s (%s); "
                            #"'FLUX'=GPP ($\mu mol\ CO_2\ m^{-2}\ s{-1}$"
                            "'FLUX'=GPP ($g\ C\ m^{-2}\ d{-1}$"
@@ -510,7 +504,7 @@ for zip_filename in zip_filenames:
         result, rs_pred, flux_pred_df = compare_rs_flux_predicted_vals(
                                    zip_filename, coeffs_rast, design_mat,
                                    max_neigh_cell_dist,
-                                   normalize=normalize,
+                                   rescale=rescale,
                                    filter_start_date=filter_start_date,
                                    filter_end_date=filter_end_date,
                                    delete_after_finished=delete_after_finished,
@@ -564,7 +558,7 @@ scat = ax1.scatter(results_df['lon'],
                   c = results_df['r2'],
                   cmap='plasma_r',
                   alpha=0.75,
-                  s=normalize_data(results_df['gpp_ts_len'], 10, 150),
+                  s=rescale_data(results_df['gpp_ts_len'], 10, 150),
                   edgecolor='black',
                   linewidth=0.75)
 plt.colorbar(scat, cax=cax1)
@@ -650,7 +644,7 @@ scat = ax1.scatter(results_df['mat'],
            results_df['map'],
            c = results_df['r2'],
            edgecolor='none',
-           #s=normalize_data(results_df['gpp_ts_len'], 5, 90),
+           #s=rescale_data(results_df['gpp_ts_len'], 5, 90),
            s=5,
            alpha=0.75,
            cmap='gray')

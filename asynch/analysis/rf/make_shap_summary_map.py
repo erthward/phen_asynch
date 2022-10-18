@@ -13,7 +13,7 @@ import os, sys, re
 include_latlon = False
 
 # only use top-importance covars?
-use_only_top_import_covars = False
+use_only_top_import_covars = True
 
 # set top asynch percentile below which to mask out pixels
 asynch_pctile = 75

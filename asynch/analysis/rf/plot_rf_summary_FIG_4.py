@@ -1,12 +1,17 @@
 import numpy as np
 import pandas as pd
 import geopandas as gpd
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import ListedColormap
+from matplotlib.patches import Polygon
+from matplotlib.collections import PatchCollection
+import matplotlib.patheffects as path_effects
 from copy import deepcopy
 import rioxarray as rxr
 import seaborn as sns
+import colorsys
 import cmocean
 import dask
 import os, sys, re
@@ -16,14 +21,6 @@ sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
 import phen_helper_fns as phf
 
 
-
-"""
-TODO:
-    - figure out equal-area projection
-    - other TODOs
-    - if keeping interp_map, could link colors in the map to font colors or
-    something used to label rows at the right?
-"""
 
 # indicate the main variable and neighborhood radius,
 # and whether or not to use the model that included the geo-coord polynomial
@@ -59,28 +56,18 @@ for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]
                                                   f)).to_crs(plot_crs))
 subnational = pd.concat(subnational)
 
-top_covars = {'tmp.min.nsd': ('CHELSA_bio6_1981-2010_V.2.1_5km_'
-                              '10CELLRAD_NEIGHSD.tif'),
-              'ppt.sea.nsd': ('CHELSA_bio15_1981-2010_V.2.1_5km_'
-                              '10CELLRAD_NEIGHSD.tif'),
-              'ppt.asy': f'pr_asynch_{neigh_rad}km.tif',
+top_covars = {'ppt.asy': f'pr_asynch_{neigh_rad}km.tif',
               'tmp.min.asy': f'tmmn_asynch_{neigh_rad}km.tif',
+              'veg.ent': 'MODIS_IGBP_veg_entropy.tif',
              }
-#top_covar_ax_labels = {
-#    'tmp.min.nsd': '$s_{ngh} T_{min,ann}$',
-#    'ppt.sea.nsd': '$s_{ngh} P_{ann}$',
-#    'ppt.asy':     '$asynch_{P}$',
-#    'tmp.min.asy': '$asynch_{T_{min,mon}}$'
-#                       }
 top_covar_cbar_labels = {
-    'tmp.min.nsd': '$(^{\circ}C)$',
-    'ppt.sea.nsd': '$(mm)$',
     'ppt.asy': '$\Delta dist_{seas_{P}}/\Delta  dist_{geo}$',
     'tmp.min.asy': '$\Delta dist_{seas_{T_{min}}}/\Delta  dist_{geo}$',
+    'veg.ent': '$entropy$',
                         }
 
 # set up figure
-fig = plt.figure(figsize=(26.25, 15.25))
+fig = plt.figure(figsize=(26.25, 10.5))
 gs = fig.add_gridspec(ncols=260, nrows=150)
 
 
@@ -95,7 +82,7 @@ rast = rxr.open_rasterio(os.path.join(data_dir,
 #       prediction instead of vice versa
 ax = fig.add_subplot(gs[10:55, 0:90])
 divider = make_axes_locatable(ax)
-where = 'top'
+where = 'bottom'
 orientation = 'horizontal'
 size = '4%'
 cax = divider.append_axes(where, size=size, pad=0.2)
@@ -112,8 +99,6 @@ rast.plot.imshow(ax=ax,
                  zorder=0,
                 )
 cax.tick_params(labelsize=cbarticklabel_fontsize)
-cax.xaxis.tick_top()
-cax.xaxis.set_label_position('top')
 if orientation == 'vertical':
     axis = 'y'
 else:
@@ -145,13 +130,17 @@ ax.set_xlabel('')
 ax.set_xticks(())
 ax.set_yticks(())
 
+# trim to the raster's bounds
+ax.set_xlim(rast.rio.bounds()[::2])
+ax.set_ylim(rast.rio.bounds()[1::2])
+
 # save this Axes object's bounds, to use for other axes later on
 common_xlim = ax.get_xlim()
 common_ylim = ax.get_ylim()
 
 # add part label
 ax.text(1.11 * ax.get_xlim()[0],
-        1.37 * ax.get_ylim()[1],
+        1.17 * ax.get_ylim()[1],
         'A.', size=partlabel_fontsize, weight='bold')
 
 
@@ -160,7 +149,6 @@ ax.text(1.11 * ax.get_xlim()[0],
 # 2. plot covar importance bar plots
 
 dfs = []
-# TODO: ADD IN OTHER IMPORTANCE METRIC
 for import_metric in ['SHAP', 'permut']:
     import_df = pd.read_csv(os.path.join(data_dir,
         f'rf_{import_metric}_importance_{include_coords}COORDS_{var}_{neigh_rad}km.csv'))
@@ -181,12 +169,12 @@ g = sns.barplot(data=df,
                 x="importance",
                 y="covariate",
                 hue="metric",
-                palette=['#9fd6c5', '#9fafd6'],
+                palette=['#6e6e6e', '#c4c4c4'],
                 alpha=1,
                 ax=ax,
                )
 g.legend(loc='upper center',
-         bbox_to_anchor=(0.5, 1.12),
+         bbox_to_anchor=(0.5, 1.14),
          ncol=2,
          fontsize=11,
          #title='feature importance',
@@ -195,14 +183,22 @@ g.legend(loc='upper center',
 ax.set_ylabel('')
 ax.set_xlabel('scaled importance', fontdict=maps_axlabel_fontdict)
 ax.tick_params(labelsize=cbarticklabel_fontsize)
-for tick in ax.get_yticklabels():
+#colors = [colorsys.hsv_to_rgb((59 + (129*i))/359, 1, 1) for i in range(3)]
+# NOTE: reversing in order, to pop in correct oreder
+#colors = colors[::-1]
+for i, tick in enumerate(ax.get_yticklabels()):
     tick.set_rotation(30)
     tick.set_fontsize(10)
     if tick.get_text() in top_covars:
         tick.set_weight('bold')
+        # color to match the colors in part D's HSV map
+        #color = colors.pop()
+        #tick.set_path_effects([path_effects.Stroke(linewidth=3,
+        #                                           foreground=color),
+        #                       path_effects.Normal()])
 
 # add part label
-ax.text(-9000, -0.6, 'B.', size=partlabel_fontsize, weight='bold')
+ax.text(-0.35, -1.1, 'B.', size=partlabel_fontsize, weight='bold')
 
 
 #--------------------------------
@@ -212,105 +208,91 @@ ax = fig.add_subplot(gs[60:140, :130])
 divider = make_axes_locatable(ax)
 where = 'bottom'
 orientation = 'horizontal'
-size = '4%'
-cax = divider.append_axes(where, size=size, pad=0.2)
+size = '7%'
+cax = divider.append_axes(where, size=size, pad=0.35)
 
-# include lat and lon (i.e., y and x) maps?
-include_latlon = False
-
-# only use top-importance covars?
-use_only_top_import_covars = False
-
-# get SHAP summary map filename
-filename = 'SHAP_interp_map_%s_%ikm%s%s.tif' % (var, neigh_rad,
-                                                '_LATLON' * include_latlon,
-                                    '_TOPIMPORT' * use_only_top_import_covars)
-rast = rxr.open_rasterio(os.path.join(data_dir, filename), masked=True)[0]
-
-
-# get the covar names (identically to how they were determined in the file that
-# produced the map)
-shap_files = [f for f in os.listdir(data_dir) if (f.startswith('SHAP_map')
-                                                  and f.endswith('.tif'))]
-shap_files = [f for f in shap_files if (var in f and
-                                        str(neigh_rad)+'km' in f and
-                                        f'{include_coords}COORDS' in f)]
-if not include_latlon:
-    shap_files = [f for f in shap_files if not
-                      re.search('(?<=^SHAP_map_[yn]COORDS_)[xy].?1?_%s' % var, f)]
-if use_only_top_import_covars:
-    shap_files = [f for f in shap_files if ('ppt' in f or
-                                            'tmp.min' in f or
-                        # NOTE: need x and y in case include_latlon == True
-                            re.search('(?<=^SHAP_map_[yn]COORDS_)[xy].?1?_%s' % var, f))]
-
-# I sorted the shap_files list in the previous script, to ensure
-# identical order every time I run that script and then this one
-# NOTE: having this regex code duplicated across two serially-used files
-#       is definitely an insecure part of the code, but I'm carefully
-#       cross-checking, so should be good...
-shap_files = np.sort(shap_files)
-
-# read all covars
-covar_names = [re.search('(?<=^SHAP_map_[yn]COORDS_).*(?=_%s)' % var,
-                         f).group() for f in shap_files]
-
-# use a special color for the background?
-bg_color = None
-#bg_color = '#ffffff'
-
-# set colormap for the covars
-# NOTE: using 12-color palette at http://tsitsul.in/blog/coloropt/
-color_hex = ['#ebac23',
-             '#b80058',
-             '#008cf9',
-             '#006e00',
-             '#00bbad',
-             '#d163e6',
-             '#b24502',
-             '#ff9287',
-             '#5954d6',
-             '#00c6f8',
-             '#878500',
-             '#00a76c',
-             '#bdbdbd',
-            ]
-cmap = ListedColormap(color_hex[:len(covar_names)])
-# make missing values black (to make colors more discernable)
-if bg_color is not None:
-    cmap.set_bad(bg_color)
+# save to GeoTIFF
+var_order = '_'.join([*top_covars])
+hsv = rxr.open_rasterio(os.path.join(phf.EXTERNAL_RF_DATA_DIR,
+    f'SHAP_hsv_map_{var_order}_{include_coords}COORDS_{var}_{neigh_rad}km.tif'),
+                        masked=True)
 
 # plot it
-countries.to_crs(rast.rio.crs).plot(color='black',
-                                      ax=ax,
-                                      zorder=0)
-im = rast.plot.imshow(cmap=cmap,
-                      ax=ax,
-                      add_colorbar=True,
-                      cbar_ax=cax,
-                      cbar_kwargs = {'orientation': orientation},
-                      zorder=1,
-                     )
-cbar = im.colorbar
+# NOTE: create black background
+cmap = mpl.colors.LinearSegmentedColormap.from_list('black', ['#000000']*2)
+cmap.set_bad('#000000')
+black_bg = deepcopy(hsv[0])
+black_bg.plot.imshow(ax=ax,
+                     cmap=cmap,
+                     vmin=0,
+                     vmax=0,
+                     add_colorbar=False,
+                     zorder=0)
+hsv.plot.imshow(ax=ax, zorder=1)
+subnational.to_crs(hsv.rio.crs).plot(ax=ax,
+                                      color='none',
+                                      edgecolor='gray',
+                                      linewidth=0.4,
+                                      alpha=0.5,
+                                      zorder=2,
+                                     )
+countries.to_crs(hsv.rio.crs).plot(ax=ax,
+                                   color='none',
+                                   edgecolor='gray',
+                                   linewidth=0.6,
+                                   alpha=0.8,
+                                   zorder=3,
+                                  )
+
 if orientation == 'vertical':
     axis = 'y'
 else:
     axis = 'x'
-axmin, axmax = getattr(cbar.ax, f'get_{axis}lim')()
+axmin, axmax = getattr(cax, f'get_{axis}lim')()
+# add 'no predominant covariate' to the covar names that will be used to label
+# the colorbar
+covar_names = [*top_covars]
+covar_names.append('no predom.')
 tick_locs = np.linspace(axmax/len(covar_names)/2,
                         axmax - (axmax/len(covar_names)/2),
                         len(covar_names))
-getattr(cbar.ax, f'set_{axis}ticks')(tick_locs, covar_names)
+getattr(cax, f'set_{axis}ticks')(tick_locs, covar_names)
+
 # format
 ax.set_xticks([])
 ax.set_yticks([])
 ax.set_xlabel('')
 ax.set_ylabel('')
 ax.set_title('')
+ax.set_xlim(hsv.rio.bounds()[::2])
+ax.set_ylim(hsv.rio.bounds()[1::2])
 cax.tick_params(length=0, labelsize=interp_map_ticklabel_fontsize)
-for tick in cax.get_yticklabels():
+for i, tick in enumerate(cax.get_yticklabels()):
     tick.set_rotation(45)
-cax.set_xlabel('max-SHAP covariate', fontdict=maps_axlabel_fontdict)
+    if i == 3:
+        tick.set_style('italic')
+cax.set_xlabel('predominant covariate', fontdict=maps_axlabel_fontdict)
+cax.set_yticks(())
+
+# add custom colorbar patches
+cbar_xmin, cbar_xmax = cax.get_xlim()
+cbar_ymin, cbar_ymax = cax.get_ylim()
+breaks = np.linspace(cbar_xmin, cbar_xmax, 5)
+# create an RGB array containing yellow, cyan, magenta, and white
+colors = np.array([colorsys.hsv_to_rgb((59 + (129*i))/359,
+                                       1-(i==3), 1) for i in range(4)])
+assert np.all(colors.shape == np.array((4,3)))
+patches = []
+for i in range(4):
+    poly = Polygon([[breaks[i], cbar_ymin],
+                    [breaks[i], cbar_ymax],
+                    [breaks[i+1], cbar_ymax],
+                    [breaks[i+1], cbar_ymin],
+                    [breaks[i], cbar_ymin]])
+    patches.append(poly)
+pc = PatchCollection(patches, alpha=1, edgecolor='k')
+pc.set_color(colors)
+cax.add_collection(pc)
 
 # add part label
 ax.text(1.06 * ax.get_xlim()[0],
@@ -321,10 +303,10 @@ ax.text(1.06 * ax.get_xlim()[0],
 
 #------------------------------------------
 # 4. plot original vars and their SHAP maps
-# NOTE: currently hard-coded for 4 top covars
-row_idxs = np.array([0, 35, 70, 105])
-row_start_idxs = row_idxs + 10
-row_end_idxs = row_idxs + 10 + 30
+# NOTE: CURRENTLY HARD-CODED FOR 3 VARS
+row_idxs = np.array([0, 45, 90])
+row_start_idxs = row_idxs + 5
+row_end_idxs = row_idxs + 5 + 40
 col_start_idxs = [150, 210]
 col_end_idxs = [200, 260]
 
@@ -333,7 +315,7 @@ vmins = []
 vmaxs = []
 for i, top_covar_item in enumerate(top_covars.items()):
     top_covar, covar_filename = top_covar_item
-    shap_filename = f'SHAP_map_{top_covar}_{var}_{neigh_rad}km.tif'
+    shap_filename = f'SHAP_map_{include_coords}COORDS_{top_covar}_{var}_{neigh_rad}km.tif'
     rast = rxr.open_rasterio(os.path.join(data_dir,
                                           shap_filename), masked=True)[0]
     vmin = np.nanpercentile(rast, 1)
@@ -354,15 +336,18 @@ def change_cbar_ticklabels_to_scinot(cax, orientation):
     new_ticklabs = ['%0.1e' % t for t in ticks]
     getattr(cax, f'set_{axis}ticks')(ticks, new_ticklabs)
 
-
+#colors = [colorsys.hsv_to_rgb((59 + (129*i))/359, 1, 1) for i in range(3)]
+# NOTE: reversing in order, to pop in correct oreder
+#colors = colors[::-1]
 for i, top_covar_item in enumerate(top_covars.items()):
     top_covar, covar_filename = top_covar_item
-    shap_filename = f'SHAP_map_{top_covar}_{var}_{neigh_rad}km.tif'
+    shap_filename = f'SHAP_map_{include_coords}COORDS_{top_covar}_{var}_{neigh_rad}km.tif'
     ax_covar = fig.add_subplot(gs[row_start_idxs[i]:row_end_idxs[i],
                                   col_start_idxs[0]:col_end_idxs[0]])
     ax_shap = fig.add_subplot(gs[row_start_idxs[i]:row_end_idxs[i],
                                  col_start_idxs[1]:col_end_idxs[1]])
-    cmaps = ['cmo.matter_r', 'cmo.curl_r']
+    # NOTE: cmo.thermal matches the asynchrony map in fig 3
+    cmaps = ['cmo.thermal', 'cmo.curl_r']
     j = 0
     for ax, filename in zip([ax_covar, ax_shap],
                             [covar_filename, shap_filename]):
@@ -432,7 +417,11 @@ for i, top_covar_item in enumerate(top_covars.items()):
             ax.set_title('')
         if j == 0:
             #ax.set_ylabel(top_covar_ax_labels[top_covar],
-            ax.set_ylabel(top_covar, fontdict=maps_axlabel_fontdict)
+            lab = ax.set_ylabel(top_covar, fontdict=maps_axlabel_fontdict)
+            #color = colors.pop()
+            #lab.set_path_effects([path_effects.Stroke(linewidth=3,
+            #                                       foreground=color),
+            #                   path_effects.Normal()])
         else:
             ax.set_ylabel('')
         ax.set_xlabel('')
@@ -444,14 +433,14 @@ for i, top_covar_item in enumerate(top_covars.items()):
         if i == 0 and j == 0:
 
             ax.text(1.5 * ax.get_xlim()[0],
-                    1.35 * ax.get_ylim()[1],
+                    1.27 * ax.get_ylim()[1],
                     'C.', size=partlabel_fontsize, weight='bold')
 
         j += 1
 
 
 # adjust subplots and save
-fig.subplots_adjust(bottom=0.01,
+fig.subplots_adjust(bottom=0,
                     top=1,
                     left=0.03,
                     right=0.98,
@@ -460,3 +449,4 @@ fig.subplots_adjust(bottom=0.01,
                    )
 
 fig.savefig('FIG_4_RF_summary.png', dpi=700)
+
