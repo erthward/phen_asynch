@@ -6,6 +6,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import ListedColormap
 from copy import deepcopy
 import rioxarray as rxr
+import xarray as xr
 import seaborn as sns
 import colorsys
 import cmocean
@@ -49,7 +50,7 @@ def minmax_scale(vals, bot_pctile, top_pctile):
 
 
 # stack all 3 top covars' SHAP maps
-shap_maps = [rxr.open_rasterio(os.path.join(phf.data_dir,
+shap_maps = [rxr.open_rasterio(os.path.join(data_dir,
         f'SHAP_map_{include_coords}COORDS_{tc}_{var}_{neigh_rad}km.tif'),
                                masked=True)[0] for tc in top_covars]
 da = dask.array.stack(shap_maps)
@@ -68,12 +69,12 @@ predom.values = np.argmax(np.abs(da), axis=0).compute()
 predom = (59 + (120*predom))/359
 # mask to the std values
 predom = predom.where(pd.notnull(std))
-assert np.all(np.unique(predom)[~numpy.isnan(np.unique(predom))] ==
-                                    np.array([i/359 for i in [59,179,299]]))
+assert np.all(np.unique(predom)[~np.isnan(np.unique(predom))] ==
+              np.array([i/359 for i in [59,179,299]]))
 
 # value: asynchrony (will make lower-asynchrony pixels appear less pronounced
 # because they'll be closer to black)
-asynch = minmax_scale(rxr.open_rasterio(os.path.join(phf.data_dir,
+asynch = minmax_scale(rxr.open_rasterio(os.path.join(data_dir,
                         'NIRv_STRICT_asynch_100km.tif'), masked=True)[0], 0, 99)
 asynch = asynch.rio.reproject_match(std)
 asynch = minmax_scale(asynch, 1, 99)
@@ -96,7 +97,8 @@ hsv = dask.array.stack([predom, std, asynch]).rechunk([3,200,200])
 rgb = xr.concat([deepcopy(std.expand_dims('color',
                                           0)) for _ in range(3)], dim='color')
 
-# NOTE: GETTING A CONFUSING ERROR TRYING TO USE dask.array.apply_along_axis...
+# NOTE: GETTING A CONFUSING ERROR TRYING TO USE dask.array.apply_along_axis,
+#       so using np.apply_along_axis instead
 rgb.values = np.apply_along_axis(hsv_ax_vals_2_rgb, 0, hsv.compute())
 
 # save to GeoTIFF

@@ -119,11 +119,11 @@ NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` w
 5. Run `asynch/analysis/rf/ch3_rasterize_SHAP_job.sh` to convert output CSVs of global SHAP values to GeoTIFFs.
 6. Run `asynch/analysis/rf/ch3_rasterize_err_job.sh` to convert output CSVs of global RF prediction errors to GeoTIFFs.
 7. Run `asynch/analysis/rf/tabulate_model_summaries.py` to combine all permuation-based and SHAP-based importance values and model $R^2$s and MSEs into a single output table, for supplmental materials.
-8. Run `python asynch/analysis/rf/make_shap_summary_map.py NIRv 100 y` to produce the SHAP-value interpretation map (for the 100 km-neighborhood NIRv-asynchrony analysis that included the geo-coordinate polynomials as covariates) and save result as a GeoTIFF.
+8. Run `asynch/analysis/rf/make_shap_hsv_map.py` to produce the SHAP-value HSV-coded interpretation map (for the 100 km-neighborhood NIRv-asynchrony analysis that included the geo-coordinate polynomials as covariates) and save result as a GeoTIFF.
 9. Run `asynch/analysis/rf/plot_rf_summary_FIG_4.py` to produce final figure summarizing random forest results.
 
 
 ## run climate-distance analysis:
 
-1. Run `asynch/analysis/clim_dist/compare_phen_clim_geog_dist_FIG_5.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce **Fig. 5**.
+1. Run `asynch/analysis/clim_dist/compare_phen_clim_geog_dist_FIG_5.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce the analysis summary in **Fig. 5**.
 
