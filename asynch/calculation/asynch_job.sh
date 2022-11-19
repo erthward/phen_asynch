@@ -26,7 +26,7 @@ module load python julia/1.4.1
 for neigh_rad in 100
 #for neigh_rad in 150
 do
-   for var in NIRv NIRv_STRICT SIF SIF_STRICT tmmn pr def cloud 
+   for var in NIRv NIRv_STRICT SIF SIF_STRICT tmmn tmmx pr def cloud 
    do
       echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
       echo "NOW PROCESSING ${var} FOR NEIGH RAD ${neigh_rad} METERS..."

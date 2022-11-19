@@ -163,11 +163,6 @@ cld.asy = read.file('cloud', asynch.file=T,
 vrm.med = read.file('vrm_50KMmd', asynch.file=F,
                     align.to=phn.asy, mask.it=T)
 
-# distance from rivers
-# NOTE: INCLUDE? IF SO, NEIGH MEAN AND/OR SD?
-riv.dis = read.file('dist_to_rivers', asynch.file=F,
-                    align.to=phn.asy, mask.it=F)
-
 # 100 km neighborood entropy in MODIS IGBP vegetation type
 # (reclassed to forest, shrubland, savanna, grassland, permanent wetland, or invalid)
 veg.ent = read.file('MODIS_IGBP_veg_entropy', asynch.file=F,
@@ -189,8 +184,21 @@ vars = stack(phn.asy,
              def.asy,
              cld.asy,
              vrm.med,
-             riv.dis,
              veg.ent)
+
+par(mfrow=c(3,3))
+for (lyr in c(phn.asy,
+             tmp.min.asy,
+             tmp.max.asy,
+             ppt.asy,
+             def.asy,
+             cld.asy,
+             vrm.med,
+             veg.ent)){
+   plot(lyr)#@extent@xmax)
+}
+
+par(mfrow=c(1,1))
 
 # aggregate to coarser res, if working on laptop
 if (on.laptop){
@@ -205,7 +213,6 @@ names = c('phn.asy',
           'def.asy',
           'cld.asy',
           'vrm.med',
-          'riv.dis',
           'veg.ent')
 
 names(vars) = names

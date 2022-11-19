@@ -259,7 +259,6 @@ names = c('phn.asy',
           'def.asy',
           'cld.asy',
           'vrm.med',
-          'riv.dis',
           'veg.ent')
 
 # load rasters of prepped variables
@@ -513,7 +512,7 @@ if (coords.as.covars == 'y'){
 } else {
   rf_final = ranger(phn.asy ~ tmp.min.asy + tmp.max.asy + ppt.asy +
                               def.asy + cld.asy +
-                              vrm.med + riv.dis + veg.ent,
+                              vrm.med + veg.ent,
                     data=trn,
                     num.trees=ntree,
                     mtry=mtry,

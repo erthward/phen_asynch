@@ -59,7 +59,7 @@ function main()
 
     # process arg values
     var = parsed_args["var"]
-    @assert var in ["NIRv" "NIRv_STRICT" "SIF" "SIF_STRICT" "def" "pr" "tmmn" "cloud"]
+    @assert var in ["NIRv" "NIRv_STRICT" "SIF" "SIF_STRICT" "def" "pr" "tmmn" "tmmx" "cloud"]
     neigh_rad = parsed_args["neigh_rad"]
     @assert neigh_rad in ["50", "100", "150"]
     # convert to meters
