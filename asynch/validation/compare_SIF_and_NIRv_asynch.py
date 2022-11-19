@@ -101,4 +101,4 @@ fig.subplots_adjust(top=0.95,
                     right=0.96,
                     hspace=0.2,
                     wspace=0)
-fig.savefig('scaled_NIRv_vs_scaled_SIF.png', dpi=700)
+fig.savefig('FIG_S4_scaled_NIRv_vs_scaled_SIF.png', dpi=700)

@@ -87,22 +87,27 @@ NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` w
 ## run flux-tower validation:
 
 1. Manually download all subset data products (using DownThemAll!) from the Fluxnet network's [download page](https://fluxnet.org/data/download-data/).
-2. Call `phen/validation/flux_tower_seasonality_validation/validate_at_all_fluxnet_sites_FIG_1.py` to validate the fitted NIRv seasonality against GPP seasonality at all usable Fluxnet sites (producing **Fig. 1**).
+2. Call `phen/validation/flux_tower_seasonality_validation/validate_at_all_fluxnet_sites.py <DS>` twice, once where '<DS>' is replaced with 'NIRv' and once with 'SIF', to run validation on both the fitted NIRv and SIF seasonality results against GPP seasonality at all usable Fluxnet sites (producing **Fig. 1**).
+3. Run `phen/validation/compare_NIRv_SIF_maps/compare_NIRv_SIF_fitted_phenology.py` (on Savio) to calculate a global map of the $R^2$s between the NIRv and SIF fitted phenology time series.
+4. Run `phen/validation/plot_phen_validation_results_FIG_2.py` to combine both of those validations' results to make Fig. 1.
 
 
-## compare NIRv-based and SIF-based phenological asynchrony maps:
+## run asynchrony validation:
 
 1. Run `asynch/validation/compare_SIF_and_NIRv_asynch.py` to compare the two datasets' phenological asynchrony maps across all three neighborhood radii (50 km, 100 km, 150 km).
+2. Run `asynch/validation/calc_asynch_r2s_btwn_neighborhood_radii.py` to produce Table S2, containing R2s for all neighborhood radius comparisons and for all variables for which we produced asynchrony maps.
 
 
 ## produce RGB phenology map:
 
-1. Run `phen/analysis/div/fold_eof0_and_map_FIG_2.py` to produce **Fig. 2**'s global and regionally-zoomed RGB land surface phenology maps.
+1. Download ancillary cheatgrass data from [Maestas *et. al*](https://www.sciencebase.gov/catalog/item/5ec5159482ce476925eac3b7) (to be used in a statistical test embedded in `phen/analysis/div/plot_eof_maps_and_ts_FIG_2.py`).
+2. Run `phen/analysis/div/aggregate_great_basin_cheatgrass_data.sh` to aggregate that dataset to our analysis resolution of $0.05^{circ}$.
+3. Run `phen/analysis/div/plot_eof_maps_and_ts_FIG_1.py` to produce **Fig. 2**'s global and regionally-zoomed RGB land surface phenology maps.
 
 
 ## produce asynchrony map and conceptual figure:
 
-1. Run `asynch/viz/make_conceptual_fig_and_asynch_maps_FIG_3_S3_S4.py` to create the asynch map figures for the main paper (**Fig. 3**) and the supplements (**Figs. S3, S4**).
+1. Run `asynch/viz/make_conceptual_fig_and_asynch_maps_FIG_3_S5-11.py` to create the asynch map figures for the main paper (**Fig. 3**) and the supplements (**Figs. S3, S4**).
 
 
 ## run phenological asynchrony modeling workflow:
@@ -112,12 +117,13 @@ NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` w
 3. Manually inspect the results of the interactive analysis. Use the results of that to set the hyperparameters (in the code block starting at line 410 in `asynch/analysis/rf/run_phen_asynch_rf.r`) and the feature selection (code block starting at line 486 in the same file) for the main global RF model that will be used for both datasets (NIRv and SIF) and all 3 neighborhood radii (50 km, 100 km, 150 km).
 4. Run `asynch/analysis/rf/ch3_rf_job.sh` to loop over vars (NIRv, SIF) and neighborhood radii, each time prepping data layers, running the random forest analysis, and generating identical results.
 5. Run `asynch/analysis/rf/ch3_rasterize_SHAP_job.sh` to convert output CSVs of global SHAP values to GeoTIFFs.
-6. Run `asynch/analysis/rf/tabulate_model_summaries.py` to combine all permuation-based and SHAP-based importance values and model $R^2$s and MSEs into a single output table, for supplmental materials.
-7. Run `python asynch/analysis/rf/make_shap_summary_map.py NIRv 100 y` to produce the SHAP-value interpretation map (for the 100 km-neighborhood NIRv-asynchrony analysis that included the geo-coordinate polynomials as covariates) and save result as a GeoTIFF.
-8. Run `asynch/analysis/rf/plot_rf_summary_FIG_4.py` to produce final figure summarizing random forest results.
+6. Run `asynch/analysis/rf/ch3_rasterize_err_job.sh` to convert output CSVs of global RF prediction errors to GeoTIFFs.
+7. Run `asynch/analysis/rf/tabulate_model_summaries.py` to combine all permuation-based and SHAP-based importance values and model $R^2$s and MSEs into a single output table, for supplmental materials.
+8. Run `asynch/analysis/rf/make_shap_hsv_map.py` to produce the SHAP-value HSV-coded interpretation map (for the 100 km-neighborhood NIRv-asynchrony analysis that included the geo-coordinate polynomials as covariates) and save result as a GeoTIFF.
+9. Run `asynch/analysis/rf/plot_rf_summary_FIG_4.py` to produce final figure summarizing random forest results.
 
 
 ## run climate-distance analysis:
 
-1. Run `asynch/analysis/clim_dist/compare_phen_clim_geog_dist_FIG_5.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce **Fig. 5**.
+1. Run `asynch/analysis/clim_dist/compare_phen_clim_geog_dist_FIG_5.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce the analysis summary in **Fig. 5**.
 

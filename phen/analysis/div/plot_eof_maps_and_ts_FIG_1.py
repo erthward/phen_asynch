@@ -202,7 +202,7 @@ reg_letters = {
               'Fl': 'C.',
               'SAf':'F.',
               'Au': 'H.',
-              'It': 'I.',
+              'It': 'K.',
             }
 # locations of region letter labels, expressed in fractions along x,y axes from top left
 reg_lett_locs = {
@@ -364,7 +364,7 @@ del eofs_for_map
 fig_eof.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98,
                         hspace=0.05)
 if save_it:
-    fig_eof.savefig('FIG_S2_%s_EOF_maps%s%s.png' % (dataset,
+    fig_eof.savefig('FIG_S3_%s_EOF_maps%s%s.png' % (dataset,
                 mask_filename_ext, ('_RAW'*(not fold_it))), dpi=700)
 
 
@@ -753,5 +753,5 @@ fig_main.subplots_adjust(left=0.01,
                          bottom=0.04,
                          top=0.98)
 if save_it:
-    fig_main.savefig('FIG_2_%s_RGB_EOF_map%s%s.png' % (dataset,
+    fig_main.savefig('FIG_1_%s_RGB_EOF_map%s%s.png' % (dataset,
                         mask_filename_ext, ('_RAW'*(not fold_it))), dpi=700)

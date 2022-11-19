@@ -351,7 +351,7 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
 def map_asynch(fig, gs=None, main_fig=True, var='NIRv',
                cbar_axlab_fontsize=13, cbar_ticklab_fontsize=10):
 
-    assert var in ['NIRv', 'SIF', 'tmmn', 'tmmx', 'ppt', 'def', 'cld']
+    assert var in ['NIRv', 'SIF', 'tmmn', 'tmmx', 'pr', 'def', 'cloud']
 
     if var in ['NIRv', 'SIF']:
         files = [f for f in os.listdir(phf.EXTERNAL_DATA_DIR) if
@@ -478,11 +478,11 @@ if __name__ == '__main__':
     fig.savefig('FIG_3_asynch_concept_and_map.png', dpi=700)
 
     # make both vars' supp figs (each one stacking all 3 neighborhood radii)
-    for n, var in enumerate(['NIRv', 'SIF']):
+    for n, var in enumerate(['NIRv', 'SIF', 'tmmn', 'tmmx', 'pr', 'def', 'cloud']):
         print('\n\nNOW PRODUCING SUPPLEMENTAL FIG FOR %s..\n\n' % var)
         fig_supp = plt.figure(figsize=(19,24))
         map_asynch(fig_supp, gs=None, main_fig=False, var=var,
                    cbar_axlab_fontsize=30, cbar_ticklab_fontsize=24)
         fig_supp.subplots_adjust(bottom=0.02, top=0.95, left=0.0, right=0.88)
-        fig_supp.savefig('FIG_S%i_%s_asynch_maps.png' % (3+n, var), dpi=700)
+        fig_supp.savefig('FIG_S%i_%s_asynch_maps.png' % (5+n, var), dpi=700)
 
