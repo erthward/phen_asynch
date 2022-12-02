@@ -198,7 +198,7 @@ def get_all_nearby_cells(x, y, cell_res, max_neigh_cell_dist):
 
 
 
-def predict_rs_detretend_vals(coeffs_rast, x, y, design_mat,
+def predict_rs_detrended_vals(coeffs_rast, x, y, design_mat,
                               max_neigh_cell_dist, rescale=True):
     """
     Calculates the predicted time series at pixel at x,y in a rioxarray raster,
@@ -389,7 +389,7 @@ def compare_rs_flux_predicted_vals(zip_filename, coeffs_rast, design_mat,
     id, name, lon, lat, igbp, mat, map = get_site_info(zip_filename)
 
     # get rs-predicted seasonality
-    rs_pred, cell_dist = predict_rs_detretend_vals(coeffs_rast, lon, lat,
+    rs_pred, cell_dist = predict_rs_detrended_vals(coeffs_rast, lon, lat,
                                                    design_mat,
                                                    max_neigh_cell_dist,
                                                    rescale=rescale)

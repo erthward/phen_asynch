@@ -137,11 +137,6 @@ tmp.min.asy = read.file('tmmn', asynch.file=T,
 tmp.max.asy = read.file('tmmx', asynch.file=T,
                     align.to=phn.asy, mask.it=F)
 
-# 50km neighborhood mean daily min temp, coldest month
-# NOTE: DROPPED BECAUSE HAS R^2=0.996 WITH NEIGHBORHOOD MEAN!
-#tmp.min.nmn = read.file('CHELSA_bio6_1981-2010_V.2.1_5km_10CELLRAD_NEIGHMEAN',
-#                        asynch.file=F, align.to=phn.asy, mask.it=F)
-
 # asynchrony in precipitation
 ppt.asy = read.file('pr', asynch.file=T,
                     align.to=phn.asy, mask.it=F)
@@ -155,11 +150,11 @@ cld.asy = read.file('cloud', asynch.file=T,
                     align.to=phn.asy, mask.it=F)
 
 # vector ruggedness metric, ~50km agg med and sd
-# NOTE: CALCULATED AS FIXED PIXELS, NOT MOVING WINDOWS!
+# NOTE: calculated as fixed pixels, not moving windows
 # NOTE: masking isn't necessary because incomplete rows of the stacked
 #       variables are dropped later on, but makes it easier to inspect
-#       the individual layers now because of the crazy blocky artifacts
-#       surrounding continents in their dataset
+#       the individual layers manually now because of the crazy blocky artefacts
+#       their dataset has surrounding the continents
 vrm.med = read.file('vrm_50KMmd', asynch.file=F,
                     align.to=phn.asy, mask.it=T)
 
@@ -199,11 +194,6 @@ for (lyr in c(phn.asy,
 }
 
 par(mfrow=c(1,1))
-
-# aggregate to coarser res, if working on laptop
-if (on.laptop){
-   vars <- aggregate(vars, fact=12)
-}
 
 # rename all bands 
 names = c('phn.asy',

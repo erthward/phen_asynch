@@ -56,14 +56,25 @@ for coords_as_covars in ['y', 'n']:
         # drop index name and MultiIndex column names
         out_df.index.name = ''
         out_df.columns.names = ['', '']
+
+        # drop x and y rows, if model did not use coords as covars and this is
+        # the SHAP importance metric (NOTE: already automatically dropped for
+        # permutation importance metric)
+        if coords_as_covars == 'n' and import_metric == 'SHAP':
+            out_df = out_df.drop(labels=['x', 'y'], axis=0)
+
         out_dfs[import_metric] = out_df
 
         # finalize the model-summary df
         out_model_df = all_model_df.set_index(['dataset', 'neigh_radius']).pivot(
                     columns=['metric']).T.reset_index().set_index('metric').drop(
                     labels=['level_0'], axis=1)
+        # convert MSE to RMSE
+        out_model_df.loc['MSE', :] = np.sqrt(out_model_df.loc['MSE', :])
+        out_model_df.index = ['RMSE', 'R2']
         out_model_df.index.name = ''
         out_model_df.columns.names = ['', '']
+
 
     # write to file
     with pd.ExcelWriter(os.path.join(data_dir,

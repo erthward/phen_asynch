@@ -162,7 +162,7 @@ reg_gsinds = {
               'Ba': [[50, 90], [0, 26]],
               'GB': [[3, 33], [0, 30]],
               'Mad':[[60, 90], [107, 133]],
-              'Fl': [[24, 48], [33, 49]],
+              'Fl': [[24, 48], [38, 54]],
               'SAf':[[75, 87], [82, 107]],
               'Au': [[74, 88], [144, 170]],
               'It': [[5, 25], [170, 200]],
@@ -175,7 +175,7 @@ reg_gsinds_lines = {
               'Ba': [[90, 100], [3, 23]],
               'GB': [[33, 43], [5, 25]],
               'Mad':[[90, 100], [110,130]],
-              'Fl': [[48, 58], [31, 51]],
+              'Fl': [[48, 58], [36, 56]],
               'SAf':[[87, 97], [84, 104]],
               'Au': [[88, 98], [147, 167]],
               'It': [[23, 33], [175, 195]],
@@ -194,28 +194,55 @@ reg_K_vals = {
               'It': 3,
              }
 reg_letters = {
-              'Qu': 'J.',
-              'Am': 'E.',
-              'Ba': 'D.',
-              'GB': 'B.',
-              'Mad':'G.',
-              'Fl': 'C.',
-              'SAf':'F.',
-              'Au': 'H.',
-              'It': 'K.',
+              'Qu': 'h.',
+              'Am': 'd.',
+              'Ba': 'b.',
+              'GB': 'a.',
+              'Mad':'f.',
+              'Fl': 'c.',
+              'SAf':'e.',
+              'Au': 'g.',
+              'It': 'i.',
             }
 # locations of region letter labels, expressed in fractions along x,y axes from top left
 reg_lett_locs = {
-              'Qu': (-0.18, 0.92),
-              'Am': (-0.195, 0.91),
-              'Ba': (-0.26, 0.93),
+              'Qu': (-0.24, 0.91),
+              'Am': (-0.195, 0.88),
+              'Ba': (-0.24, 0.93),
               'GB': (-0.20, 0.92),
-              'Mad':(-0.32, 0.91),
-              'Fl': (-0.26, 0.91),
-              'SAf':(-0.15, 0.89),
-              'Au': (-0.17, 0.89),
-              'It': (-0.12, 0.89),
+              'Mad':(-0.27, 0.91),
+              'Fl': (-0.26, 0.88),
+              'SAf':(-0.19, 0.82),
+              'Au': (-0.17, 0.84),
+              'It': (-0.11, 0.81),
             }
+
+# zoom-map ends of regio-box connecting lines
+reg_box_connectors = {
+              'Qu': (1.973e7, -5.45e6),
+              'Am': (-0.82e7, -8.25e6),
+              'Ba': (-1.793e7, -4.25e6),
+              'GB': (-1.773e7, 4.95e6),
+              'Mad':(0.373e7, -6.15e6),
+              'Fl': (-1.173e7, 0.25e6),
+              'SAf':(-0.183e7, -9.45e6),
+              'Au': (1.213e7, -9.45e6),
+              'It': (1.593e7, 4.15e6),
+            }
+
+reg_box_connector_sides = {
+              'Qu': 'R',
+              'Am': 'B',
+              'Ba': 'L',
+              'GB': 'L',
+              'Mad':'B',
+              'Fl': 'B',
+              'SAf':'B',
+              'Au': 'B',
+              'It': 'R',
+            }
+
+
 assert (len(reg_bboxes) == len(reg_gsinds) ==
         len(reg_gsinds_lines) == len(reg_K_vals))
 assert ([*reg_bboxes.keys()] == [*reg_gsinds.keys()] ==
@@ -305,9 +332,9 @@ dm = phf.make_design_matrix()
 
 
 
-###########
-# PLOT EOFs
-###########
+############
+## PLOT EOFs
+############
 
 # plotting helper fns
 def strip_axes(ax):
@@ -365,14 +392,54 @@ fig_eof.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98,
                         hspace=0.05)
 if save_it:
     fig_eof.savefig('FIG_S3_%s_EOF_maps%s%s.png' % (dataset,
-                mask_filename_ext, ('_RAW'*(not fold_it))), dpi=700)
+                mask_filename_ext, ('_RAW'*(not fold_it))), dpi=600)
 
 
-# create main figure
-dims = (20, 10)
-fig_main = plt.figure(figsize=(20,10))
-gs = fig_main.add_gridspec(*[10*dim for dim in dims[::-1]]) # NOTE: REV ORDER OF FIGSIZE
-i
+
+#############################
+# PLOT UNTRANSFORMED RGB MAPS
+#############################
+
+# create untransformed RGB figure
+eofs_for_map = eofs.rio.write_crs(4326)
+eofs_for_map = eofs_for_map.rio.reproject(8857)
+fig_untrans = plt.figure(figsize=(20,20))
+ax_top = fig_untrans.add_subplot(2,1,1)
+ax_bot = fig_untrans.add_subplot(2,1,2)
+axs = {0: ax_top, 1: ax_bot}
+for row in range(2):
+    ax = axs[row]
+    subnational.plot(color='none',
+                     linewidth=0.3,
+                     edgecolor='black',
+                     alpha=0.5,
+                     ax=ax,
+                     zorder=1,
+                    )
+    countries.plot(color='none',
+                   linewidth=0.5,
+                   edgecolor='black',
+                   alpha=0.7,
+                   ax=ax,
+                   zorder=2,
+                  )
+    if row == 0:
+        eofs_for_map.plot.imshow(ax=ax, zorder=0)
+    elif row == 1:
+        eofs_trans = deepcopy(eofs_for_map)
+        for i in range (2):
+            eofs_trans[i,:,:] = 1 - eofs_trans[i,:,:]
+        eofs_trans = eofs_trans.where(np.abs(eofs_trans<1e37))
+        eofs_trans.plot.imshow(ax=ax, zorder=0)
+    strip_axes(ax)
+    ax.set_xlim(global_xlim)
+    ax.set_ylim(eofs_for_map.rio.bounds()[1::2])
+fig_untrans.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98,
+                            hspace=0.05)
+if save_it:
+    fig_untrans.savefig('FIG_S4_untransformed_EOF_maps.png', dpi=600)
+
+del eofs_for_map
 
 
 
@@ -380,6 +447,11 @@ i
 ##############
 # PLOT RGB MAP
 ##############
+
+# create main figure
+dims = (20, 10)
+fig_main = plt.figure(figsize=(20,10))
+gs = fig_main.add_gridspec(*[10*dim for dim in dims[::-1]]) # NOTE: REV ORDER OF FIGSIZE
 
 # plot the RGB map of EOFs 1-3 together
 ax_rgb = fig_main.add_subplot(gs[:65, 45:175])
@@ -406,12 +478,12 @@ countries.plot(color='none',
 strip_axes(ax_rgb)
 ax_rgb.set_xlim(global_xlim)
 ax_rgb.set_ylim(eofs_wt_sum_for_map.rio.bounds()[1::2])
-ax_rgb.text(ax_rgb.get_xlim()[0]-0.04*np.diff(ax_rgb.get_xlim())[0],
-            ax_rgb.get_ylim()[0]+0.975*np.diff(ax_rgb.get_ylim())[0],
-            'A.',
-            size=partlabel_fontsize,
-            weight='bold',
-           )
+#ax_rgb.text(ax_rgb.get_xlim()[0]-0.04*np.diff(ax_rgb.get_xlim())[0],
+#            ax_rgb.get_ylim()[0]+0.975*np.diff(ax_rgb.get_ylim())[0],
+#            'A.',
+#            size=partlabel_fontsize,
+#            weight='bold',
+#           )
 
 ax_rgb.spines['bottom'].set_color('white')
 ax_rgb.spines['top'].set_color('white')
@@ -739,6 +811,22 @@ for reg, bbox in reg_bboxes.items():
     for axis in ['top','bottom','left','right']:
         ax_lines.spines[axis].set_linewidth(2)
     plot_bbox_rectangle(bbox, ax_rgb)
+    # add connecting line between small and zoomed bounding box
+    if reg_box_connector_sides[reg] == 'B':
+        x_val = np.mean((bbox[0], bbox[2]))
+        y_val = bbox[3]
+    elif reg_box_connector_sides[reg] == 'R':
+        x_val = bbox[2]
+        y_val = np.mean((bbox[1], bbox[3]))
+    elif reg_box_connector_sides[reg] == 'L':
+        x_val = bbox[0]
+        y_val = np.mean((bbox[1], bbox[3]))
+    ax_rgb.plot([x_val, reg_box_connectors[reg][0]],
+                [y_val, reg_box_connectors[reg][1]],
+                color='black',
+                linewidth=0.5,
+                clip_on=False,
+               )
     # add letters to region maps
     ax_reg.text(ax_reg.get_xlim()[0]+reg_lett_locs[reg][0]*np.diff(ax_reg.get_xlim())[0],
                 ax_reg.get_ylim()[0]+reg_lett_locs[reg][1]*np.diff(ax_reg.get_ylim())[0],

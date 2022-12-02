@@ -71,10 +71,7 @@ Other directories include:
 ## prepare other physiographic covariates:
 
 1. Run `phen/calculation/GEE/other_datasets/calc_veg_entropy.js` to produce the vegetation cover entropy map that will be used as a covariate in the phenological asynchrony predictive model.
-2. Run `phen/calculation/GEE/other_datasets/calc_dist_to_water.js` to produce the river-distance map that will be used as a covariate in the phenological asynchrony predictive model.
-3. Download SRTM-based 50 km median vector ruggedness metric (file 'vrm_50KMmd_SRTM/tif') from the [EarthEnv website](http://www.earthenv.org/topography).
-4. Download the CHELSA bio6 (daily min temperature of the coldest month) and bio15 (precipitation seasonality) data from the [CHELSA website](URL: https://chelsa-climate.org/bioclim/) using wget on the files in `asynch/analysis/rf/envidatS3paths.txt`!
-5. Run `asynch/analysis/rf/calc_circular_moving_window_chelsa_rasters.r` to calculate the neighborhood mean and standard deviation of the CHELSA bio6 layer and the neighborhood standard deviation of the bio15 layer within 10-cell (i.e., ~55km at the equator) radii.
+2. Download SRTM-based 50 km median vector ruggedness metric (file 'vrm_50KMmd_SRTM/tif') from the [EarthEnv website](http://www.earthenv.org/topography).
 NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` will also be used as covariates in the phenological asynchrony predictive model.
 
 
@@ -102,7 +99,7 @@ NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` w
 
 1. Download ancillary cheatgrass data from [Maestas *et. al*](https://www.sciencebase.gov/catalog/item/5ec5159482ce476925eac3b7) (to be used in a statistical test embedded in `phen/analysis/div/plot_eof_maps_and_ts_FIG_2.py`).
 2. Run `phen/analysis/div/aggregate_great_basin_cheatgrass_data.sh` to aggregate that dataset to our analysis resolution of $0.05^{circ}$.
-3. Run `phen/analysis/div/plot_eof_maps_and_ts_FIG_1.py` to produce **Fig. 2**'s global and regionally-zoomed RGB land surface phenology maps.
+3. Run `phen/analysis/div/plot_eof_maps_and_ts_FIG_1_FIG_S3_FIG_S4.py` to produce **Fig. 1**'s global and regionally-zoomed RGB land surface phenology maps and the two EOF supplemental figures.
 
 
 ## produce asynchrony map and conceptual figure:

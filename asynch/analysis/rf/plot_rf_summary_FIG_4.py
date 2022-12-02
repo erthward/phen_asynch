@@ -67,20 +67,20 @@ top_covar_cbar_labels = {
                         }
 
 # set up figure
-fig = plt.figure(figsize=(26.25, 10.5))
-gs = fig.add_gridspec(ncols=260, nrows=150)
+fig = plt.figure(figsize=(26.25, 14.5))
+gs = fig.add_gridspec(ncols=260, nrows=170)
 
 
 
 #---------------------
 # 1. plot model errors
-
+fig_err = plt.figure(figsize=(16,8))
 err_filename = f'err_map_{include_coords}COORDS_{var}_{neigh_rad}km.tif'
 rast = rxr.open_rasterio(os.path.join(data_dir,
                                       err_filename), masked=True)[0]
 # NOTE: multiply raster by -1 because I accidentally subtracted real value from
 #       prediction instead of vice versa
-ax = fig.add_subplot(gs[10:55, 0:90])
+ax = fig_err.add_subplot(111)
 divider = make_axes_locatable(ax)
 where = 'bottom'
 orientation = 'horizontal'
@@ -139,9 +139,19 @@ common_xlim = ax.get_xlim()
 common_ylim = ax.get_ylim()
 
 # add part label
-ax.text(1.11 * ax.get_xlim()[0],
-        1.17 * ax.get_ylim()[1],
-        'A.', size=partlabel_fontsize, weight='bold')
+#ax.text(1.11 * ax.get_xlim()[0],
+#        1.17 * ax.get_ylim()[1],
+#        'A.', size=partlabel_fontsize, weight='bold')
+
+# adjust subplots and save
+fig_err.subplots_adjust(bottom=0.08,
+                        top=1,
+                        left=0.02,
+                        right=0.98,
+                        wspace=0,
+                        hspace=0,
+                       )
+fig_err.savefig('FIG_S12_RF_err_map.png', dpi=700)
 
 
 
@@ -163,7 +173,7 @@ df = pd.concat(dfs)
 # make top rows the SHAP rows, sorted by descending importance
 df = df.sort_values(by=['metric', 'importance'], ascending=[True, False])
 
-ax = fig.add_subplot(gs[10:50, 105:130])
+ax = fig.add_subplot(gs[10:70, 5:45])
 g = sns.barplot(data=df,
                 orient="h",
                 x="importance",
@@ -198,17 +208,17 @@ for i, tick in enumerate(ax.get_yticklabels()):
         #                       path_effects.Normal()])
 
 # add part label
-ax.text(-0.35, -1.1, 'B.', size=partlabel_fontsize, weight='bold')
+ax.text(-0.3, -1.1, 'A.', size=partlabel_fontsize, weight='bold')
 
 
 #--------------------------------
 # 3. plot SHAP interpretation map
 
-ax = fig.add_subplot(gs[60:140, :130])
+ax = fig.add_subplot(gs[90:, :])
 divider = make_axes_locatable(ax)
-where = 'bottom'
-orientation = 'horizontal'
-size = '7%'
+where = 'right'
+orientation = 'vertical'
+size = '3%'
 cax = divider.append_axes(where, size=size, pad=0.35)
 
 # save to GeoTIFF
@@ -256,7 +266,7 @@ covar_names.append('no predom.')
 tick_locs = np.linspace(axmax/len(covar_names)/2,
                         axmax - (axmax/len(covar_names)/2),
                         len(covar_names))
-getattr(cax, f'set_{axis}ticks')(tick_locs, covar_names)
+getattr(cax, f'set_{axis}ticks')(tick_locs[::-1], covar_names)
 
 # format
 ax.set_xticks([])
@@ -268,52 +278,66 @@ ax.set_xlim(hsv.rio.bounds()[::2])
 ax.set_ylim(hsv.rio.bounds()[1::2])
 cax.tick_params(length=0, labelsize=interp_map_ticklabel_fontsize)
 for i, tick in enumerate(cax.get_yticklabels()):
-    tick.set_rotation(45)
-    if i == 3:
-        tick.set_style('italic')
-cax.set_xlabel('predominant covariate', fontdict=maps_axlabel_fontdict)
-cax.set_yticks(())
+    tick.set_rotation(-45)
+cax.set_ylabel('predominant\ncovariate',
+               fontdict={**maps_axlabel_fontdict, 'rotation':90},
+              )
+cax.set_xticks(())
 
 # add custom colorbar patches
 cbar_xmin, cbar_xmax = cax.get_xlim()
 cbar_ymin, cbar_ymax = cax.get_ylim()
-breaks = np.linspace(cbar_xmin, cbar_xmax, 5)
+if orientation == 'horizontal':
+    breaks = np.linspace(cbar_xmin, cbar_xmax, 5)
+else:
+    breaks = np.linspace(cbar_ymin, cbar_ymax, 5)
 # create an RGB array containing yellow, cyan, magenta, and white
 colors = np.array([colorsys.hsv_to_rgb((59 + (129*i))/359,
                                        1-(i==3), 1) for i in range(4)])
 assert np.all(colors.shape == np.array((4,3)))
 patches = []
-for i in range(4):
-    poly = Polygon([[breaks[i], cbar_ymin],
-                    [breaks[i], cbar_ymax],
-                    [breaks[i+1], cbar_ymax],
-                    [breaks[i+1], cbar_ymin],
-                    [breaks[i], cbar_ymin]])
+for i in [*range(4)][::-1]:
+    if orientation == 'horizontal':
+        poly = Polygon([[breaks[i], cbar_ymin],
+                        [breaks[i], cbar_ymax],
+                        [breaks[i+1], cbar_ymax],
+                        [breaks[i+1], cbar_ymin],
+                        [breaks[i], cbar_ymin]])
+    else:
+        poly = Polygon([[cbar_xmin, breaks[i]],
+                        [cbar_xmax, breaks[i]],
+                        [cbar_xmax, breaks[i+1]],
+                        [cbar_xmin, breaks[i+1]],
+                        [cbar_xmin, breaks[i]]])
     patches.append(poly)
 pc = PatchCollection(patches, alpha=1, edgecolor='k')
 pc.set_color(colors)
 cax.add_collection(pc)
 
+# move colorbar axis and tick labels to the right
+cax.yaxis.set_label_position("right")
+cax.yaxis.tick_right()
+
 # add part label
-ax.text(1.06 * ax.get_xlim()[0],
-        1.05 * ax.get_ylim()[1],
-        'D.', size=partlabel_fontsize, weight='bold')
+ax.text(1.09 * ax.get_xlim()[0],
+        0.95 * ax.get_ylim()[1],
+        'C.', size=partlabel_fontsize, weight='bold')
 
 
 
 #------------------------------------------
 # 4. plot original vars and their SHAP maps
 # NOTE: CURRENTLY HARD-CODED FOR 3 VARS
-row_idxs = np.array([0, 45, 90])
-row_start_idxs = row_idxs + 5
-row_end_idxs = row_idxs + 5 + 40
-col_start_idxs = [150, 210]
-col_end_idxs = [200, 260]
+col_idxs = np.array([50, 120, 190])
+col_start_idxs = col_idxs + 5
+col_end_idxs = col_idxs + 5 + 60
+row_start_idxs = [5, 45]
+row_end_idxs = [35, 75]
 
 # loop over all SHAP tifs, to determine the min and max SHAP vals for plotting
 vmins = []
 vmaxs = []
-for i, top_covar_item in enumerate(top_covars.items()):
+for j, top_covar_item in enumerate(top_covars.items()):
     top_covar, covar_filename = top_covar_item
     shap_filename = f'SHAP_map_{include_coords}COORDS_{top_covar}_{var}_{neigh_rad}km.tif'
     rast = rxr.open_rasterio(os.path.join(data_dir,
@@ -339,16 +363,16 @@ def change_cbar_ticklabels_to_scinot(cax, orientation):
 #colors = [colorsys.hsv_to_rgb((59 + (129*i))/359, 1, 1) for i in range(3)]
 # NOTE: reversing in order, to pop in correct oreder
 #colors = colors[::-1]
-for i, top_covar_item in enumerate(top_covars.items()):
+for j, top_covar_item in enumerate(top_covars.items()):
     top_covar, covar_filename = top_covar_item
     shap_filename = f'SHAP_map_{include_coords}COORDS_{top_covar}_{var}_{neigh_rad}km.tif'
-    ax_covar = fig.add_subplot(gs[row_start_idxs[i]:row_end_idxs[i],
-                                  col_start_idxs[0]:col_end_idxs[0]])
-    ax_shap = fig.add_subplot(gs[row_start_idxs[i]:row_end_idxs[i],
-                                 col_start_idxs[1]:col_end_idxs[1]])
+    ax_covar = fig.add_subplot(gs[row_start_idxs[0]:row_end_idxs[0],
+                                  col_start_idxs[j]:col_end_idxs[j]])
+    ax_shap = fig.add_subplot(gs[row_start_idxs[1]:row_end_idxs[1],
+                                 col_start_idxs[j]:col_end_idxs[j]])
     # NOTE: cmo.thermal matches the asynchrony map in fig 3
     cmaps = ['cmo.thermal', 'cmo.curl_r']
-    j = 0
+    i = 0
     for ax, filename in zip([ax_covar, ax_shap],
                             [covar_filename, shap_filename]):
         divider = make_axes_locatable(ax)
@@ -361,7 +385,7 @@ for i, top_covar_item in enumerate(top_covars.items()):
         rast = rast.rio.write_crs(4326).rio.reproject(plot_crs)
         # NOTE: hack to get around the stupid xarray AttributeError
         rast.attrs['long_name'] = ''
-        if j == 1:
+        if i == 1:
             vmin = shap_vmin
             vmax = shap_vmax
         else:
@@ -369,7 +393,7 @@ for i, top_covar_item in enumerate(top_covars.items()):
             vmax = np.nanpercentile(rast, 99)
         rast.plot.imshow(ax=ax,
                          zorder=0,
-                         cmap=cmaps[j],
+                         cmap=cmaps[i],
                          vmin=vmin,
                          vmax=vmax,
                          add_colorbar=True,
@@ -377,7 +401,7 @@ for i, top_covar_item in enumerate(top_covars.items()):
                          cbar_kwargs = {'orientation': orientation},
                         )
         cax.tick_params(labelsize=cbarticklabel_fontsize)
-        if j == 0:
+        if i == 0:
             cbarlabel = top_covar_cbar_labels[top_covar]
         else:
             cbarlabel = ''
@@ -408,22 +432,22 @@ for i, top_covar_item in enumerate(top_covars.items()):
         #ax.set_xlim(0.95 * ax.get_xlim()[0], ax.get_xlim()[1])
         ax.set_xlim(common_xlim)
         ax.set_ylim(common_ylim)
-        if i == 0:
-            if j == 0:
-                ax.set_title('covariate', fontdict=maps_axlabel_fontdict)
-            else:
-                ax.set_title('SHAP values', fontdict=maps_axlabel_fontdict)
-        else:
-            ax.set_title('')
         if j == 0:
+            if i == 0:
+                ax.set_ylabel('covariate', fontdict=maps_axlabel_fontdict)
+            else:
+                ax.set_ylabel('SHAP values', fontdict=maps_axlabel_fontdict)
+        else:
+            ax.set_ylabel('')
+        if i == 0:
             #ax.set_ylabel(top_covar_ax_labels[top_covar],
-            lab = ax.set_ylabel(top_covar, fontdict=maps_axlabel_fontdict)
+            lab = ax.set_title(top_covar, fontdict=maps_axlabel_fontdict)
             #color = colors.pop()
             #lab.set_path_effects([path_effects.Stroke(linewidth=3,
             #                                       foreground=color),
             #                   path_effects.Normal()])
         else:
-            ax.set_ylabel('')
+            ax.set_title('')
         ax.set_xlabel('')
         ax.set_xticks(())
         ax.set_yticks(())
@@ -432,18 +456,18 @@ for i, top_covar_item in enumerate(top_covars.items()):
         # add part label
         if i == 0 and j == 0:
 
-            ax.text(1.5 * ax.get_xlim()[0],
-                    1.27 * ax.get_ylim()[1],
-                    'C.', size=partlabel_fontsize, weight='bold')
+            ax.text(1.3 * ax.get_xlim()[0],
+                    1.07 * ax.get_ylim()[1],
+                    'B.', size=partlabel_fontsize, weight='bold')
 
-        j += 1
+        i += 1
 
 
 # adjust subplots and save
-fig.subplots_adjust(bottom=0,
+fig.subplots_adjust(bottom=0.04,
                     top=1,
                     left=0.03,
-                    right=0.98,
+                    right=1,
                     wspace=0,
                     hspace=0,
                    )

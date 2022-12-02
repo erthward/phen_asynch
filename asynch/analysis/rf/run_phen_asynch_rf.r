@@ -45,17 +45,14 @@ args = commandArgs(trailingOnly=T)
 
 # phen-asynch var to use
 asynch.var = args[1]
-#asynch.var = 'NIRv'
 cat('\nVAR: ', asynch.var, '\n')
 
 # asynchrony neighborhood radius to use (in km)
 neigh.rad = args[2]
-#neigh.rad = '100'
 cat('\nNEIGH RAD: ', neigh.rad, '\n')
 
 # include coordinates in RF?
 coords.as.covars = args[3]
-#coords.as.covars = 'y'
 cat('\nCOORDS AS COVARS? ', coords.as.covars, '\n')
 
 
@@ -79,16 +76,12 @@ set.seed(seed.num)
 
 # subset the data before building the RF?
 subset = T
-subset.by.range = F
 subset.fracs = c(0.005, 0.05)
 
 # training data fraction
 # NOTE: use 60% for training, 40% for testing, which should be plenty,
 #       given how large a dataset we have
 train.frac = 0.6
-
-# include geo coords in RF?
-include.coords = T
 
 
 ############
@@ -300,28 +293,16 @@ df_full = st_drop_geometry(df_full)
 n.features = (ncol(df_full)-1)
 
 # for each of two subset fractions:
-# NOTE: only for interactive
+# NOTE: only runs when interactive
 if (F){
   for (subset.frac in subset.fracs){
     cat('=============\n')
     cat('SUBSET FRAC: ', subset.frac, '\n\n')
-    # subset the data
-    if (subset.by.range){
-      # TODO: DEBUG, IF USING
-      # get cell coordinates in global equal-area projected CRS
-      #xy = df_full[, c('x1', 'y1')]
-      #coordinates(xy) = c('x1', 'y')
-      #xy_proj = spTransform(xy, proj4str='+init=epsg:8857')
-      # select a subset with all points >= 150km from other points
-      # (based on my previous estimation of the range of the spatial autocorrelation in the data)
-      #df = buffer.f(as.data.frame(xy_proj@coords), buffer=150000, reps=1)
-      cat('\n\n\n\n\nNEED TO FIX AUTOCORR-RANGE SUBSETTING!\n\n\n\n\n')
-    }
-    else {
-      # take a stratified random sample, stratified by the response var
-      split_subset  <- initial_split(df_full, prop = subset.frac, strata = "phn.asy")
-      df = training(split_subset)
-    }
+
+    # take a stratified random sample, stratified by the response var
+    split_subset  <- initial_split(df_full, prop = subset.frac, strata = "phn.asy")
+    df = training(split_subset)
+
     # get training and test data, using a stratified random sample
     split_strat  <- initial_split(df, prop = train.frac,
                                   strata = "phn.asy")
@@ -342,7 +323,10 @@ if (F){
     default.errs = default.preds - tst[,'phn.asy']
     default.tst.rmse = sqrt(mean(default.errs^2))
     hyper_grid <- expand.grid(
-      mtry = floor(n.features * c(.1, .33, .5)),
+      # NOTE: DECIDED TO REPLACE THIS WITH HARD-CODED NUMBERS
+      #       BECAUSE CHANGE IN COVAR NUM CAUSED THIS TO BE 0, 2, 4 INSTEAD!
+      #mtry = floor(n.features * c(.1, .33, .5)),
+      mtry = c(1, 3, 5)
       ntree = c(150, 200, 250, 300),
       min.node.size = c(1, 3, 5, 10),
       replace = c(TRUE, FALSE),
@@ -400,26 +384,17 @@ if (F){
 ntree = 300
 replace = F
 rf.sample.fraction = 0.8
-mtry = 4
+# NOTE: CHANGED BELOW FROM 4 TO 3 WHEN FIXING mtry ISSUE NOTED ABOVE
+mtry = 3
 min.node.size = 1
 
 # and choose data subset based on output above
 subset.frac = 0.05
-if (subset.by.range){
-  # TODO: DEBUG, IF USING
-  # get cell coordinates in global equal-area projected CRS
-  #xy = df_full[, c('x', 'y')]
-  #coordinates(xy) = c('x', 'y')
-  #xy_proj = spTransform(xy, proj4str='+init=epsg:8857')
-  # select a subset with all points >= 150km from other points
-  # (based on my previous estimation of the range of the spatial autocorrelation in the data)
-  #df = buffer.f(as.data.frame(xy_proj@coords), buffer=150000, reps=1)
-  cat('\n\n\n\n\nNEED TO FIX AUTOCORR-RANGE SUBSETTING!\n\n\n\n\n')
-} else {
-  # take a stratified random sample, stratified by the response var
-  split_subset  <- initial_split(df_full, prop = subset.frac, strata = "phn.asy")
-  df = training(split_subset)
-}
+
+# take a stratified random sample, stratified by the response var
+split_subset  <- initial_split(df_full, prop = subset.frac, strata = "phn.asy")
+df = training(split_subset)
+
 # get training and test data, using a stratified random sample
 split_strat  <- initial_split(df, prop = train.frac,
                               strata = "phn.asy")
