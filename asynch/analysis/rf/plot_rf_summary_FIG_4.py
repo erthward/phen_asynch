@@ -33,14 +33,10 @@ include_coords = 'y'
 #plot_crs = 8857
 plot_crs = 4326
 
-title_fontdict = {'fontsize': 30}
-maps_axlabel_fontdict = {'fontsize': 20}
-other_axlabel_fontdict = {'fontsize': 20}
-cbarlabel_fontdict = {'fontsize': 14}
-ticklabel_fontsize = 12
-interp_map_ticklabel_fontsize = 14
-cbarticklabel_fontsize = 8
-partlabel_fontsize=30
+maps_axlabel_fontdict = {'fontsize': 30}
+cbarlabel_fontdict = {'fontsize': 22}
+cbarticklabel_fontsize = 18
+partlabel_fontsize=40
 
 # set paths
 data_dir = phf.EXTERNAL_RF_DATA_DIR
@@ -61,13 +57,13 @@ top_covars = {'ppt.asy': f'pr_asynch_{neigh_rad}km.tif',
               'veg.ent': 'MODIS_IGBP_veg_entropy.tif',
              }
 top_covar_cbar_labels = {
-    'ppt.asy': '$\Delta dist_{seas_{P}}/\Delta  dist_{geo}$',
-    'tmp.min.asy': '$\Delta dist_{seas_{T_{min}}}/\Delta  dist_{geo}$',
+    'ppt.asy': '$\Delta mm/\Delta m$',
+    'tmp.min.asy': '$\Delta ^{\circ} c/\Delta m$',
     'veg.ent': '$entropy$',
                         }
 
 # set up figure
-fig = plt.figure(figsize=(26.25, 14.5))
+fig = plt.figure(figsize=(24, 18))
 gs = fig.add_gridspec(ncols=260, nrows=170)
 
 
@@ -103,7 +99,7 @@ if orientation == 'vertical':
     axis = 'y'
 else:
     axis = 'x'
-getattr(cax, f'set_{axis}label')('prediction error', maps_axlabel_fontdict)
+getattr(cax, f'set_{axis}label')('standardized prediction error ($\Delta NIR_{V}/\Delta m$)', maps_axlabel_fontdict)
 subnational.to_crs(plot_crs).plot(ax=ax,
                                   color='none',
                                   edgecolor='black',
@@ -173,7 +169,7 @@ df = pd.concat(dfs)
 # make top rows the SHAP rows, sorted by descending importance
 df = df.sort_values(by=['metric', 'importance'], ascending=[True, False])
 
-ax = fig.add_subplot(gs[10:70, 5:45])
+ax = fig.add_subplot(gs[10:70, 5:40])
 g = sns.barplot(data=df,
                 orient="h",
                 x="importance",
@@ -186,7 +182,7 @@ g = sns.barplot(data=df,
 g.legend(loc='upper center',
          bbox_to_anchor=(0.5, 1.14),
          ncol=2,
-         fontsize=11,
+         fontsize=cbarticklabel_fontsize,
          #title='feature importance',
          #title_fontsize=maps_axlabel_fontdict['fontsize'],
         )
@@ -198,7 +194,7 @@ ax.tick_params(labelsize=cbarticklabel_fontsize)
 #colors = colors[::-1]
 for i, tick in enumerate(ax.get_yticklabels()):
     tick.set_rotation(30)
-    tick.set_fontsize(10)
+    tick.set_fontsize(cbarticklabel_fontsize)
     if tick.get_text() in top_covars:
         tick.set_weight('bold')
         # color to match the colors in part D's HSV map
@@ -208,16 +204,16 @@ for i, tick in enumerate(ax.get_yticklabels()):
         #                       path_effects.Normal()])
 
 # add part label
-ax.text(-0.3, -1.1, 'A.', size=partlabel_fontsize, weight='bold')
+ax.text(-0.6, -1.06, 'A.', size=partlabel_fontsize, weight='bold')
 
 
 #--------------------------------
 # 3. plot SHAP interpretation map
 
-ax = fig.add_subplot(gs[90:, :])
+ax = fig.add_subplot(gs[80:, :])
 divider = make_axes_locatable(ax)
-where = 'right'
-orientation = 'vertical'
+where = 'bottom'
+orientation = 'horizontal'
 size = '3%'
 cax = divider.append_axes(where, size=size, pad=0.35)
 
@@ -254,10 +250,10 @@ countries.to_crs(hsv.rio.crs).plot(ax=ax,
                                    zorder=3,
                                   )
 
-if orientation == 'vertical':
-    axis = 'y'
-else:
+if orientation == 'horizontal':
     axis = 'x'
+else:
+    axis = 'y'
 axmin, axmax = getattr(cax, f'get_{axis}lim')()
 # add 'no predominant covariate' to the covar names that will be used to label
 # the colorbar
@@ -266,7 +262,10 @@ covar_names.append('no predom.')
 tick_locs = np.linspace(axmax/len(covar_names)/2,
                         axmax - (axmax/len(covar_names)/2),
                         len(covar_names))
-getattr(cax, f'set_{axis}ticks')(tick_locs[::-1], covar_names)
+if orientation == 'vertical':
+    getattr(cax, f'set_{axis}ticks')(tick_locs[::-1], covar_names)
+elif orientation == 'horizontal':
+    getattr(cax, f'set_{axis}ticks')(tick_locs[::-1], covar_names[::-1])
 
 # format
 ax.set_xticks([])
@@ -276,13 +275,25 @@ ax.set_ylabel('')
 ax.set_title('')
 ax.set_xlim(hsv.rio.bounds()[::2])
 ax.set_ylim(hsv.rio.bounds()[1::2])
-cax.tick_params(length=0, labelsize=interp_map_ticklabel_fontsize)
-for i, tick in enumerate(cax.get_yticklabels()):
-    tick.set_rotation(-45)
-cax.set_ylabel('predominant\ncovariate',
-               fontdict={**maps_axlabel_fontdict, 'rotation':90},
-              )
-cax.set_xticks(())
+cax.tick_params(length=0)
+for i, tick in enumerate(getattr(cax, f'get_{axis}ticklabels')()):
+    if orientation == 'vertical':
+        tick.set_rotation(-45)
+    tick.set_fontsize(cbarlabel_fontdict['fontsize'])
+if orientation == 'horizontal':
+    cax.set_xlabel('predominant covariate',
+                   labelpad=1.1,
+                   fontdict={**maps_axlabel_fontdict, 'rotation':0},
+                  )
+elif orientation == 'vertical':
+    cax.set_ylabel('predominant\ncovariate',
+                   labelpad=0.5,
+                   fontdict={**maps_axlabel_fontdict, 'rotation':90},
+                  )
+if orientation == 'vertical':
+    cax.set_xticks(())
+elif orientation == 'horizontal':
+    cax.set_yticks(())
 
 # add custom colorbar patches
 cbar_xmin, cbar_xmax = cax.get_xlim()
@@ -298,11 +309,11 @@ assert np.all(colors.shape == np.array((4,3)))
 patches = []
 for i in [*range(4)][::-1]:
     if orientation == 'horizontal':
-        poly = Polygon([[breaks[i], cbar_ymin],
-                        [breaks[i], cbar_ymax],
-                        [breaks[i+1], cbar_ymax],
-                        [breaks[i+1], cbar_ymin],
-                        [breaks[i], cbar_ymin]])
+        poly = Polygon([[breaks[::-1][i], cbar_ymin],
+                        [breaks[::-1][i], cbar_ymax],
+                        [breaks[::-1][i+1], cbar_ymax],
+                        [breaks[::-1][i+1], cbar_ymin],
+                        [breaks[::-1][i], cbar_ymin]])
     else:
         poly = Polygon([[cbar_xmin, breaks[i]],
                         [cbar_xmax, breaks[i]],
@@ -319,16 +330,16 @@ cax.yaxis.set_label_position("right")
 cax.yaxis.tick_right()
 
 # add part label
-ax.text(1.09 * ax.get_xlim()[0],
+ax.text(1.15 * ax.get_xlim()[0],
         0.95 * ax.get_ylim()[1],
-        'C.', size=partlabel_fontsize, weight='bold')
+        'D.', size=partlabel_fontsize, weight='bold')
 
 
 
 #------------------------------------------
 # 4. plot original vars and their SHAP maps
 # NOTE: CURRENTLY HARD-CODED FOR 3 VARS
-col_idxs = np.array([50, 120, 190])
+col_idxs = np.array([55, 125, 195])
 col_start_idxs = col_idxs + 5
 col_end_idxs = col_idxs + 5 + 60
 row_start_idxs = [5, 45]
@@ -383,6 +394,9 @@ for j, top_covar_item in enumerate(top_covars.items()):
         rast = rxr.open_rasterio(os.path.join(data_dir,
                                               filename), masked=True)[0]
         rast = rast.rio.write_crs(4326).rio.reproject(plot_crs)
+        # NOTE: get rid of egregiously large values about longitudinal bounds
+        #       of Equal Earth projection
+        #rast = rast.where(np.abs(rast<=1e37))
         # NOTE: hack to get around the stupid xarray AttributeError
         rast.attrs['long_name'] = ''
         if i == 1:
@@ -404,12 +418,18 @@ for j, top_covar_item in enumerate(top_covars.items()):
         if i == 0:
             cbarlabel = top_covar_cbar_labels[top_covar]
         else:
-            cbarlabel = ''
+            cbarlabel = 'SHAP val'
         if orientation == 'vertical':
             axis = 'y'
         else:
             axis = 'x'
         getattr(cax, f'set_{axis}label')(cbarlabel, cbarlabel_fontdict)
+        # convert cbar-axes ticklabels to scientific notation, if necessary
+        #cax_ticklabs = cax.get_xticklabels()
+        #if True in [len(tl)>=5 for tl in cax_ticklabs]:
+        #    new_ticklabs = ['%0.2e' % (float(n)) for n in cax_ticklabs]
+        #    cax.set_xticks(cax.get_xticks(), new_ticklabs)
+        #cax.ticklabel_format(style='sci')
         subnational.to_crs(plot_crs).plot(ax=ax,
                                           color='none',
                                           edgecolor='black',
@@ -436,7 +456,7 @@ for j, top_covar_item in enumerate(top_covars.items()):
             if i == 0:
                 ax.set_ylabel('covariate', fontdict=maps_axlabel_fontdict)
             else:
-                ax.set_ylabel('SHAP values', fontdict=maps_axlabel_fontdict)
+                ax.set_ylabel('influence', fontdict=maps_axlabel_fontdict)
         else:
             ax.set_ylabel('')
         if i == 0:
@@ -456,21 +476,34 @@ for j, top_covar_item in enumerate(top_covars.items()):
         # add part label
         if i == 0 and j == 0:
 
-            ax.text(1.3 * ax.get_xlim()[0],
-                    1.07 * ax.get_ylim()[1],
+            ax.text(1.35 * ax.get_xlim()[0],
+                    1.4 * ax.get_ylim()[1],
                     'B.', size=partlabel_fontsize, weight='bold')
+
+        elif i == 1 and j == 0:
+
+            ax.text(1.35 * ax.get_xlim()[0],
+                    1.4 * ax.get_ylim()[1],
+                    'C.', size=partlabel_fontsize, weight='bold')
+
+        # set number of x-axis ticks on cbar axes
+        if i == 0:
+            nticks = 4
+        else:
+            nticks = 5
+        cax.xaxis.set_major_locator(plt.MaxNLocator(nticks))
 
         i += 1
 
 
 # adjust subplots and save
-fig.subplots_adjust(bottom=0.04,
-                    top=1,
-                    left=0.03,
-                    right=1,
-                    wspace=0,
-                    hspace=0,
+fig.subplots_adjust(bottom=0.02,
+                    top=0.99,
+                    left=0.06,
+                    right=0.92,
+                    wspace=0.02,
+                    hspace=0.03,
                    )
-
-fig.savefig('FIG_4_RF_summary.png', dpi=700)
+print('saving...')
+fig.savefig('FIG_4_RF_summary.png', dpi=600)
 

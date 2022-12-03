@@ -468,7 +468,7 @@ ax = fig.add_subplot(gs[80:, 215:])
 ax.hist(null_fx, bins=100, alpha=0.7)
 ax.axvline(fx_size, *ax.get_ylim(), color='red', linewidth=2)
 ax.set_xlabel(('$\\Delta \\beta_{clim\\_dist}\\ /\\ '
-               '\\Delta\\overline{x}_{lat}$'),
+               '\\Delta|\\overline{lat}|$'),
               fontdict=axlabel_fontdict)
 ax.set_ylabel('freq', fontdict=axlabel_fontdict)
 xticks = np.linspace(ax.get_xticks()[0], ax.get_xticks()[-1], 5) 
@@ -511,7 +511,7 @@ sns.regplot(x=np.abs(all_loop_MMRR_res_gdf['mean_lat']),
             scatter=False,
             ax=ax,
            )
-ax.set_xlabel('$|\\overline{x}_{lat}|$', fontdict=axlabel_fontdict)
+ax.set_xlabel('$|\\overline{lat}|$', fontdict=axlabel_fontdict)
 ax.set_ylabel('$\\beta_{clim\\_dist}$', fontdict=axlabel_fontdict)
 ax.tick_params(labelsize=ticklabel_size)
 
@@ -617,8 +617,8 @@ scalmap = plt.cm.ScalarMappable(cmap='magma',
 plt.colorbar(scalmap, cax=cax, orientation='horizontal')
 xticks = np.linspace(np.min(h3_gdf.clim_dist_mean),
                      np.max(h3_gdf.clim_dist_mean), 5)
-cax.set_xlabel(('$\overline{\\beta}_{dist_{clim}}\ \ \ \ '
-                '_{(\Delta dist_{seas}/\Delta dist_{clim})}$'),
+cax.set_xlabel(('$\overline{\\beta}_{dist_{clim}}\ \ '
+                '(\Delta dist_{seas}/\Delta dist_{clim})$'),
                 fontdict=axlabel_fontdict)
 cax.set_xticks(xticks, ['%0.2f' % t for t in xticks], size=ticklabel_size)
 cax.set_ylabel('')

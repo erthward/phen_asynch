@@ -348,7 +348,8 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
         return(fig, gs, mod)
 
 
-def map_asynch(fig, gs=None, main_fig=True, var='NIRv',
+def map_asynch(fig, cbar_axlab,
+               gs=None, main_fig=True, var='NIRv',
                cbar_axlab_fontsize=13, cbar_ticklab_fontsize=10):
 
     assert var in ['NIRv', 'SIF', 'tmmn', 'tmmx', 'pr', 'def', 'cloud']
@@ -419,9 +420,9 @@ def map_asynch(fig, gs=None, main_fig=True, var='NIRv',
                         )
         cax.tick_params(labelsize=cbar_ticklab_fontsize)
         if main_fig:
-            cax.set_xlabel('asynchrony', fontdict={'fontsize': rowlab_fontsize})
+            cax.set_xlabel(cbar_axlab, fontdict={'fontsize': rowlab_fontsize})
         else:
-            cax.set_ylabel('asynchrony', fontdict={'fontsize': 36})
+            cax.set_ylabel(cbar_axlab, fontdict={'fontsize': 36})
         subnational.to_crs(8857).plot(ax=ax,
                                       color='none',
                                       edgecolor='black',
@@ -454,6 +455,15 @@ def map_asynch(fig, gs=None, main_fig=True, var='NIRv',
 
         del rast
 
+cbar_axlab_dict = {'NIRv': '$\Delta NIR_{V}/\Delta m$',
+                   'SIF': '$\Delta (mW m^{-2} sr^{-1} nm^{-1})/\Delta m$',
+                   'tmmn': '$\Delta ^{\circ} C/\Delta m$',
+                   'tmmx': '$\Delta ^{\circ} C/\Delta m$',
+                   'pr': '$\Delta mm/\Delta m$',
+                   'def': '$\Delta mm/\Delta m$',
+                   'cloud': '$\Delta \%/\Delta m$',
+
+                  }
 
 if __name__ == '__main__':
     plt.close('all')
@@ -465,7 +475,7 @@ if __name__ == '__main__':
                    max_seas_dist=max_seas_dist, plot_it=True)
 
     # add the asynch map below
-    map_asynch(fig, gs=gs, main_fig=True, var='NIRv')
+    map_asynch(fig, cbar_axlab_dict['NIRv'], gs=gs, main_fig=True, var='NIRv')
 
     # add labels for parts A. and B.
     fig.axes[0].text(-5.8, -5, 'A.', size=24, weight='bold')
@@ -475,14 +485,15 @@ if __name__ == '__main__':
 
     # adjust subplots and save
     fig.subplots_adjust(bottom=0.05, top=0.92, left=0.04, right=0.98)
-    fig.savefig('FIG_3_asynch_concept_and_map.png', dpi=700)
+    fig.savefig('FIG_3_asynch_concept_and_map.png', dpi=600)
 
     # make both vars' supp figs (each one stacking all 3 neighborhood radii)
     for n, var in enumerate(['NIRv', 'SIF', 'tmmn', 'tmmx', 'pr', 'def', 'cloud']):
         print('\n\nNOW PRODUCING SUPPLEMENTAL FIG FOR %s..\n\n' % var)
         fig_supp = plt.figure(figsize=(19,24))
-        map_asynch(fig_supp, gs=None, main_fig=False, var=var,
+        map_asynch(fig_supp, cbar_axlab_dict[var],
+                   gs=None, main_fig=False, var=var,
                    cbar_axlab_fontsize=30, cbar_ticklab_fontsize=24)
         fig_supp.subplots_adjust(bottom=0.02, top=0.95, left=0.0, right=0.88)
-        fig_supp.savefig('FIG_S%i_%s_asynch_maps.png' % (5+n, var), dpi=700)
+        fig_supp.savefig('FIG_S%i_%s_asynch_maps.png' % (6+n, var), dpi=600)
 

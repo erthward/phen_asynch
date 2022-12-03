@@ -78,7 +78,7 @@ NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` w
 ## run gridded SIF orbital-gap seasonality validation:
 
 1. Manually download TROPOMI data from ***WHERE FROM?***.
-2. Run `phen/validation/orbital_gap_seasonality/validate_ANN-gridded_OCO2_orbital_gaps.py` to validate the seasonality of the OCO2-SIF ANN-interpolated data products within OCO2 orbital gaps for three regions across the pantropics.
+2. Run `phen/validation/orbital_gap_seasonality/validate_ANN-gridded_OCO2_orbital_gaps_FIG_S3_S4.py` to validate the seasonality of the OCO2-SIF ANN-interpolated data products within OCO2 orbital gaps for three regions across the pantropics.
 
 
 ## run flux-tower validation:
@@ -99,12 +99,12 @@ NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` w
 
 1. Download ancillary cheatgrass data from [Maestas *et. al*](https://www.sciencebase.gov/catalog/item/5ec5159482ce476925eac3b7) (to be used in a statistical test embedded in `phen/analysis/div/plot_eof_maps_and_ts_FIG_2.py`).
 2. Run `phen/analysis/div/aggregate_great_basin_cheatgrass_data.sh` to aggregate that dataset to our analysis resolution of $0.05^{circ}$.
-3. Run `phen/analysis/div/plot_eof_maps_and_ts_FIG_1_FIG_S3_FIG_S4.py` to produce **Fig. 1**'s global and regionally-zoomed RGB land surface phenology maps and the two EOF supplemental figures.
+3. Run `phen/analysis/div/plot_eof_maps_and_ts_FIG_1_S1_S2.py` three times, one for each of the three values of `what_to_plot` (provided in comments inline) to produce **Fig. 1**'s global and regionally-zoomed RGB land surface phenology maps and the two EOF supplemental figures.
 
 
 ## produce asynchrony map and conceptual figure:
 
-1. Run `asynch/viz/make_conceptual_fig_and_asynch_maps_FIG_3_S5-11.py` to create the asynch map figures for the main paper (**Fig. 3**) and the supplements (**Figs. S3, S4**).
+1. Run `asynch/viz/make_conceptual_fig_and_asynch_maps_FIG_3_S6-S12.py` to create the asynch map figures for the main paper (**Fig. 3**) and the supplements (**Figs. S3, S4**).
 
 
 ## run phenological asynchrony modeling workflow:
@@ -117,7 +117,7 @@ NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` w
 6. Run `asynch/analysis/rf/ch3_rasterize_err_job.sh` to convert output CSVs of global RF prediction errors to GeoTIFFs.
 7. Run `asynch/analysis/rf/tabulate_model_summaries.py` to combine all permuation-based and SHAP-based importance values and model $R^2$s and MSEs into a single output table, for supplmental materials.
 8. Run `asynch/analysis/rf/make_shap_hsv_map.py` to produce the SHAP-value HSV-coded interpretation map (for the 100 km-neighborhood NIRv-asynchrony analysis that included the geo-coordinate polynomials as covariates) and save result as a GeoTIFF.
-9. Run `asynch/analysis/rf/plot_rf_summary_FIG_4.py` to produce final figure summarizing random forest results.
+9. Run `asynch/analysis/rf/plot_rf_summary_FIG_4_S13.py` to produce final figure summarizing random forest results.
 
 
 ## run climate-distance analysis:
