@@ -65,7 +65,7 @@ asynch_cmap = 'cmo.thermal'
 #asynch_cmap = 'cmo.dense_r'
 #asynch_cmap = mpl.cm.plasma.copy()
 #asynch_cmap.set_bad('#717171')
-rand_pix_to_track = [155, 67]
+rand_pix_to_track = [155, 89]
 rand_pix_color = ['red', 'orange']
 rand_pix_line_zorder = [40, 30]
 rand_pix_linewidth = 1.5
