@@ -57,8 +57,8 @@ top_covars = {'ppt.asy': f'pr_asynch_{neigh_rad}km.tif',
               'veg.ent': 'MODIS_IGBP_veg_entropy.tif',
              }
 top_covar_cbar_labels = {
-    'ppt.asy': '$\Delta mm/\Delta m$',
-    'tmp.min.asy': '$\Delta ^{\circ} c/\Delta m$',
+    'ppt.asy': '$asynch\ (\Delta mm/\Delta m)$',
+    'tmp.min.asy': '$asynch\ (\Delta ^{\circ} c/\Delta m)$',
     'veg.ent': '$entropy$',
                         }
 
@@ -217,7 +217,7 @@ orientation = 'horizontal'
 size = '3%'
 cax = divider.append_axes(where, size=size, pad=0.35)
 
-# save to GeoTIFF
+# read from GeoTIFF
 var_order = '_'.join([*top_covars])
 hsv = rxr.open_rasterio(os.path.join(phf.EXTERNAL_RF_DATA_DIR,
     f'SHAP_hsv_map_{var_order}_{include_coords}COORDS_{var}_{neigh_rad}km.tif'),
@@ -227,24 +227,24 @@ hsv = rxr.open_rasterio(os.path.join(phf.EXTERNAL_RF_DATA_DIR,
 # NOTE: create black background
 cmap = mpl.colors.LinearSegmentedColormap.from_list('black', ['#000000']*2)
 cmap.set_bad('#000000')
-black_bg = deepcopy(hsv[0])
-black_bg.plot.imshow(ax=ax,
-                     cmap=cmap,
-                     vmin=0,
-                     vmax=0,
-                     add_colorbar=False,
-                     zorder=0)
+#black_bg = deepcopy(hsv[0])
+#black_bg.plot.imshow(ax=ax,
+#                     cmap=cmap,
+#                     vmin=0,
+#                     vmax=0,
+#                     add_colorbar=False,
+#                     zorder=0)
 hsv.plot.imshow(ax=ax, zorder=1)
 subnational.to_crs(hsv.rio.crs).plot(ax=ax,
                                       color='none',
-                                      edgecolor='gray',
+                                      edgecolor='black',
                                       linewidth=0.4,
                                       alpha=0.5,
                                       zorder=2,
                                      )
 countries.to_crs(hsv.rio.crs).plot(ax=ax,
                                    color='none',
-                                   edgecolor='gray',
+                                   edgecolor='black',
                                    linewidth=0.6,
                                    alpha=0.8,
                                    zorder=3,
@@ -305,6 +305,9 @@ else:
 # create an RGB array containing yellow, cyan, magenta, and white
 colors = np.array([colorsys.hsv_to_rgb((59 + (129*i))/359,
                                        1-(i==3), 1) for i in range(4)])
+# NOTE: converting white to black because I flipped the HSV backgrond from
+# black to white
+colors[3,:] = 0
 assert np.all(colors.shape == np.array((4,3)))
 patches = []
 for i in [*range(4)][::-1]:
@@ -505,5 +508,5 @@ fig.subplots_adjust(bottom=0.02,
                     hspace=0.03,
                    )
 print('saving...')
-fig.savefig('FIG_4_RF_summary.png', dpi=600)
+fig.savefig('FIG_4_RF_summary.png', dpi=500)
 

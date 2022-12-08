@@ -50,7 +50,7 @@ subplots_adj_hspace=0.30
 central_curve_color = '#220000'
 central_linewidth = 2
 central_alpha = 1
-neighbor_linewidth = 1
+neighbor_linewidth = 0.1
 neighbor_alpha = 0.5
 rad_linestyle = ':'
 rad_color = 'white'
@@ -65,8 +65,9 @@ asynch_cmap = 'cmo.thermal'
 #asynch_cmap = 'cmo.dense_r'
 #asynch_cmap = mpl.cm.plasma.copy()
 #asynch_cmap.set_bad('#717171')
-rand_pix_to_track = 208
-rand_pix_color = 'red'
+rand_pix_to_track = [155, 67]
+rand_pix_color = ['red', 'orange']
+rand_pix_line_zorder = [40, 30]
 rand_pix_linewidth = 1.5
 #rand_pix_marker = '$\U0001F4CD$'
 rand_pix_marker = '*'
@@ -85,7 +86,7 @@ min_y=0
 max_y=1
 dims=(21,21)
 central_cell = [int((n-1)/2) for n in dims]
-seed = 703121887
+seed = 7031287
 mpd_h = 1.4
 orientation='landscape'
 savefig=True
@@ -105,7 +106,7 @@ subnational = pd.concat(subnational)
 # define functions
 def get_seasonal_curve(betas, plot=True, color='gray',
                        ax=None, linestyle='-', linewidth=1, alpha=0.5,
-                       min_seas_dist=None, max_seas_dist=None):
+                       min_seas_dist=None, max_seas_dist=None, zorder=None):
     if plot:
         if ax is None:
             no_ax = True
@@ -122,9 +123,10 @@ def get_seasonal_curve(betas, plot=True, color='gray',
             seas_dist = pythag_dist(fitted, color)
             color_val = int(((seas_dist-min_seas_dist)/(
                             max_seas_dist-min_seas_dist)) * 255)
-            color=curve_cmap(color_val)
+            #color=curve_cmap(color_val)
+            color = 'black'
         ax.plot(np.linspace(1,365,365), fitted, linestyle,
-                color=color, linewidth=linewidth, alpha=alpha)
+                color=color, linewidth=linewidth, alpha=alpha, zorder=zorder)
         if no_ax:
             plt.show()
 
@@ -186,6 +188,10 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
         cent_fitted = get_seasonal_curve(arr[:, central_cell[0], central_cell[1]],
                                              plot=False)
         pix_n = 0
+        rand_pix_i = []
+        rand_pix_j = []
+        rand_pix_geo_dist = []
+        rand_pix_seas_dist = []
         for i in range(arr.shape[1]):
             for j in range(arr.shape[2]):
                 dist = pythag_dist([i,j], central_cell)
@@ -215,11 +221,11 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
                     cols.append(np.argmax(fitted))
 
                 # save the random pixel to be tracked, if it's the right time
-                if pix_n == rand_pix_to_track:
-                    rand_pix_i = i
-                    rand_pix_j = j
-                    rand_pix_geo_dist = dist
-                    rand_pix_seas_dist = seas_dist
+                if pix_n in rand_pix_to_track:
+                    rand_pix_i.append(i)
+                    rand_pix_j.append(j)
+                    rand_pix_geo_dist.append(dist)
+                    rand_pix_seas_dist.append(seas_dist)
 
                 # increment the pixel counter
                 pix_n += 1
@@ -230,15 +236,18 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
                                          alpha=central_alpha,
                                          linewidth=central_linewidth,
                                          plot=plot_it)
-        # and plot the random pixel's curve
-        fitted = get_seasonal_curve(arr[:, rand_pix_i, rand_pix_j],
-                                    color='k',
-                                    ax=ax2, linewidth=1.5*rand_pix_linewidth,
-                                    alpha=1, plot=plot_it)
-        fitted = get_seasonal_curve(arr[:, rand_pix_i, rand_pix_j],
-                                    color=rand_pix_color,
-                                    ax=ax2, linewidth=rand_pix_linewidth,
-                                    alpha=1, plot=plot_it)
+        # and plot the random pixel curves
+        for num, rand_pix_col in enumerate(rand_pix_color):
+            fitted = get_seasonal_curve(arr[:, rand_pix_i[num], rand_pix_j[num]],
+                                        color='k',
+                                        ax=ax2, linewidth=1.5*rand_pix_linewidth,
+                                        alpha=1, plot=plot_it,
+                                        zorder=rand_pix_line_zorder[num])
+            fitted = get_seasonal_curve(arr[:, rand_pix_i[num], rand_pix_j[num]],
+                                        color=rand_pix_col,
+                                        ax=ax2, linewidth=rand_pix_linewidth,
+                                        alpha=1, plot=plot_it,
+                                        zorder=rand_pix_line_zorder[num]+1)
 
 
 
@@ -268,10 +277,11 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
                                                                              2*pi, 720)]
             ax1.plot(rad_xs, rad_ys, rad_linestyle,
                      color=rad_color, linewidth=rad_linewidth, alpha=rad_alpha)
-            ax1.scatter(*central_cell, c='black', s=rand_pix_markersize)
-            ax1.scatter(rand_pix_i, rand_pix_j, c=rand_pix_color,
-                        s=rand_pix_markersize, marker=rand_pix_marker,
-                        edgecolor='k', linewidth=0.5)
+            ax1.scatter(*central_cell, c='black', marker='*', s=rand_pix_markersize)
+            for num, rand_pix_col in enumerate(rand_pix_color):
+                ax1.scatter(rand_pix_i[num], rand_pix_j[num], c=rand_pix_col,
+                            s=rand_pix_markersize, marker=rand_pix_marker,
+                            edgecolor='k', linewidth=0.5)
 
             # ax3
             # NOTE: adjusting ys downward a bit, to make the low-high
@@ -285,9 +295,10 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             preds = mod.predict(pred_xs)
             ax3.scatter(xs, ys, c='k', s=scat_markersize,
                         alpha=scat_markeralpha)
-            ax3.scatter(rand_pix_geo_dist, rand_pix_seas_dist-reduction,
-                        c=rand_pix_color, s=rand_pix_markersize,
-                        marker=rand_pix_marker, edgecolor='k', linewidth=0.5)
+            for num, rand_pix_col in enumerate(rand_pix_color):
+                ax3.scatter(rand_pix_geo_dist[num], rand_pix_seas_dist[num]-reduction,
+                            c=rand_pix_col, s=rand_pix_markersize,
+                            marker=rand_pix_marker, edgecolor='k', linewidth=0.5)
             # cover the (0,0) point, to avoid confusion
             ax3.scatter(0, 0, c='white', s=2*scat_markersize, edgecolor='white')
             if asynch == 'low':
@@ -350,7 +361,7 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
 
 def map_asynch(fig, cbar_axlab,
                gs=None, main_fig=True, var='NIRv',
-               cbar_axlab_fontsize=13, cbar_ticklab_fontsize=10):
+               cbar_axlab_fontsize=18, cbar_ticklab_fontsize=10):
 
     assert var in ['NIRv', 'SIF', 'tmmn', 'tmmx', 'pr', 'def', 'cloud']
 
@@ -420,9 +431,9 @@ def map_asynch(fig, cbar_axlab,
                         )
         cax.tick_params(labelsize=cbar_ticklab_fontsize)
         if main_fig:
-            cax.set_xlabel(cbar_axlab, fontdict={'fontsize': rowlab_fontsize})
+            cax.set_xlabel(cbar_axlab, fontdict={'fontsize': cbar_axlab_fontsize})
         else:
-            cax.set_ylabel(cbar_axlab, fontdict={'fontsize': 36})
+            cax.set_ylabel(cbar_axlab, fontdict={'fontsize': cbar_axlab_fontsize})
         subnational.to_crs(8857).plot(ax=ax,
                                       color='none',
                                       edgecolor='black',
@@ -455,27 +466,27 @@ def map_asynch(fig, cbar_axlab,
 
         del rast
 
-cbar_axlab_dict = {'NIRv': '$\Delta NIR_{V}/\Delta m$',
-                   'SIF': '$\Delta (mW m^{-2} sr^{-1} nm^{-1})/\Delta m$',
-                   'tmmn': '$\Delta ^{\circ} C/\Delta m$',
-                   'tmmx': '$\Delta ^{\circ} C/\Delta m$',
-                   'pr': '$\Delta mm/\Delta m$',
-                   'def': '$\Delta mm/\Delta m$',
-                   'cloud': '$\Delta \%/\Delta m$',
+cbar_axlab_dict = {'NIRv main': '$NIR_{V}\ asynchrony\ (\Delta NIR_{V}/\Delta m)$',
+                   'NIRv': '$NIR_{V}\ asynch\ (\Delta NIR_{V}/\Delta m)$',
+                   'SIF': '$SIF\  asynch\ (\Delta (mW m^{-2} sr^{-1} nm^{-1})/\Delta m)$',
+                   'tmmn': '$tmp_{min}\ asynch\ (\Delta ^{\circ} C/\Delta m)$',
+                   'tmmx': '$tmp_{max}\ asynch\ (\Delta ^{\circ} C/\Delta m)$',
+                   'pr': '$ppt\ asynch\ (\Delta mm/\Delta m)$',
+                   'def': '$cwd\ asynch\ (\Delta mm/\Delta m)$',
+                   'cloud': '$cloud\ asynch\ (\Delta \%\ cover/\Delta m)$',
 
                   }
 
 if __name__ == '__main__':
     plt.close('all')
     # make the conceptual figure
-    print('\n\nNOW PRODUCING FIG 3..\n\n')
+    print('\n\nNOW PRODUCING FIG 3...\n\n')
     min_seas_dist, max_seas_dist = plot_all(betas, rad=rad, dims=dims,
                                             plot_it=False)
     fig, gs, mod = plot_all(betas, rad=rad, dims=dims, min_seas_dist=min_seas_dist,
                    max_seas_dist=max_seas_dist, plot_it=True)
-
     # add the asynch map below
-    map_asynch(fig, cbar_axlab_dict['NIRv'], gs=gs, main_fig=True, var='NIRv')
+    map_asynch(fig, cbar_axlab_dict['NIRv main'], gs=gs, main_fig=True, var='NIRv')
 
     # add labels for parts A. and B.
     fig.axes[0].text(-5.8, -5, 'A.', size=24, weight='bold')
@@ -493,7 +504,7 @@ if __name__ == '__main__':
         fig_supp = plt.figure(figsize=(19,24))
         map_asynch(fig_supp, cbar_axlab_dict[var],
                    gs=None, main_fig=False, var=var,
-                   cbar_axlab_fontsize=30, cbar_ticklab_fontsize=24)
+                   cbar_axlab_fontsize=26, cbar_ticklab_fontsize=20)
         fig_supp.subplots_adjust(bottom=0.02, top=0.95, left=0.0, right=0.88)
         fig_supp.savefig('FIG_S%i_%s_asynch_maps.png' % (6+n, var), dpi=600)
 

@@ -55,7 +55,7 @@ shap_maps = [rxr.open_rasterio(os.path.join(data_dir,
                                masked=True)[0] for tc in top_covars]
 da = dask.array.stack(shap_maps)
 
-# saturation: 1 - scaled standard deviation (as a metric top covar predominance)
+# saturation: 1 - scaled standard deviation (as a metric of top covar predominance)
 std = deepcopy(shap_maps[0])
 std.values = 1 - minmax_scale(np.std(da, axis=0), 1, 99)
 assert np.nanmin(std) == 0 and np.nanmax(std) == 1
@@ -92,7 +92,7 @@ def hsv_ax_vals_2_rgb(vals):
         return colorsys.hsv_to_rgb(h=vals[0], s=vals[1], v=vals[2])
 
 
-hsv = dask.array.stack([predom, std, asynch]).rechunk([3,200,200])
+hsv = dask.array.stack([predom, asynch, std]).rechunk([3,200,200])
 
 rgb = xr.concat([deepcopy(std.expand_dims('color',
                                           0)) for _ in range(3)], dim='color')
@@ -100,6 +100,9 @@ rgb = xr.concat([deepcopy(std.expand_dims('color',
 # NOTE: GETTING A CONFUSING ERROR TRYING TO USE dask.array.apply_along_axis,
 #       so using np.apply_along_axis instead
 rgb.values = np.apply_along_axis(hsv_ax_vals_2_rgb, 0, hsv.compute())
+
+# mask out all areas under 50th pctile for asynch
+rgb = rgb.where(asynch>=np.nanpercentile(asynch, 50))
 
 # save to GeoTIFF
 var_order = '_'.join([*top_covars])
