@@ -29,10 +29,10 @@ import phen_helper_fns as phf
 # plot params
 title_fontsize = 12
 rowlab_fontsize = 18
-axislab_fontsize = 11
+axislab_fontsize = 13
 ticklab_fontsize = 12
 cbarlab_fontsize = 12
-cbar_ticklab_fontsize = 10
+cbar_ticklab_fontsize = 9
 annot_fontsize = 14
 scat_label_fontsize = 10
 scat_label_fontcolor = 'black'
@@ -161,9 +161,13 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
 
     if plot_it:
         fig = plt.figure(dpi=dpi, figsize=(fig_width, fig_height))
-        gs = fig.add_gridspec(nrows=4, ncols=4, width_ratios = [1.1, 0.2, 1, 1])
-        top_axs = [fig.add_subplot(gs[0,i]) for i in [0,2,3]]
-        bot_axs = [fig.add_subplot(gs[1,i]) for i in [0,2,3]]
+        gs = fig.add_gridspec(nrows=40, ncols=40)#, width_ratios = [1.1, 0.2, 1, 1])
+        top_axs = [fig.add_subplot(gs[0:(10-(js[0]>10)),js[0]:js[1]]) for js in [(2, 10),
+                                                                    (18, 28),
+                                                                    (30, 40)]]
+        bot_axs = [fig.add_subplot(gs[10:(20-(js[0]>10)),js[0]:js[1]]) for js in [(2, 10),
+                                                                     (18, 28),
+                                                                     (30, 40)]]
     else:
         top_axs = [0,0]
         bot_axs = [0,0]
@@ -256,16 +260,6 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             # ax1
             im = ax1.imshow(seas_peak_arr, cmap=arr_cmap,
                             vmin=0, vmax=364)
-            cbar = plt.colorbar(im, ax=ax1, orientation='vertical')
-            #cbar.set_label(label='time of year',
-            cbar.set_label(label='',
-                           size=cbarlab_fontsize,
-                           rotation=-90,
-                          )
-            cbar.set_ticks(np.linspace(0,364,5))
-            cbar.set_ticklabels(['Jan', 'Apr', 'Jul', 'Oct', 'Jan'])
-            cbar.ax.tick_params(labelsize=cbar_ticklab_fontsize)
-            cbar.ax.tick_params(labelsize=cbar_ticklab_fontsize, length=0)
             ax1.imshow(np.invert(geo_dist_arr>rad), cmap=plt.cm.gray,
                        vmin=0, vmax=1, alpha=rad_mask_alpha)
             #for i in range(dims[0]):
@@ -316,8 +310,7 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             ax1.set_yticklabels(())
             ax1.tick_params(axis=u'both', which=u'both', length=0)
             if asynch == 'high':
-                ax1.set_xlabel('date of peak phenology',
-                               fontdict={'fontsize': axislab_fontsize})
+                ax1.set_xlabel('')
             ax1.set_ylabel('%s\nasynchrony' % asynch,
                            fontdict={'fontsize': rowlab_fontsize})
 
@@ -346,6 +339,24 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             max_seas_dists.append(np.max(ys))
             min_seas_dists.append(np.min(ys))
 
+    # add circular colorbar
+    if plot_it:
+        cbar_ax = fig.add_subplot(gs[7:13, 10:15], projection='polar')
+        azimuths = np.arange(90, 451, 1)
+        zeniths = np.arange(40, 70, 1)
+        values = azimuths * np.ones((30, 361))
+        cbar_ax.pcolormesh(azimuths*np.pi/180.0, zeniths, values,
+                           cmap=mpl.cm.twilight_shifted_r)
+        cbar_ax.set_xticks(np.array([90, 180, 270, 360])/180*np.pi,
+                           ['Jan', 'Oct', 'Jul', 'Apr'],
+                           size=cbar_ticklab_fontsize)
+        cbar_ax.set_yticks(())
+        cbar_ax.text(90,
+                     120,
+                     'date of peak    \n  phenology ',
+                     size=axislab_fontsize,
+                     clip_on=False,
+                    )
     if not plot_it:
         return (np.min(min_seas_dists), np.max(max_seas_dists))
     else:
@@ -361,7 +372,8 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
 
 def map_asynch(fig, cbar_axlab,
                gs=None, main_fig=True, var='NIRv',
-               cbar_axlab_fontsize=18, cbar_ticklab_fontsize=10):
+               cbar_axlab_fontsize=18,
+               cbar_ticklab_fontsize=cbar_ticklab_fontsize):
 
     assert var in ['NIRv', 'SIF', 'tmmn', 'tmmx', 'pr', 'def', 'cloud']
 
@@ -462,7 +474,7 @@ def map_asynch(fig, cbar_axlab,
             ax.set_title('')
         else:
             ax.set_title('%i km neighborhood' % neigh_rad,
-                         fontdict={'fontsize': 42})
+                         fontdict={'fontsize': 21})
 
         del rast
 
@@ -501,10 +513,10 @@ if __name__ == '__main__':
     # make both vars' supp figs (each one stacking all 3 neighborhood radii)
     for n, var in enumerate(['NIRv', 'SIF', 'tmmn', 'tmmx', 'pr', 'def', 'cloud']):
         print('\n\nNOW PRODUCING SUPPLEMENTAL FIG FOR %s..\n\n' % var)
-        fig_supp = plt.figure(figsize=(19,24))
+        fig_supp = plt.figure(figsize=(9,12))
         map_asynch(fig_supp, cbar_axlab_dict[var],
                    gs=None, main_fig=False, var=var,
-                   cbar_axlab_fontsize=26, cbar_ticklab_fontsize=20)
-        fig_supp.subplots_adjust(bottom=0.02, top=0.95, left=0.0, right=0.88)
+                   cbar_axlab_fontsize=13, cbar_ticklab_fontsize=10)
+        fig_supp.subplots_adjust(bottom=0.02, top=0.95, left=0.02, right=0.88)
         fig_supp.savefig('FIG_S%i_%s_asynch_maps.png' % (6+n, var), dpi=600)
 

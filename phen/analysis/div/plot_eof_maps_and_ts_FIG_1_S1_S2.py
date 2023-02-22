@@ -40,9 +40,9 @@ import phen_helper_fns as phf
 ########
 
 # which figure to plot?
-what_to_plot = 'fig_1'
-#what_to_plot = 'fig_s1'
-#what_to_plot = 'fig_s2'
+#what_to_plot = 'fig_1'
+#what_to_plot = 'fig_s3'
+what_to_plot = 'fig_s4'
 
 # plotting params
 partlabel_fontsize = 24
@@ -302,7 +302,9 @@ if fold_it:
 
     # make the weighted-sum EOFs map
     eofs_wt_sum = deepcopy(eofs)
-    for n in range(2):
+    # NOTE: folding all 3 EOFs, on the assumption that a hemispheric signal is
+    #       embedded in each, rather than eyeballing whethere or not one is...
+    for n in range(3):
         eofs_wt_sum[n] = ((wts*(eofs[n])) + ((1-wts)*(1-eofs[n])))# * wts_inflation
 
     # get equal-area-projected EOFs rasters, for mapping
@@ -338,7 +340,7 @@ global_xlim = (0.80 * eofs_wt_sum_for_map.x.min(),
                0.95 * eofs_wt_sum_for_map.x.max())
 
 
-if what_to_plot == 'fig_s1':
+if what_to_plot == 'fig_s3':
     # create EOF fig
     fig_eof = plt.figure(figsize=(20,30))
 
@@ -388,7 +390,7 @@ if what_to_plot == 'fig_s1':
 #############################
 # PLOT UNTRANSFORMED RGB MAPS
 #############################
-if what_to_plot == 'fig_s2':
+if what_to_plot == 'fig_s4':
     # create untransformed RGB figure
     eofs_for_map = eofs.rio.write_crs(4326)
     eofs_for_map = eofs_for_map.rio.reproject(8857)
@@ -416,9 +418,11 @@ if what_to_plot == 'fig_s2':
             eofs_for_map.plot.imshow(ax=ax, zorder=0)
         elif row == 1:
             eofs_trans = deepcopy(eofs_for_map)
-            for i in range (2):
+            # NOTE: folding all 3 EOFs, on the assumption that a hemispheric signal is
+            #       embedded in each, rather than eyeballing whethere or not one is...
+            for i in range(3):
                 eofs_trans[i,:,:] = 1 - eofs_trans[i,:,:]
-            eofs_trans = eofs_trans.where(np.abs(eofs_trans<1e37))
+            eofs_trans = eofs_trans.where(np.abs(eofs_trans)<1e37)
             eofs_trans.plot.imshow(ax=ax, zorder=0)
         strip_axes(ax)
         ax.set_xlim(global_xlim)

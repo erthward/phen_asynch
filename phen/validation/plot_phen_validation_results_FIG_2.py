@@ -74,7 +74,7 @@ r2s.plot.imshow(ax=ax_map,
                 cbar_ax=cax,
                 cbar_kwargs={'orientation': 'horizontal'},
                )
-countries.to_crs(r2s.rio.crs).plot(facecolor='#9e8e67',
+countries.to_crs(r2s.rio.crs).plot(facecolor='#ede6d1', #'#9e8e67',
                edgecolor='black',
                linewidth=0.5,
                alpha=0.8,
@@ -146,7 +146,7 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
         centroids.append(np.mean(subwhit, axis=0))
         shapely_poly = shapelyPolygon(subwhit)
         polygons.append(shapely_poly)
-        poly = Polygon(subwhit, True)
+        poly = Polygon(np.array(shapely_poly.buffer(-0.12).exterior.coords.xy).T, True)
         patches.append(poly)
         biomes.append(biome)
         biome_labels.append(biome.replace('/', ' & '))
@@ -186,17 +186,19 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
     if False:
         divider = make_axes_locatable(ax1)
         cax = divider.append_axes('right', size='5%', pad=0.1)
-    p = PatchCollection(patches, alpha=1, edgecolor='k')#, cmap=custom_biome_cmap)
-    p.set_color(rgba_colors)
+    p = PatchCollection(patches, alpha=1, color='white')#, edgecolor='k')#, cmap=custom_biome_cmap)
+    p.set_edgecolor(rgba_colors)
+    p.set_linewidth(1.5)
     ax1.add_collection(p)
     #for lab,c in zip(biome_labels, centroids):
     #    ax1.text(c[0], c[1], add_label_newline(lab), size=8)
     scat = ax1.scatter(results_df['mat'],
                results_df['map'],
                c = results_df['r2'],
-               edgecolor='none',
-               s=30,
-               alpha=0.6,
+               edgecolor='black',
+               linewidths=0.6,
+               s=10,
+               alpha=1,
                cmap='gray')
     #if rs_var == 'SIF':
     if False:
@@ -247,7 +249,7 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
 
     results_df['biome'] = new_pt_biomes
 
-    # do same thin to biome-order list
+    # do same thing to biome-order list
     new_biomes = []
     for b in biomes:
         if pd.notnull(b):
