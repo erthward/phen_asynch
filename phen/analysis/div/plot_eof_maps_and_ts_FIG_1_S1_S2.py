@@ -2,6 +2,7 @@ import rioxarray as rxr
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+import matplotlib.patheffects as patheffects
 from copy import deepcopy
 import geopandas as gpd
 import palettable
@@ -40,9 +41,9 @@ import phen_helper_fns as phf
 ########
 
 # which figure to plot?
-#what_to_plot = 'fig_1'
+what_to_plot = 'fig_1'
 #what_to_plot = 'fig_s3'
-what_to_plot = 'fig_s4'
+#what_to_plot = 'fig_s4'
 
 # plotting params
 partlabel_fontsize = 24
@@ -441,6 +442,7 @@ if what_to_plot == 'fig_s4':
 # PLOT RGB MAP
 ##############
 
+
 if what_to_plot == 'fig_1':
 
     # create main figure
@@ -715,16 +717,25 @@ if what_to_plot == 'fig_1':
             tss_arr = np.array(tss)
             ax_lines.plot(np.median(tss_arr, axis=0),
                           color=center_colors[i],
-                          linewidth=2.5)
+                          linewidth=3.5)
             if plot_envelope:
-                ax_lines.plot(np.percentile(tss_arr, 5, axis=0),
-                              color=center_colors[i],
-                              linewidth=1,
-                              linestyle=':')
-                ax_lines.plot(np.percentile(tss_arr, 95, axis=0),
-                              color=center_colors[i],
-                              linewidth=1,
-                              linestyle=':')
+                ax_lines.fill_between(x=np.linspace(*ax_lines.get_xlim(),
+                                                  tss_arr.shape[1]),
+                                      y1=np.percentile(tss_arr, 5, axis=0),
+                                      y2=np.percentile(tss_arr, 95, axis=0),
+                                      color=center_colors[i],
+                                      alpha=0.7,
+                                     )
+                #ax_lines.plot(np.percentile(tss_arr, 5, axis=0),
+                #              color=center_colors[i],
+                #              linewidth=1,
+                #              linestyle=':')
+                #ax_lines.plot(np.percentile(tss_arr, 95, axis=0),
+                #              color=center_colors[i],
+                #              linewidth=1,
+                #              linestyle=':')
+        ax_lines.set_xlim((0, 365))
+        return center_colors
 
 
     def plot_bbox_rectangle(bounds, ax):
@@ -738,6 +749,41 @@ if what_to_plot == 'fig_1':
                          edgecolor='black',
                          linewidth=2)
         ax.add_patch(rect)
+
+
+    def add_phen_labs(ax, colors,
+                      text_size=12, mark_size=65, hspace_frac=0.22):
+        """
+        Add colored numeric labels to a phenology line plot
+        """
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+        if len(colors) == 3:
+            hspace_top_offset=1.05
+        elif len(colors) == 4:
+            hspace_top_offset = 0.65
+        for n, color in enumerate(colors):
+            lab = n+1
+            ax.text(400,#xlim[1]*1.05,
+                    (ylim[1]-
+                     (n*hspace_frac*np.diff(ylim))-
+                     (0.5*hspace_frac)-
+                     hspace_top_offset+0.1),
+                    str(lab),
+                    color='black',
+                    size=text_size,
+                    clip_on=False,
+                   )
+            ax.scatter(378,#xlim[1]*1.15,
+                       (ylim[1]-
+                        (n*hspace_frac*np.diff(ylim))-
+                        hspace_top_offset),
+                       c=color,
+                       edgecolor='black',
+                       marker='s',
+                       s=mark_size,
+                       clip_on=False)
+        ax.set_xlim(xlim)
 
 
     # try to help manage memory usage
@@ -790,11 +836,16 @@ if what_to_plot == 'fig_1':
 
         # run K-means clustering
         K = reg_K_vals[reg]
-        run_clust_analysis(eofs_wt_sum_foc, coeffs_foc, reg, clust_algo,
-                         k=K,
-                         ax_lines=ax_lines,
-                         batch_size=40,
-                         seed=123456)
+        clust_colors = run_clust_analysis(eofs_wt_sum_foc,
+                                          coeffs_foc, reg,
+                                          clust_algo,
+                                          plot_envelope=False,
+                                          k=K,
+                                          ax_lines=ax_lines,
+                                          batch_size=40,
+                                          seed=123456)
+        # add lineplot labels
+        add_phen_labs(ax_lines, clust_colors)
         # adjust focal-region plotting and add bounding boxes
         strip_axes(ax_lines)
         ax_lines.set_xticks(np.linspace(0, 365, 5),
@@ -802,7 +853,7 @@ if what_to_plot == 'fig_1':
         for month in np.linspace(0, 365, 13):
             ax_lines.axvline(month, color='black',
                              linewidth=0.25, linestyle=':', alpha=0.75, zorder=0)
-        ax_lines.tick_params(labelsize=14, rotation=0)
+        ax_lines.tick_params(labelsize=10, rotation=0)
         for axis in ['top','bottom','left','right']:
             ax_lines.spines[axis].set_linewidth(2)
         plot_bbox_rectangle(bbox, ax_rgb)
