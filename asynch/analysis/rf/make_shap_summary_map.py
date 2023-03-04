@@ -28,7 +28,7 @@ neigh_rad = 100
 # whether or not to use results of the model that included geocoods as covars
 include_coords = 'y'
 # whether or not to only use the top covars in the summary map
-only_top_covars = False
+only_top_covars = True
 # asynch percentile threshold below which to drop pixels from summary map
 asynch_thresh = 75
 # process the data raw, or read in processed files?
@@ -113,8 +113,8 @@ if process_raw:
     #predom = (59 + (120*predom))/359
     # mask to the std values
     predom = predom.where(pd.notnull(std))
-    assert np.all(np.unique(predom)[~np.isnan(np.unique(predom))] ==
-                  np.array([i/359 for i in [59,179,299]]))
+    #assert np.all(np.unique(predom)[~np.isnan(np.unique(predom))] ==
+    #              np.array([i/359 for i in [59,179,299]]))
 else:
     if only_top_covars:
         file_suffix = 'top'
@@ -138,6 +138,8 @@ colors = [
           #'#AAAA00', # olive
           #'#ADADAD', # light grey
          ]
+if only_top_covars:
+    colors = colors[:3]
 cmap = ListedColormap(colors)
 
 # value: asynchrony (will make lower-asynchrony pixels appear less pronounced
@@ -166,7 +168,7 @@ if process_raw:
                                        f'SHAP_{lyr_name}_{file_suffix}.tif'))
 
 
-fig = plt.figure()
+fig = plt.figure(figsize=(11,6))
 ax = fig.add_subplot()
 divider = make_axes_locatable(ax)
 cbar_ax = divider.append_axes('bottom', size='7%', pad=0.2)
@@ -184,6 +186,8 @@ cbar_ticks = np.linspace(cbar_sec_width/2,
                          (len(covars)-1)-(cbar_sec_width/2),
                          len(covars))
 cbar_ax.set_xticks(cbar_ticks, covars)
+cbar_ax.tick_params(labelsize=11)
+cbar_ax.set_xlabel('covariate', fontdict={'fontsize': 16})
 for i in range(len(covars)):
     tmp_cmap = LinearSegmentedColormap.from_list('', ['#ffffff', colors[i]])
     std.where(predom==i).plot.imshow(ax=ax,
@@ -195,18 +199,19 @@ for i in range(len(covars)):
                                     )
 subnational.to_crs(asynch.rio.crs).plot(ax=ax,
                                         color='none',
-                                        edgecolor='black',
-                                        linewidth=0.4,
-                                        alpha=0.6,
+                                        edgecolor='#545454',
+                                        linewidth=0.1,
+                                        alpha=0.8,
                                         zorder=100,
                                        )
 countries.to_crs(asynch.rio.crs).plot(ax=ax,
                                       color='black',
-                                      edgecolor='black',
-                                      linewidth=0,
-                                      alpha=0.8,
+                                      edgecolor='#545454',
+                                      linewidth=0.3,
+                                      alpha=1,
                                       zorder=0,
                                      )
+ax.set_title('')
 ax.set_xlabel('')
 ax.set_ylabel('')
 ax.set_xlim(asynch.rio.bounds()[0::2])
