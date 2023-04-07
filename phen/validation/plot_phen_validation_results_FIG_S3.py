@@ -338,5 +338,5 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
 
 fig.subplots_adjust(top=0.98, bottom=0.04, left=0.08, right=0.98)
 
-fig.savefig('FIG_2_phen_validation_results.png', dpi=700)
+fig.savefig('FIG_S3_phen_validation_results.png', dpi=700)
 

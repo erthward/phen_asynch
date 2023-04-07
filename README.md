@@ -86,7 +86,7 @@ NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` w
 1. Manually download all subset data products (using DownThemAll!) from the Fluxnet network's [download page](https://fluxnet.org/data/download-data/).
 2. Call `phen/validation/flux_tower_seasonality_validation/validate_at_all_fluxnet_sites.py <DS>` twice, once where '<DS>' is replaced with 'NIRv' and once with 'SIF', to run validation on both the fitted NIRv and SIF seasonality results against GPP seasonality at all usable Fluxnet sites (producing **Fig. 1**).
 3. Run `phen/validation/compare_NIRv_SIF_maps/compare_NIRv_SIF_fitted_phenology.py` (on Savio) to calculate a global map of the $R^2$s between the NIRv and SIF fitted phenology time series.
-4. Run `phen/validation/plot_phen_validation_results_FIG_2.py` to combine both of those validations' results to make Fig. 1.
+4. Run `phen/validation/plot_phen_validation_results_FIG_S3.py` to combine both of those validations' results to make Fig. 1.
 
 
 ## run asynchrony validation:
@@ -97,7 +97,7 @@ NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` w
 
 ## produce RGB phenology map:
 
-1. Download ancillary cheatgrass data from [Maestas *et. al*](https://www.sciencebase.gov/catalog/item/5ec5159482ce476925eac3b7) (to be used in a statistical test embedded in `phen/analysis/div/plot_eof_maps_and_ts_FIG_2.py`).
+1. Download ancillary cheatgrass data from [Maestas *et. al*](https://www.sciencebase.gov/catalog/item/5ec5159482ce476925eac3b7) (to be used in a statistical test embedded in `phen/analysis/div/plot_eof_maps_and_ts_FIG_S3.py`).
 2. Run `phen/analysis/div/aggregate_great_basin_cheatgrass_data.sh` to aggregate that dataset to our analysis resolution of $0.05^{circ}$.
 3. Run `phen/analysis/div/plot_eof_maps_and_ts_FIG_1_S1_S2.py` three times, one for each of the three values of `what_to_plot` (provided in comments inline) to produce **Fig. 1**'s global and regionally-zoomed RGB land surface phenology maps and the two EOF supplemental figures.
 

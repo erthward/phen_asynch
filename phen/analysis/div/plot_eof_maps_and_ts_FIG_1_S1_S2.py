@@ -23,7 +23,7 @@ import matplotlib as mpl
 import rioxarray as rxr
 import xarray as xr
 from scipy import stats
-from scipy.signal import argrelextrema
+from scipy.signal import argrelmax
 import seaborn as sns
 import pandas as pd
 import numpy as np
@@ -41,7 +41,8 @@ import phen_helper_fns as phf
 ########
 
 # which figure to plot?
-what_to_plot = 'fig_1'
+#what_to_plot = 'fig_1'
+what_to_plot = 'fig_2'
 #what_to_plot = 'fig_s3'
 #what_to_plot = 'fig_s4'
 
@@ -147,29 +148,32 @@ reg_bboxes = {
 # define focal region gridspec indices
 # NOTE: [[i_min, i_max], [j_min, j_max]]
 reg_gsinds = {
-              'Qu': [[55, 90], [174, 200]],
-              'Am': [[65, 90], [43, 68]],
-              'Ba': [[50, 90], [0, 26]],
-              'GB': [[3, 33], [0, 30]],
-              'Mad':[[60, 90], [107, 133]],
-              'Fl': [[24, 48], [38, 54]],
-              'SAf':[[75, 87], [82, 107]],
-              'Au': [[74, 88], [144, 170]],
-              'It': [[5, 25], [170, 200]],
+              'Qu': [[40, 85], [166, 200]],
+              'Am': [[50, 85], [40, 74]],
+              'Ba': [[45, 85], [0, 35]],
+              'GB': [[0, 25], [0, 30]],
+              'Mad':[[40, 85], [130, 166]],
+              'Fl': [[0, 25], [40, 65]],
+              'SAf':[[30, 50], [90, 125]],
+              'Au': [[65, 85], [90, 125]],
+              'It': [[0, 15], [70, 115]],
              }
+
 # define gridspec indices for axes to plot line plots
-# NOTE: should always be 10 indices tall and 20 wide
-reg_gsinds_lines = {
-              'Qu': [[90, 100], [177, 197]],
-              'Am': [[90, 100], [45, 65]],
-              'Ba': [[90, 100], [3, 23]],
-              'GB': [[33, 43], [5, 25]],
-              'Mad':[[90, 100], [110,130]],
-              'Fl': [[48, 58], [36, 56]],
-              'SAf':[[87, 97], [84, 104]],
-              'Au': [[88, 98], [147, 167]],
-              'It': [[23, 33], [175, 195]],
-                   }
+def get_gsinds_lines(reg_bbox, gsinds_width=26, gsinds_height=10):
+    i_gsinds = [*np.array((0, gsinds_height)) + reg_bbox[0][1]]
+    j_gsinds_cent = int(np.mean(reg_bbox[1]))
+    j_gsinds = [int(j_gsinds_cent+buff) for buff in np.array([-1,
+                                                         1])*(gsinds_width/2)]
+    return [i_gsinds, j_gsinds]
+
+reg_gsinds_lines = {reg: get_gsinds_lines(bb) for reg, bb in reg_gsinds.items()}
+# NOTE: nudge some regions' line plots vertically
+for i in range(2):
+    reg_gsinds_lines['It'][0][i] -= 0
+    reg_gsinds_lines['Au'][0][i] -= 1
+    reg_gsinds_lines['SAf'][0][i] -= 0
+
 # NOTE: K VALUES WERE DETERMINED BY MANUAL INSPECTION OF SCREE PLOTS
 #       USING THE run_clust_analysis FN WITH scree=True
 reg_K_vals = {
@@ -183,54 +187,46 @@ reg_K_vals = {
               'Au': 4,
               'It': 3,
              }
+
 reg_letters = {
-              'Qu': 'h.',
-              'Am': 'd.',
-              'Ba': 'b.',
-              'GB': 'a.',
-              'Mad':'f.',
-              'Fl': 'c.',
-              'SAf':'e.',
-              'Au': 'g.',
-              'It': 'i.',
+              'Qu': 'I.',
+              'Am': 'E.',
+              'Ba': 'D.',
+              'GB': 'A.',
+              'Mad':'H.',
+              'Fl': 'B.',
+              'SAf':'F.',
+              'Au': 'G.',
+              'It': 'C.',
             }
+
 # locations of region letter labels, expressed in fractions along x,y axes from top left
 reg_lett_locs = {
-              'Qu': (-0.24, 0.91),
-              'Am': (-0.195, 0.88),
+              'Qu': (-0.18, 0.94),
+              'Am': (-0.13, 0.91),
               'Ba': (-0.24, 0.93),
-              'GB': (-0.20, 0.92),
-              'Mad':(-0.27, 0.91),
-              'Fl': (-0.26, 0.88),
-              'SAf':(-0.19, 0.82),
-              'Au': (-0.17, 0.84),
-              'It': (-0.11, 0.81),
+              'GB': (-0.25, 0.9),
+              'Mad':(-0.25, 0.94),
+              'Fl': (-0.26, 0.90),
+              'SAf':(-0.10, 0.84),
+              'Au': (-0.13, 0.84),
+              'It': (-0.13, 0.81),
+            }
+# locations of region letter labels on the global map,
+# expressed in fractions along x,y axes from top left
+# NOTE: fractions still # expressed relative to the regional axes!
+glob_lett_locs = {
+              'Qu': (1.3, 0.3),
+              'Am': (1.2, 1),
+              'Ba': (-1.5, 1),
+              'GB': (-1.2, 1),
+              'Mad':(1.2, 1),
+              'Fl': (2.4, 1),
+              'SAf':(-1.5, 1),
+              'Au': (-1.2, 1),
+              'It': (-1.1, -1.1),
             }
 
-# zoom-map ends of regio-box connecting lines
-reg_box_connectors = {
-              'Qu': (1.973e7, -5.45e6),
-              'Am': (-0.82e7, -8.25e6),
-              'Ba': (-1.793e7, -4.25e6),
-              'GB': (-1.773e7, 4.95e6),
-              'Mad':(0.373e7, -6.15e6),
-              'Fl': (-1.173e7, 0.25e6),
-              'SAf':(-0.183e7, -9.45e6),
-              'Au': (1.213e7, -9.45e6),
-              'It': (1.593e7, 4.15e6),
-            }
-
-reg_box_connector_sides = {
-              'Qu': 'R',
-              'Am': 'B',
-              'Ba': 'L',
-              'GB': 'L',
-              'Mad':'B',
-              'Fl': 'B',
-              'SAf':'B',
-              'Au': 'B',
-              'It': 'R',
-            }
 
 
 assert (len(reg_bboxes) == len(reg_gsinds) ==
@@ -304,7 +300,9 @@ if fold_it:
     # make the weighted-sum EOFs map
     eofs_wt_sum = deepcopy(eofs)
     # NOTE: folding all 3 EOFs, on the assumption that a hemispheric signal is
-    #       embedded in each, rather than eyeballing whethere or not one is...
+    #       embedded in each, because the signal in EOFs 2 and 3 is only
+    #       obvious when the RGB composite is displayed, but not in their
+    #       individual maps (unlike EOF 1)
     for n in range(3):
         eofs_wt_sum[n] = ((wts*(eofs[n])) + ((1-wts)*(1-eofs[n])))# * wts_inflation
 
@@ -437,7 +435,6 @@ if what_to_plot == 'fig_s4':
 
 
 
-
 ##############
 # PLOT RGB MAP
 ##############
@@ -447,11 +444,62 @@ if what_to_plot == 'fig_1':
 
     # create main figure
     dims = (20, 10)
-    fig_main = plt.figure(figsize=(20,10))
-    gs = fig_main.add_gridspec(*[10*dim for dim in dims[::-1]]) # NOTE: REV ORDER OF FIGSIZE
+    fig_1 = plt.figure(figsize=(20,10))
+    ax = fig_1.add_subplot(111)
 
     # plot the RGB map of EOFs 1-3 together
-    ax_rgb = fig_main.add_subplot(gs[:65, 45:175])
+    eofs_wt_sum_for_map.plot.imshow(ax=ax,
+                                        add_colorbar=False,
+                                        alpha=1,
+                                        zorder=0,
+                                       )
+    subnational.plot(color='none',
+                     linewidth=0.3,
+                     edgecolor='black',
+                     alpha=0.5,
+                     ax=ax,
+                     zorder=1,
+                    )
+    countries.plot(color='none',
+                   linewidth=0.5,
+                   edgecolor='black',
+                   alpha=0.7,
+                   ax=ax,
+                   zorder=2,
+                  )
+
+    strip_axes(ax)
+    ax.set_xlim(global_xlim)
+    ax.set_ylim(eofs_wt_sum_for_map.rio.bounds()[1::2])
+    ax.spines['bottom'].set_color('black')
+    ax.spines['top'].set_color('black')
+    ax.spines['right'].set_color('black')
+    ax.spines['left'].set_color('black')
+
+    # save figure
+    fig_1.subplots_adjust(left=0.01,
+                          right=0.99,
+                          bottom=0.04,
+                          top=0.98)
+    if save_it:
+        fig_1.savefig('FIG_1_%s_RGB_EOF_map%s%s.png' % (dataset,
+                            mask_filename_ext, ('_RAW'*(not fold_it))), dpi=700)
+
+
+#################
+# PLOT FOCAL MAPS
+#################
+
+
+if what_to_plot == 'fig_2':
+
+    # create main figure
+    dims = (20, 10)
+    fig_2 = plt.figure(figsize=(20,10))
+    gs = fig_2.add_gridspec(*[10*dim for dim in dims[::-1]]) # NOTE: REV ORDER OF FIGSIZE
+
+    # plot the RGB map of EOFs 1-3 together
+    ax_rgb = fig_2.add_subplot(gs[:40, -80:])
     eofs_wt_sum_for_map.plot.imshow(ax=ax_rgb,
                                         add_colorbar=False,
                                         alpha=1,
@@ -475,13 +523,6 @@ if what_to_plot == 'fig_1':
     strip_axes(ax_rgb)
     ax_rgb.set_xlim(global_xlim)
     ax_rgb.set_ylim(eofs_wt_sum_for_map.rio.bounds()[1::2])
-    #ax_rgb.text(ax_rgb.get_xlim()[0]-0.04*np.diff(ax_rgb.get_xlim())[0],
-    #            ax_rgb.get_ylim()[0]+0.975*np.diff(ax_rgb.get_ylim())[0],
-    #            'A.',
-    #            size=partlabel_fontsize,
-    #            weight='bold',
-    #           )
-
     ax_rgb.spines['bottom'].set_color('white')
     ax_rgb.spines['top'].set_color('white')
     ax_rgb.spines['right'].set_color('white')
@@ -751,20 +792,34 @@ if what_to_plot == 'fig_1':
         ax.add_patch(rect)
 
 
-    def add_phen_labs(ax, colors,
-                      text_size=12, mark_size=65, hspace_frac=0.22):
+    def add_phen_labs(ax, reg, text_size=12, mark_size=65, hspace_frac=0.22):
         """
         Add colored numeric labels to a phenology line plot
         """
         xlim = ax.get_xlim()
         ylim = ax.get_ylim()
-        if len(colors) == 3:
+        n_lines = len(ax.get_lines())
+        if n_lines == 3:
             hspace_top_offset=1.05
-        elif len(colors) == 4:
+        elif n_lines == 4:
             hspace_top_offset = 0.65
+        relmaxes = [argrelmax(l.get_ydata(),
+                              order=40,
+                              mode='clip',
+                             )[0] for l in ax.get_lines()]
+        in_90pctle = [ax.get_lines()[i].get_ydata()[relmaxes[i]] ==
+                      np.max(ax.get_lines()[i].get_ydata()) for
+                      i in range(len(relmaxes))]
+        relmaxes = [relmaxes[i][in_90pctle[i]][0] for i in range(len(relmaxes))]
+        line_order = np.argsort(relmaxes)
+        # NOTE: reordering line colors for South Africa so that color numbers
+        #       are more intuitive in the figure
+        if reg == 'SAf':
+            line_order = [line_order[-1]] + list(line_order[:-1])
+        colors = [ax.get_lines()[n].get_color() for n in line_order]
         for n, color in enumerate(colors):
             lab = n+1
-            ax.text(400,#xlim[1]*1.05,
+            ax.text(400,
                     (ylim[1]-
                      (n*hspace_frac*np.diff(ylim))-
                      (0.5*hspace_frac)-
@@ -774,7 +829,7 @@ if what_to_plot == 'fig_1':
                     size=text_size,
                     clip_on=False,
                    )
-            ax.scatter(378,#xlim[1]*1.15,
+            ax.scatter(373,
                        (ylim[1]-
                         (n*hspace_frac*np.diff(ylim))-
                         hspace_top_offset),
@@ -796,9 +851,9 @@ if what_to_plot == 'fig_1':
         gsi = reg_gsinds[reg]
         gsi_lines = reg_gsinds_lines[reg]
         #height_ratio = -(bbox[3]-bbox[1])/(bbox[2]-bbox[0])
-        ax_reg = fig_main.add_subplot(gs[gsi[0][0]:gsi[0][1],
+        ax_reg = fig_2.add_subplot(gs[gsi[0][0]:gsi[0][1],
                                     gsi[1][0]:gsi[1][1]])
-        ax_lines = fig_main.add_subplot(gs[gsi_lines[0][0]:gsi_lines[0][1],
+        ax_lines = fig_2.add_subplot(gs[gsi_lines[0][0]:gsi_lines[0][1],
                                       gsi_lines[1][0]:gsi_lines[1][1]])
         eofs_wt_sum_for_map.sel(x=slice(bbox[0], bbox[2]),
                                 y=slice(bbox[1], bbox[3])).plot.imshow(ax=ax_reg,
@@ -845,11 +900,11 @@ if what_to_plot == 'fig_1':
                                           batch_size=40,
                                           seed=123456)
         # add lineplot labels
-        add_phen_labs(ax_lines, clust_colors)
+        add_phen_labs(ax_lines, reg)
         # adjust focal-region plotting and add bounding boxes
         strip_axes(ax_lines)
-        ax_lines.set_xticks(np.linspace(0, 365, 5),
-                            ['Jan', 'Apr', 'Jul', 'Oct', 'Jan'])
+        ax_lines.set_xticks(np.linspace(0, 365, 5))
+        ax_lines.set_xticklabels(['Jan', 'Apr', 'Jul', 'Oct', 'Jan'])
         for month in np.linspace(0, 365, 13):
             ax_lines.axvline(month, color='black',
                              linewidth=0.25, linestyle=':', alpha=0.75, zorder=0)
@@ -857,35 +912,25 @@ if what_to_plot == 'fig_1':
         for axis in ['top','bottom','left','right']:
             ax_lines.spines[axis].set_linewidth(2)
         plot_bbox_rectangle(bbox, ax_rgb)
-        # add connecting line between small and zoomed bounding box
-        if reg_box_connector_sides[reg] == 'B':
-            x_val = np.mean((bbox[0], bbox[2]))
-            y_val = bbox[3]
-        elif reg_box_connector_sides[reg] == 'R':
-            x_val = bbox[2]
-            y_val = np.mean((bbox[1], bbox[3]))
-        elif reg_box_connector_sides[reg] == 'L':
-            x_val = bbox[0]
-            y_val = np.mean((bbox[1], bbox[3]))
-        ax_rgb.plot([x_val, reg_box_connectors[reg][0]],
-                    [y_val, reg_box_connectors[reg][1]],
-                    color='black',
-                    linewidth=0.5,
-                    clip_on=False,
-                   )
         # add letters to region maps
-        ax_reg.text(ax_reg.get_xlim()[0]+reg_lett_locs[reg][0]*np.diff(ax_reg.get_xlim())[0],
-                    ax_reg.get_ylim()[0]+reg_lett_locs[reg][1]*np.diff(ax_reg.get_ylim())[0],
+        for ax_num, ax_and_lett_locs in enumerate(zip([ax_reg, ax_rgb],
+                                                      [reg_lett_locs,
+                                                       glob_lett_locs])):
+            ax, lett_locs = ax_and_lett_locs
+            ax.text((ax_reg.get_xlim()[0] +
+                     lett_locs[reg][0]*np.diff(ax_reg.get_xlim())[0]),
+                    (ax_reg.get_ylim()[0] +
+                     lett_locs[reg][1]*np.diff(ax_reg.get_ylim())[0]),
                     reg_letters[reg],
-                    size=partlabel_fontsize,
+                    size=partlabel_fontsize - (10 * ax_num),
                     weight='bold',
                    )
 
     # save figure
-    fig_main.subplots_adjust(left=0.01,
+    fig_2.subplots_adjust(left=0.01,
                              right=0.99,
                              bottom=0.04,
                              top=0.98)
     if save_it:
-        fig_main.savefig('FIG_1_%s_RGB_EOF_map%s%s.png' % (dataset,
+        fig_2.savefig('FIG_2_%s_RGB_EOF_reg_map%s%s.png' % (dataset,
                             mask_filename_ext, ('_RAW'*(not fold_it))), dpi=700)

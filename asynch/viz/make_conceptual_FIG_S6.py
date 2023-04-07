@@ -27,18 +27,18 @@ import phen_helper_fns as phf
 
 
 # plot params
-title_fontsize = 12
-rowlab_fontsize = 18
-axislab_fontsize = 13
+title_fontsize = 11
+rowlab_fontsize = 14
+axislab_fontsize = 12
 ticklab_fontsize = 12
 cbarlab_fontsize = 12
-cbar_ticklab_fontsize = 9
-annot_fontsize = 14
-scat_label_fontsize = 10
+cbar_ticklab_fontsize = 10
+annot_fontsize = 11
+scat_label_fontsize = 8
 scat_label_fontcolor = 'black'
 scat_label_linewidth = 3
 fig_width = 10.5
-fig_height = 12
+fig_height = 4
 dpi = 400
 n_ticklabels = 5
 subplots_adj_left=0.06
@@ -90,17 +90,6 @@ seed = 7031287
 mpd_h = 1.4
 orientation='landscape'
 savefig=True
-
-
-# load shapefiles
-countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                       'NewWorldFile_2020.shp'))
-# load level-1 subnational jurisdictions (downloaded from:
-#                                 https://gadm.org/download_country.html)
-subnational = []
-for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
-    subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,f)).to_crs(8857))
-subnational = pd.concat(subnational)
 
 
 # define functions
@@ -161,13 +150,16 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
 
     if plot_it:
         fig = plt.figure(dpi=dpi, figsize=(fig_width, fig_height))
-        gs = fig.add_gridspec(nrows=40, ncols=40)#, width_ratios = [1.1, 0.2, 1, 1])
-        top_axs = [fig.add_subplot(gs[0:(10-(js[0]>10)),js[0]:js[1]]) for js in [(2, 10),
-                                                                    (18, 28),
-                                                                    (30, 40)]]
-        bot_axs = [fig.add_subplot(gs[10:(20-(js[0]>10)),js[0]:js[1]]) for js in [(2, 10),
-                                                                     (18, 28),
-                                                                     (30, 40)]]
+        gs = fig.add_gridspec(nrows=20, ncols=80)
+        top_axs = [fig.add_subplot(gs[top_pt:bot_pt, l_pt:r_pt]) for
+                   top_pt, bot_pt, l_pt, r_pt in [[0, 7, 8, 21],
+                                                  [0, 9, 25, 51],
+                                                  [0, 9, 55, 95]]]
+        bot_axs = [fig.add_subplot(gs[top_pt:bot_pt, l_pt:r_pt]) for
+                   top_pt, bot_pt, l_pt, r_pt in [[13, 20, 8, 21],
+                                                  [11, 20, 25, 51],
+                                                  [11, 20, 55, 95]]]
+
     else:
         top_axs = [0,0]
         bot_axs = [0,0]
@@ -311,7 +303,10 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             ax1.tick_params(axis=u'both', which=u'both', length=0)
             if asynch == 'high':
                 ax1.set_xlabel('')
-            ax1.set_ylabel('%s\nasynchrony' % asynch,
+            ax1.set_ylabel((f'{" "*0*(asynch=="high")}{asynch}'
+                            f'\nasynchrony{" "*0*(asynch=="low")}'),
+                           labelpad=70,
+                           rotation=0,
                            fontdict={'fontsize': rowlab_fontsize})
 
             ax2.set_xticks(())
@@ -321,8 +316,9 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             if asynch == 'high':
                 ax2.set_xlabel('time of year',
                            fontdict={'fontsize': axislab_fontsize})
-            ax2.set_ylabel('phenological signal',
-                           fontdict={'fontsize': axislab_fontsize})
+            if asynch=='high':
+                ax2.set_ylabel(f'{" "*35}phenological signal',
+                               fontdict={'fontsize': axislab_fontsize})
 
             ax3.set_xticks(())
             ax3.set_xticklabels(())
@@ -331,7 +327,7 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             if asynch == 'high':
                 ax3.set_xlabel('geographic distance',
                           fontdict={'fontsize': axislab_fontsize})
-            ax3.set_ylabel('phenological distance',
+                ax3.set_ylabel(f'{" "*35}phenological distance',
                            fontdict={'fontsize': axislab_fontsize})
 
         # if not plotting, just store the min and max values
@@ -340,8 +336,8 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             min_seas_dists.append(np.min(ys))
 
     # add circular colorbar
-    if plot_it:
-        cbar_ax = fig.add_subplot(gs[7:13, 10:15], projection='polar')
+    if plot_it and asynch=='high':
+        cbar_ax = fig.add_subplot(gs[7:13, 12:17], projection='polar')
         azimuths = np.arange(90, 451, 1)
         zeniths = np.arange(40, 70, 1)
         values = azimuths * np.ones((30, 361))
@@ -349,14 +345,17 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
                            cmap=mpl.cm.twilight_shifted_r)
         cbar_ax.set_xticks(np.array([90, 180, 270, 360])/180*np.pi,
                            ['Jan', 'Oct', 'Jul', 'Apr'],
-                           size=cbar_ticklab_fontsize)
+                           size=6,
+                          )
+        cbar_ax.tick_params(pad=0.1)
         cbar_ax.set_yticks(())
-        cbar_ax.text(90,
-                     120,
-                     'date of peak    \n  phenology ',
-                     size=axislab_fontsize,
-                     clip_on=False,
-                    )
+        ax1.text(-5,
+                 7,
+                 'date of peak phenology ',
+                 size=axislab_fontsize,
+                 clip_on=False,
+                 rotation=90,
+                )
     if not plot_it:
         return (np.min(min_seas_dists), np.max(max_seas_dists))
     else:
@@ -370,153 +369,16 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
         return(fig, gs, mod)
 
 
-def map_asynch(fig, cbar_axlab,
-               gs=None, main_fig=True, var='NIRv',
-               cbar_axlab_fontsize=18,
-               cbar_ticklab_fontsize=cbar_ticklab_fontsize):
-
-    assert var in ['NIRv', 'SIF', 'tmmn', 'tmmx', 'pr', 'def', 'cloud']
-
-    if var in ['NIRv', 'SIF']:
-        files = [f for f in os.listdir(phf.EXTERNAL_DATA_DIR) if
-                                        re.search('%s_STRICT_asynch' % var, f)]
-    else:
-        files = [f for f in os.listdir(phf.EXTERNAL_DATA_DIR) if
-                                        re.search('%s_asynch' % var, f)]
-
-    # cut down to just one file, if this is for the main fig
-    if main_fig:
-        files = [f for f in files if re.search('asynch_100km', f)]
-    # otherwise arrange in top-down order of increasing neighborhood radius
-    else:
-        reordered_files = []
-        for neigh_rad in [50, 100, 150]:
-            neigh_rad_file = [f for f in files if re.search('asynch_%ikm' %
-                                                            neigh_rad, f)]
-            assert len(neigh_rad_file) == 1
-            reordered_files.append(neigh_rad_file[0])
-        files = reordered_files
-
-    for ax_ct, file in enumerate(files):
-        # get the neighborhood radius
-        neigh_rad = int(re.search('(?<=asynch_)\d{2,3}(?=km\.tif)',
-                                  file).group())
-
-        # either grab the lower half of the main fig
-        if main_fig:
-            #ax = fig.add_subplot(gs[3:, :])
-            ax = fig.add_subplot(2,1,2)
-        # or grab the next row of the supp fig
-        else:
-            ax = fig.add_subplot(3,1,ax_ct+1)
-
-        # partition off a separate axis for the colormap
-        divider = make_axes_locatable(ax)
-        if main_fig:
-            where = 'bottom'
-            orientation = 'horizontal'
-            size = '7%'
-        else:
-            where = 'right'
-            orientation = 'vertical'
-            size = '4%'
-        cax = divider.append_axes(where, size=size, pad=0.2)
-
-        # read in the raster data and prepare it
-        rast = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
-                                              file), masked=True)[0]
-        rast = rast.rio.write_crs(4326).rio.reproject(8857)
-                # NOTE: annoying AttributeError is because da.attrs['long_name']
-        #       is retained as a tuple of names (rather than being subsetted
-        #       by indexing) when I index a single layer out of an
-        #       xarray.core.dataarray.DataArray;
-        #       for now, a hacky fix is just assigning a string to that attr
-        rast.attrs['long_name'] = ''
-        rast.plot.imshow(ax=ax,
-                         zorder=0,
-                         cmap=asynch_cmap,
-                         vmin=np.nanpercentile(rast, 1),
-                         vmax=np.nanpercentile(rast, 99),
-                         add_colorbar=True,
-                         cbar_ax=cax,
-                         cbar_kwargs = {'orientation': orientation},
-                        )
-        cax.tick_params(labelsize=cbar_ticklab_fontsize)
-        if main_fig:
-            cax.set_xlabel(cbar_axlab, fontdict={'fontsize': cbar_axlab_fontsize})
-        else:
-            cax.set_ylabel(cbar_axlab, fontdict={'fontsize': cbar_axlab_fontsize})
-        subnational.to_crs(8857).plot(ax=ax,
-                                      color='none',
-                                      edgecolor='black',
-                                      zorder=1,
-                                      alpha=0.6,
-                                     )
-        countries.to_crs(8857).plot(ax=ax,
-                                    color='none',
-                                    edgecolor='black',
-                                    linewidth=1,
-                                    alpha=0.8,
-                                    zorder=2,
-                                   )
-        # format axes
-        ax.set_xlim(rast.rio.bounds()[0::2])
-        ax.set_ylim(rast.rio.bounds()[1::2])
-        # NOTE: chopping off western edge because the equal earth projection
-        #       makes NZ appear twice
-        ax.set_xlim(0.95 * ax.get_xlim()[0], ax.get_xlim()[1])
-        ax.set_xlabel('')
-        ax.set_ylabel('')
-        ax.set_xticks(())
-        ax.set_yticks(())
-        # add axis title, if not main figure
-        if main_fig:
-            ax.set_title('')
-        else:
-            ax.set_title('%i km neighborhood' % neigh_rad,
-                         fontdict={'fontsize': 21})
-
-        del rast
-
-cbar_axlab_dict = {'NIRv main': '$NIR_{V}\ asynchrony\ (\Delta NIR_{V}/\Delta m)$',
-                   'NIRv': '$NIR_{V}\ asynch\ (\Delta NIR_{V}/\Delta m)$',
-                   'SIF': '$SIF\  asynch\ (\Delta (mW m^{-2} sr^{-1} nm^{-1})/\Delta m)$',
-                   'tmmn': '$tmp_{min}\ asynch\ (\Delta ^{\circ} C/\Delta m)$',
-                   'tmmx': '$tmp_{max}\ asynch\ (\Delta ^{\circ} C/\Delta m)$',
-                   'pr': '$ppt\ asynch\ (\Delta mm/\Delta m)$',
-                   'def': '$cwd\ asynch\ (\Delta mm/\Delta m)$',
-                   'cloud': '$cloud\ asynch\ (\Delta \%\ cover/\Delta m)$',
-
-                  }
-
 if __name__ == '__main__':
     plt.close('all')
     # make the conceptual figure
-    print('\n\nNOW PRODUCING FIG 3...\n\n')
+    print('\n\nNOW PRODUCING FIG S6...\n\n')
     min_seas_dist, max_seas_dist = plot_all(betas, rad=rad, dims=dims,
                                             plot_it=False)
     fig, gs, mod = plot_all(betas, rad=rad, dims=dims, min_seas_dist=min_seas_dist,
                    max_seas_dist=max_seas_dist, plot_it=True)
-    # add the asynch map below
-    map_asynch(fig, cbar_axlab_dict['NIRv main'], gs=gs, main_fig=True, var='NIRv')
-
-    # add labels for parts A. and B.
-    fig.axes[0].text(-5.8, -5, 'A.', size=24, weight='bold')
-    fig.axes[-2].text(1.11*fig.axes[-2].get_xlim()[0],
-                      1.065*fig.axes[-2].get_ylim()[1],
-                      'B.', size=24, weight='bold')
 
     # adjust subplots and save
-    fig.subplots_adjust(bottom=0.05, top=0.92, left=0.04, right=0.98)
-    fig.savefig('FIG_3_asynch_concept_and_map.png', dpi=600)
-
-    # make both vars' supp figs (each one stacking all 3 neighborhood radii)
-    for n, var in enumerate(['NIRv', 'SIF', 'tmmn', 'tmmx', 'pr', 'def', 'cloud']):
-        print('\n\nNOW PRODUCING SUPPLEMENTAL FIG FOR %s..\n\n' % var)
-        fig_supp = plt.figure(figsize=(9,12))
-        map_asynch(fig_supp, cbar_axlab_dict[var],
-                   gs=None, main_fig=False, var=var,
-                   cbar_axlab_fontsize=13, cbar_ticklab_fontsize=10)
-        fig_supp.subplots_adjust(bottom=0.02, top=0.95, left=0.02, right=0.88)
-        fig_supp.savefig('FIG_S%i_%s_asynch_maps.png' % (6+n, var), dpi=600)
+    fig.subplots_adjust(bottom=0.06, top=0.92, left=0.04, right=0.98)
+    fig.savefig('FIG_S6_asynch_concept.png', dpi=600)
 
