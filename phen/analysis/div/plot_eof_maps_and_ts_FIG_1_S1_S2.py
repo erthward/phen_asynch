@@ -42,7 +42,7 @@ import phen_helper_fns as phf
 
 # which figure to plot?
 #what_to_plot = 'fig_1'
-what_to_plot = 'fig_2'
+what_to_plot = 'reg_figs'
 #what_to_plot = 'fig_s3'
 #what_to_plot = 'fig_s4'
 
@@ -134,7 +134,7 @@ eofs_pcts = [70.0, 17.7, 7.9]
 
 # define focal region bounding bboxes
 reg_bboxes = {
-              'Qu': [1.32e7, -1.375e6, 1.373e7, -2.45e6], # far N. Queensland
+              'QLD': [1.32e7, -1.375e6, 1.373e7, -2.45e6], # far N. Queensland
               'Am': [-5.47e6, 3.1e5, -4.6e6, -0.6e6],     # mouth of Amazon
               'Ba': [-1.06e7, 4.5e6, -0.985e7, 2.87e6],   # Baja
               'GB': [-1.01e7, 5.5e6, -0.94e7, 4.6e6],     # Great Basin
@@ -143,41 +143,14 @@ reg_bboxes = {
               'SAf':[1.57e6, -4.0e6, 2.2e6, -4.34e6],     # S. Africa cape
               'Au': [1.009e7, -3.959e6, 1.092e7, -4.364e6],  # SW Australia Medit.
               'It': [0.55e6, 5.62e6, 1.2e6, 5.35e6],      # Po Valley, Italy
+              'CB': [-8.9e6, 5.95e6, -6.95e6, 3.6e6],     # US Corn Belt
              }
 
-# define focal region gridspec indices
-# NOTE: [[i_min, i_max], [j_min, j_max]]
-reg_gsinds = {
-              'Qu': [[40, 85], [166, 200]],
-              'Am': [[50, 85], [40, 74]],
-              'Ba': [[45, 85], [0, 35]],
-              'GB': [[0, 25], [0, 30]],
-              'Mad':[[40, 85], [130, 166]],
-              'Fl': [[0, 25], [40, 65]],
-              'SAf':[[30, 50], [90, 125]],
-              'Au': [[65, 85], [90, 125]],
-              'It': [[0, 15], [70, 115]],
-             }
-
-# define gridspec indices for axes to plot line plots
-def get_gsinds_lines(reg_bbox, gsinds_width=26, gsinds_height=10):
-    i_gsinds = [*np.array((0, gsinds_height)) + reg_bbox[0][1]]
-    j_gsinds_cent = int(np.mean(reg_bbox[1]))
-    j_gsinds = [int(j_gsinds_cent+buff) for buff in np.array([-1,
-                                                         1])*(gsinds_width/2)]
-    return [i_gsinds, j_gsinds]
-
-reg_gsinds_lines = {reg: get_gsinds_lines(bb) for reg, bb in reg_gsinds.items()}
-# NOTE: nudge some regions' line plots vertically
-for i in range(2):
-    reg_gsinds_lines['It'][0][i] -= 0
-    reg_gsinds_lines['Au'][0][i] -= 1
-    reg_gsinds_lines['SAf'][0][i] -= 0
 
 # NOTE: K VALUES WERE DETERMINED BY MANUAL INSPECTION OF SCREE PLOTS
-#       USING THE run_clust_analysis FN WITH scree=True
+#       USING THE run_clust_analysis FN WITH plot_scree=True
 reg_K_vals = {
-              'Qu': 3,
+              'QLD': 3,
               'Am': 3,
               'Ba': 4,
               'GB': 3,
@@ -186,53 +159,8 @@ reg_K_vals = {
               'SAf':4,
               'Au': 4,
               'It': 3,
+              'CB': 3,
              }
-
-reg_letters = {
-              'Qu': 'I.',
-              'Am': 'E.',
-              'Ba': 'D.',
-              'GB': 'A.',
-              'Mad':'H.',
-              'Fl': 'B.',
-              'SAf':'F.',
-              'Au': 'G.',
-              'It': 'C.',
-            }
-
-# locations of region letter labels, expressed in fractions along x,y axes from top left
-reg_lett_locs = {
-              'Qu': (-0.18, 0.94),
-              'Am': (-0.13, 0.91),
-              'Ba': (-0.24, 0.93),
-              'GB': (-0.25, 0.9),
-              'Mad':(-0.25, 0.94),
-              'Fl': (-0.26, 0.90),
-              'SAf':(-0.10, 0.84),
-              'Au': (-0.13, 0.84),
-              'It': (-0.13, 0.81),
-            }
-# locations of region letter labels on the global map,
-# expressed in fractions along x,y axes from top left
-# NOTE: fractions still # expressed relative to the regional axes!
-glob_lett_locs = {
-              'Qu': (1.3, 0.3),
-              'Am': (1.2, 1),
-              'Ba': (-1.5, 1),
-              'GB': (-1.2, 1),
-              'Mad':(1.2, 1),
-              'Fl': (2.4, 1),
-              'SAf':(-1.5, 1),
-              'Au': (-1.2, 1),
-              'It': (-1.1, -1.1),
-            }
-
-
-
-assert (len(reg_bboxes) == len(reg_gsinds) ==
-        len(reg_gsinds_lines) == len(reg_K_vals))
-assert ([*reg_bboxes.keys()] == [*reg_gsinds.keys()] ==
-        [*reg_gsinds_lines.keys()] == [*reg_K_vals.keys()])
 
 
 def minmax_scale(vals, min_out=0, max_out=1):
@@ -491,45 +419,7 @@ if what_to_plot == 'fig_1':
 #################
 
 
-if what_to_plot == 'fig_2':
-
-    # create main figure
-    dims = (20, 10)
-    fig_2 = plt.figure(figsize=(20,10))
-    gs = fig_2.add_gridspec(*[10*dim for dim in dims[::-1]]) # NOTE: REV ORDER OF FIGSIZE
-
-    # plot the RGB map of EOFs 1-3 together
-    ax_rgb = fig_2.add_subplot(gs[:40, -80:])
-    eofs_wt_sum_for_map.plot.imshow(ax=ax_rgb,
-                                        add_colorbar=False,
-                                        alpha=1,
-                                        zorder=0,
-                                       )
-    subnational.plot(color='none',
-                     linewidth=0.3,
-                     edgecolor='black',
-                     alpha=0.5,
-                     ax=ax_rgb,
-                     zorder=1,
-                    )
-    countries.plot(color='none',
-                   linewidth=0.5,
-                   edgecolor='black',
-                   alpha=0.7,
-                   ax=ax_rgb,
-                   zorder=2,
-                  )
-
-    strip_axes(ax_rgb)
-    ax_rgb.set_xlim(global_xlim)
-    ax_rgb.set_ylim(eofs_wt_sum_for_map.rio.bounds()[1::2])
-    ax_rgb.spines['bottom'].set_color('white')
-    ax_rgb.spines['top'].set_color('white')
-    ax_rgb.spines['right'].set_color('white')
-    ax_rgb.spines['left'].set_color('white')
-
-
-
+if what_to_plot == 'reg_figs':
 
     ####################
     # PLOT FOCAL REGIONS
@@ -799,7 +689,7 @@ if what_to_plot == 'fig_2':
         xlim = ax.get_xlim()
         ylim = ax.get_ylim()
         n_lines = len(ax.get_lines())
-        if n_lines == 3:
+        if n_lines <= 3:
             hspace_top_offset=1.05
         elif n_lines == 4:
             hspace_top_offset = 0.65
@@ -841,20 +731,25 @@ if what_to_plot == 'fig_2':
         ax.set_xlim(xlim)
 
 
-    # try to help manage memory usage
-    #del eofs
-    #del eofs_wt_sum
+    def get_fig_dims_from_reg_bbox(bbox, fig_max_dim=7):
+        bbox_xdim = bbox[2] - bbox[0]
+        bbox_ydim = bbox[1] - bbox[3]
+        bbox_maxdim = np.max([bbox_xdim, bbox_ydim])
+        fig_xfact = bbox_xdim/bbox_maxdim
+        fig_yfact = bbox_ydim/bbox_maxdim
+        fig_dims = [fig_max_dim * fact for fact in [fig_xfact, fig_yfact]]
+        return fig_dims
 
     for reg, bbox in reg_bboxes.items():
+
         print('now plotting region: %s' % reg)
+
+        # create regional figure
+        dims = get_fig_dims_from_reg_bbox(bbox)
+        fig_reg, ax_reg = plt.subplots(1, figsize=dims)
+        fig_lines, ax_lines = plt.subplots(1, figsize=(4,1))
+
         # plot the focal region
-        gsi = reg_gsinds[reg]
-        gsi_lines = reg_gsinds_lines[reg]
-        #height_ratio = -(bbox[3]-bbox[1])/(bbox[2]-bbox[0])
-        ax_reg = fig_2.add_subplot(gs[gsi[0][0]:gsi[0][1],
-                                    gsi[1][0]:gsi[1][1]])
-        ax_lines = fig_2.add_subplot(gs[gsi_lines[0][0]:gsi_lines[0][1],
-                                      gsi_lines[1][0]:gsi_lines[1][1]])
         eofs_wt_sum_for_map.sel(x=slice(bbox[0], bbox[2]),
                                 y=slice(bbox[1], bbox[3])).plot.imshow(ax=ax_reg,
                                                                        zorder=0,
@@ -911,26 +806,19 @@ if what_to_plot == 'fig_2':
         ax_lines.tick_params(labelsize=10, rotation=0)
         for axis in ['top','bottom','left','right']:
             ax_lines.spines[axis].set_linewidth(2)
-        plot_bbox_rectangle(bbox, ax_rgb)
-        # add letters to region maps
-        for ax_num, ax_and_lett_locs in enumerate(zip([ax_reg, ax_rgb],
-                                                      [reg_lett_locs,
-                                                       glob_lett_locs])):
-            ax, lett_locs = ax_and_lett_locs
-            ax.text((ax_reg.get_xlim()[0] +
-                     lett_locs[reg][0]*np.diff(ax_reg.get_xlim())[0]),
-                    (ax_reg.get_ylim()[0] +
-                     lett_locs[reg][1]*np.diff(ax_reg.get_ylim())[0]),
-                    reg_letters[reg],
-                    size=partlabel_fontsize - (10 * ax_num),
-                    weight='bold',
-                   )
 
-    # save figure
-    fig_2.subplots_adjust(left=0.01,
-                             right=0.99,
-                             bottom=0.04,
-                             top=0.98)
-    if save_it:
-        fig_2.savefig('FIG_2_%s_RGB_EOF_reg_map%s%s.png' % (dataset,
-                            mask_filename_ext, ('_RAW'*(not fold_it))), dpi=700)
+        # save figures
+        fig_reg.subplots_adjust(left=0.01,
+                                 right=0.99,
+                                 bottom=0.04,
+                                 top=0.98)
+        fig_lines.subplots_adjust(left=0.04,
+                                 right=0.94,
+                                 bottom=0.24,
+                                 top=0.97)
+
+        if save_it:
+            fig_reg.savefig('FIG_REG_%s_%s_RGB_EOF_reg_map%s%s.png' % (reg, dataset,
+                                mask_filename_ext, ('_RAW'*(not fold_it))), dpi=700)
+            fig_lines.savefig('FIG_REG_%s_LINES_%s_RGB_EOF_reg_map%s%s.png' % (reg, dataset,
+                                mask_filename_ext, ('_RAW'*(not fold_it))), dpi=700)
