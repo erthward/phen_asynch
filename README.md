@@ -109,15 +109,14 @@ NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` w
 
 ## run phenological asynchrony modeling workflow:
 
-1. On Savio, run `asynch/analysis/rf/prep_phen_asynch_rf_data.r NIRv 100` to prep data for random forest analysis of the main phenological asynchrony dataset (i.e., NIRv-based phenological asynchrony using a 100 km radial neighborhood).
-2. In an RStudio session on Savio, run `asynch/analysis/rf/run_phen_asynch_rf.r` with var set to 'NIRv' and neigh.rad set to '100' (i.e., uncommenting lines at top), to execute the random forest analysis on the main phenological asynchrony dataset (i.e., NIRv-based phenological asynchrony using a 100 km radial neighborhood). Be sure the execute the code blocks captured by `if (F){ ... }`, to run hyperparameter-tuning, Boruta feature selection, and other interactive analyses.
-3. Manually inspect the results of the interactive analysis. Use the results of that to set the hyperparameters (in the code block starting at line 410 in `asynch/analysis/rf/run_phen_asynch_rf.r`) and the feature selection (code block starting at line 486 in the same file) for the main global RF model that will be used for both datasets (NIRv and SIF) and all 3 neighborhood radii (50 km, 100 km, 150 km).
-4. Run `asynch/analysis/rf/ch3_rf_job.sh` to loop over vars (NIRv, SIF) and neighborhood radii, each time prepping data layers, running the random forest analysis, and generating identical results.
-5. Run `asynch/analysis/rf/ch3_rasterize_SHAP_job.sh` to convert output CSVs of global SHAP values to GeoTIFFs.
-6. Run `asynch/analysis/rf/ch3_rasterize_err_job.sh` to convert output CSVs of global RF prediction errors to GeoTIFFs.
-7. Run `asynch/analysis/rf/tabulate_model_summaries.py` to combine all permuation-based and SHAP-based importance values and model $R^2$s and MSEs into a single output table, for supplmental materials.
-8. Run `asynch/analysis/rf/make_shap_hsv_map.py` to produce the SHAP-value HSV-coded interpretation map (for the 100 km-neighborhood NIRv-asynchrony analysis that included the geo-coordinate polynomials as covariates) and save result as a GeoTIFF.
-9. Run `asynch/analysis/rf/plot_rf_summary_FIG_4_S13.py` to produce final figure summarizing random forest results.
+1. On Savio, run `asynch/analysis/rf/prep_data/prep_phen_asynch_rf_data.r NIRv 100` to prep data for random forest analysis of the main phenological asynchrony dataset (i.e., NIRv-based phenological asynchrony using a 100 km radial neighborhood).
+2. In an RStudio session on Savio, run `asynch/analysis/rf/run_rf/run_phen_asynch_rf.r` with var set to 'NIRv' and neigh.rad set to '100' (i.e., uncommenting lines at top), to execute the random forest analysis on the main phenological asynchrony dataset (i.e., NIRv-based phenological asynchrony using a 100 km radial neighborhood). Be sure the execute the code blocks captured by `if (F){ ... }`, to run hyperparameter-tuning, Boruta feature selection, and other interactive analyses.
+3. Manually inspect the results of the interactive analysis. Use the results of that to set the hyperparameters (in the code block starting at line 410 in `asynch/analysis/rf/run_rf/run_phen_asynch_rf.r`) and the feature selection (code block starting at line 486 in the same file) for the main global RF model that will be used for both datasets (NIRv and SIF) and all 3 neighborhood radii (50 km, 100 km, 150 km).
+4. Run `asynch/analysis/rf/run_rf/ch3_rf_job.sh` to loop over vars (NIRv, SIF) and neighborhood radii, each time prepping data layers, running the random forest analysis, and generating identical results.
+5. Run `asynch/analysis/rf/summ_results/ch3_rasterize_SHAP_job.sh` to convert output CSVs of global SHAP values to GeoTIFFs.
+6. Run `asynch/analysis/rf/summ_results/ch3_rasterize_err_job.sh` to convert output CSVs of global RF prediction errors to GeoTIFFs.
+7. Run `asynch/analysis/rf/summ_results/tabulate_model_summaries.py` to combine all permuation-based and SHAP-based importance values and model $R^2$s and MSEs into a single output table, for supplmental materials.
+8. Run `asynch/analysis/rf/make_asynch_viz_and_analysis_maps_FIG_3_S8-16.py` 4 times, once each with a different command line arg ('main', 'asynch_supps', 'error_supp', 'predom_supp'), to produce the main RF-summary fig (Fig. 3, which maps predominance for the two top-importance covariates, ppt.asy and tmp.min.asy) and the supplementary figs presenting all asynchrony maps (Figs. S8-S14), the RF error map (Fig. S15), and the RF summary map showing all predominant covariates (Fig. S16).
 
 
 ## run climate-distance analysis:
