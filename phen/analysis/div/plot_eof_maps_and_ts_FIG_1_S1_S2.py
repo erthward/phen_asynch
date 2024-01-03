@@ -49,6 +49,9 @@ what_to_plot = 'reg_figs'
 # plotting params
 partlabel_fontsize = 24
 
+# write the weighted-sum EOF map to a raster file?
+write_wt_sum_eofs_to_file = False
+
 # save figs?
 save_it = True
 
@@ -142,7 +145,7 @@ reg_bboxes = {
               'Fl': [-7.525e6, 3.53e6, -7.25e6, 3.13e6],  # South Florida
               'SAf':[1.57e6, -4.0e6, 2.2e6, -4.34e6],     # S. Africa cape
               'Au': [1.009e7, -3.959e6, 1.092e7, -4.364e6],  # SW Australia Medit.
-              'It': [0.55e6, 5.62e6, 1.2e6, 5.35e6],      # Po Valley, Italy
+              'IT': [0.55e6, 5.62e6, 1.2e6, 5.35e6],      # Po Valley, Italy
               'CB': [-8.9e6, 5.95e6, -6.95e6, 3.6e6],     # US Corn Belt
              }
 
@@ -158,7 +161,7 @@ reg_K_vals = {
               'Fl': 3,
               'SAf':4,
               'Au': 4,
-              'It': 3,
+              'IT': 3,
               'CB': 3,
              }
 
@@ -245,9 +248,27 @@ for lyr in range(eofs_wt_sum_for_map.shape[0]):
     eofs_wt_sum_for_map[lyr] = eofs_wt_sum_for_map[lyr].where(
         eofs_wt_sum_for_map[lyr] < 2*eofs_wt_sum[lyr].max(), np.nan)
 
+# if requested, write mapping-prepped EOFS to file
+if write_wt_sum_eofs_to_file:
+    x_vals = eofs_wt_sum_for_map['x'].values
+    y_vals = eofs_wt_sum_for_map['y'].values
+    bands = eofs_wt_sum_for_map['band'].values-1
+    out_bands = []
+    for band in bands:
+        out_bands.append(eofs_wt_sum_for_map[band].data)
+    out_da = xr.DataArray(out_bands,
+                          coords={'y':y_vals,
+                                  'x':x_vals,
+                                  'band': bands,
+                                 },
+                          dims=['band', 'y', 'x'],
+                         )
+    out_da.rio.to_raster(('/media/deth/SLAB/diss/3-phn/GEE_outputs/final/'
+                          'NIRv_global_4_EOF_s_sqrt_coswts_normts_FORMAP.tif'))
+
+
 # get harmonic regression design matrix
 dm = phf.make_design_matrix()
-
 
 
 ############
@@ -309,7 +330,7 @@ if what_to_plot == 'fig_s3':
     fig_eof.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98,
                             hspace=0.05)
     if save_it:
-        fig_eof.savefig('FIG_S3_%s_EOF_maps%s%s.png' % (dataset,
+        fig_eof.savefig('FIG_S1_%s_EOF_maps%s%s.png' % (dataset,
                     mask_filename_ext, ('_RAW'*(not fold_it))), dpi=600)
 
 
@@ -357,7 +378,7 @@ if what_to_plot == 'fig_s4':
     fig_untrans.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98,
                                 hspace=0.05)
     if save_it:
-        fig_untrans.savefig('FIG_S4_untransformed_EOF_maps.png', dpi=600)
+        fig_untrans.savefig('FIG_S2_untransformed_EOF_maps.png', dpi=600)
 
     del eofs_for_map
 

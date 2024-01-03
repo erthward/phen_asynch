@@ -1,8 +1,7 @@
 ## overview:
 This repo contains all the code used to produce the analysis in
-"Global phenology maps reveal patterns of regional divergence,
-intercontinental convergence, and climate-independent tropical asynchrony"
-(Terasaki Hart et al. 2022), chapter 3 of Drew E. Terasaki Hart's PhD dissertation.
+"Global phenology maps reveal the diversity, convergence, and asynchrony of ecosystem function"
+(Terasaki Hart et al. 2024), chapter 3 of Drew E. Terasaki Hart's PhD dissertation.
 
 # < PUT CITATION HERE >
 
@@ -13,7 +12,7 @@ to be distributed and/or modified with proper attribution.
 
 
 Any questions, concerns, or other interests can be directed
-to drew <dot> hart <at> berkeley <dot> edu. 
+to drew *dot* hart *at* berkeley *dot* edu. 
 
 
 ### contents

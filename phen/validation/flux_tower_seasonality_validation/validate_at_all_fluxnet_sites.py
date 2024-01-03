@@ -531,7 +531,19 @@ for zip_filename in zip_filenames:
 
     print('-'*80)
 
-# save all results
+# convert results to a dataframe
 results_df = pd.DataFrame(results)
+
+# drop datasets with duplicates at the same site
+# (1 from main FLUXNET, 1 from CH4)
+# because of strong non-independence),
+# keeping whichever one has the longer GPP time series available
+results_df = results_df.sort_values(['id', 'gpp_ts_len'],
+            ascending=[True, True]).drop_duplicates(subset='id',
+                                                    keep='last')
+# and drop sites labeled as water bodies, urban, and cropland
+results_df = results_df[~results_df['igbp'].isin(['WAT', 'URB', 'CRO'])]
+
+# save all results
 results_df.to_csv('FLUXNET_validation_results_%s.csv' % rs_var, index=False)
 
