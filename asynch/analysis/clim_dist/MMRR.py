@@ -5,7 +5,7 @@ import statsmodels.api as sm
 from collections import OrderedDict as OD
 
 
-def MMRR(Y, X, Xnames=None, nperm=999):
+def MMRR(Y, X, Xnames=None, intercept=True, nperm=999):
     """
     This is a port of Ian Wang's MMRR script, which lives here:
         https://nature.berkeley.edu/wanglab/data/
@@ -21,11 +21,14 @@ def MMRR(Y, X, Xnames=None, nperm=999):
     X: {[2d numpy array, 2d numpy array, ...]}
         A list of independent distance matrices
 
-    Xnames: {[str, str, ...]}, optional
+    Xnames: {[str, str, ...]}, optional, default: None
         A list of variable names for the X matrices (defaults to ["X1", "X2",
         ...])
 
-    nperm: int, optional
+    intercept: bool, optional, default: True
+        Whether or not to include an intercept term in the model.
+
+    nperm: int, optional, default: 999
        The number of permutations to use for the permutation test
     """
     # get number Y rows, then unfold lower triangular
@@ -36,7 +39,7 @@ def MMRR(Y, X, Xnames=None, nperm=999):
         Xnames = ["X%i" % i for i in range(1, len(X)+1)]
     xs = [_unfold_tril(x) for x in X]
     # get in correct array formats for OLS
-    mod_y, mod_x = _prep_mod_data(y, xs)
+    mod_y, mod_x = _prep_mod_data(y, xs, intercept=intercept)
     # fit the linear regression and get the stats
     mod = sm.OLS(mod_y, mod_x).fit()
     coeffs = mod.params
@@ -54,7 +57,7 @@ def MMRR(Y, X, Xnames=None, nperm=999):
         Yperm = Y[rownums,:][:, rownums]
         assert np.all(Yperm.shape == Y.shape)
         yperm = _unfold_tril(Yperm)
-        permmod_y, permmod_x = _prep_mod_data(yperm, xs)
+        permmod_y, permmod_x = _prep_mod_data(yperm, xs, intercept=intercept)
         permmod = sm.OLS(permmod_y, permmod_x).fit()
         tprob += (np.abs(permmod.tvalues) >= np.abs(tstat))
         Fprob += (permmod.fvalue >= Fstat)
@@ -64,7 +67,10 @@ def MMRR(Y, X, Xnames=None, nperm=999):
     Fp = Fprob/(nperm+1)
 
     # return values
-    coeff_names = ["Intercept"] + Xnames
+    if intercept:
+        coeff_names = ["Intercept"] + Xnames
+    else:
+        coeff_names = Xnames
     output = OD()
     output["R^2"] = r2
     output.update({c: cval for c, cval in zip(coeff_names, coeffs)})

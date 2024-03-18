@@ -26,6 +26,7 @@ import numpy as np
 import glob
 import json
 import time
+import re
 import os
 
 import matplotlib.pyplot as plt
@@ -338,7 +339,10 @@ def generate_random_points_in_polygon(n, polygon):
     return points
 
 
-def calc_pw_clim_dist_mat(pts, nodata_val=-3.4e+38):
+def calc_pw_clim_dist_mat(pts,
+                          nodata_val=-3.4e+38,
+                          vars_list=None,
+                         ):
     """
     Calculates the pw bioclim-dist matrix for an nx2 numpy array
     containing the (lon, lat) coordinates for n points.
@@ -346,9 +350,16 @@ def calc_pw_clim_dist_mat(pts, nodata_val=-3.4e+38):
     # TODO:
         # IMPLEMENT ARGUMENT TO NORMALIZE BIOCLIM DATA?
 
+    # get only the indicated subset of bioclim vars, if necessary
+    if vars_list is None:
+        infilepaths = [*BIOCLIM_INFILEPATHS]
+    else:
+        find_var = lambda s: re.search('bio_\d{1,2}(?=\.tif)', s).group()
+        infilepaths = [fp for fp in BIOCLIM_INFILEPATHS if find_var(fp) in vars_list]
+
     # list to hold arrays of all bioclim vars' vals
     bioclim_vals_arrs = []
-    for fn in BIOCLIM_INFILEPATHS:
+    for fn in infilepaths:
         # extract vals for each file
         bioclim_vals = get_raster_info_points(fn, pts, 'vals')
         # mask out missing vals
@@ -359,6 +370,10 @@ def calc_pw_clim_dist_mat(pts, nodata_val=-3.4e+38):
         bioclim_vals_arrs.append(stand_vals)
     # concatenate into one array
     bioclim = np.concatenate(bioclim_vals_arrs, axis=1)
+    assert bioclim.shape[0] == pts.shape[0]
+    assert bioclim.shape[1] == len(infilepaths)
+    if vars_list is not None:
+        assert bioclim.shape[1] == len(vars_list)
     # calculate pairwise dists
     clim_dist = np.zeros([pts.shape[0]]*2) * np.nan
     for i in range(pts.shape[0]):
