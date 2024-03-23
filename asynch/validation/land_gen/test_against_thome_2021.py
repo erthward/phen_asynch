@@ -75,8 +75,6 @@ assert set(geo['voucher'].values) == set(gen_dist.index)
 
 # set up the geographic, environmental, and seasonal distance matrices
 geo_dist = np.ones([geo.shape[0]]*2) * np.nan
-env_dist = np.ones([geo.shape[0]]*2) * np.nan
-sea_dist = np.ones([geo.shape[0]]*2) * np.nan
 
 # loop over voucher codes in gen_dist, to ensure that rows & cols
 # match the rows & cols in gen_dist
@@ -171,20 +169,15 @@ for i, mat in enumerate([gen_dist, geo_dist, env_dist, sea_dist]):
 
 
 
-# standardize all variables, for beta coefficients
-print('\nstandardizing distance matrices...')
-gen_dist = phf.standardize_array(gen_dist)
-geo_dist = phf.standardize_array(geo_dist)
-env_dist = phf.standardize_array(env_dist)
-sea_dist = phf.standardize_array(sea_dist)
-for i, mat in enumerate([gen_dist, geo_dist, env_dist, sea_dist]):
-    assert np.allclose(np.nanmean(mat), 0), f"matrix {i} failed"
-
 # run the MMRR model and print results
 print('\nrunning MMRR model...')
 res = MMRR(Y=gen_dist,
            X=[geo_dist, env_dist, sea_dist],
            Xnames=['geo_dist', 'env_dist', 'sea_dist'],
+           # NOTE: MMRR will standardize lower-triangular distance values, and thus
+           #       returns coefficient values as beta-coefficients
+           standardize=True,
+           intercept=True,
            nperm=MMRR_nperm,
           )
 

@@ -5,7 +5,7 @@ import statsmodels.api as sm
 from collections import OrderedDict as OD
 
 
-def MMRR(Y, X, Xnames=None, intercept=True, nperm=999):
+def MMRR(Y, X, Xnames=None, standardize=True, intercept=True, nperm=999):
     """
     This is a port of Ian Wang's MMRR script, which lives here:
         https://nature.berkeley.edu/wanglab/data/
@@ -25,6 +25,10 @@ def MMRR(Y, X, Xnames=None, intercept=True, nperm=999):
         A list of variable names for the X matrices (defaults to ["X1", "X2",
         ...])
 
+    standardize: bool, optional, default: True
+        Whether to standardize the lower triangular values
+        before input into regressions
+
     intercept: bool, optional, default: True
         Whether or not to include an intercept term in the model.
 
@@ -33,11 +37,11 @@ def MMRR(Y, X, Xnames=None, intercept=True, nperm=999):
     """
     # get number Y rows, then unfold lower triangular
     nrowsY = Y.shape[0]
-    y = _unfold_tril(Y)
+    y = _unfold_tril(Y, standardize=standardize)
     # process X names, then unfold all Xs' lower triangulars
     if Xnames is None:
         Xnames = ["X%i" % i for i in range(1, len(X)+1)]
-    xs = [_unfold_tril(x) for x in X]
+    xs = [_unfold_tril(x, standardize=standardize) for x in X]
     # get in correct array formats for OLS
     mod_y, mod_x = _prep_mod_data(y, xs, intercept=intercept)
     # fit the linear regression and get the stats
@@ -56,7 +60,7 @@ def MMRR(Y, X, Xnames=None, intercept=True, nperm=999):
         np.random.shuffle(rownums)
         Yperm = Y[rownums,:][:, rownums]
         assert np.all(Yperm.shape == Y.shape)
-        yperm = _unfold_tril(Yperm)
+        yperm = _unfold_tril(Yperm, standardize=standardize)
         permmod_y, permmod_x = _prep_mod_data(yperm, xs, intercept=intercept)
         permmod = sm.OLS(permmod_y, permmod_x).fit()
         tprob += (np.abs(permmod.tvalues) >= np.abs(tstat))
@@ -93,10 +97,28 @@ def _prep_mod_data(y, xs, intercept=True):
     return y_out, x_out
 
 
-def _unfold_tril(A):
+def _unfold_tril(A, standardize=True):
     """
     unfolds the lower triangular elements of a matrix into a vector (i.e. 1d
     array)
+
+    vector will be standardized if standardize==True
     """
     vec = np.tril(A, k=-1)[np.tril_indices(A.shape[0], k=-1)]
+    if standardize:
+        vec = _standardize_arr(vec)
     return vec
+
+
+def _standardize_arr(x):
+    """
+    return a standardized version of the array x,
+    calculated as z = (x-μ)/σ
+    """
+    return (x - np.mean(x))/np.std(x)
+
+
+
+
+
+

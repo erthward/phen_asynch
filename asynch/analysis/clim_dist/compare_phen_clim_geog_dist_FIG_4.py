@@ -329,20 +329,17 @@ if remaining_n_loop_vals > 0:
                         geo_dist[i, j] = dist
                         geo_dist[j, i] = dist
 
-                # standardize input vars (to make MMRR coeffs into standardized
-                # beta coeffs, and thus comparable)
-                seas_dist_stand = phf.standardize_array(seas_dist)
-                clim_dist_stand = phf.standardize_array(clim_dist)
-                geo_dist_stand = phf.standardize_array(geo_dist)
-                assert np.allclose(np.std(seas_dist_stand), 1)
-                assert np.allclose(np.std(clim_dist_stand), 1)
-                assert np.allclose(np.std(geo_dist_stand), 1)
-
                 # run model
-                res = MMRR(seas_dist_stand,
-                           [clim_dist_stand, geo_dist_stand],
-                           ['clim_dist', 'geo_dist'],
-                           MMRR_nperm)
+                res = MMRR(Y=seas_dist,
+                           X=[clim_dist, geo_dist],
+                           Xnames=['clim_dist', 'geo_dist'],
+                           # NOTE: MMRR will standardize lower-triangular
+                           #       values, and thus provide coeff values as
+                           #       beta-coefficients
+                           standardize=True,
+                           intercept=True,
+                           nperm=MMRR_nperm,
+                          )
 
                 # store results
                 MMRR_res[reg_name] = res
