@@ -21,6 +21,7 @@ term_id = 12                # "Plant phenology"
 term_value_id = 13          # "Flowering"
 quality_grade = 'research'
 native = True
+captive = False
 per_page = 500
 
 
@@ -38,12 +39,9 @@ while curr_page < taxa_pg_ct:
                                                 term_value_id=term_value_id,
                                                 quality_grade=quality_grade,
                                                 native=native,
+                                                captive=captive,
                                                 per_page=per_page,
                                                 page=curr_page,
-                                                #ne_lng=-31.716,  # S. AM. BBOX
-                                                #ne_lat= 14.205,
-                                                #sw_lng=-86.208,
-                                                #sw_lat=-57.169,
                                                )
     if curr_page == 1:
         taxa_ct = taxa['total_results']

@@ -1,17 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-"""
-# TODO:
-
-    - need to record places where alpha is increased, or get rid of that, or is
-         that okay as part of clustering?
-
-    - need to weed out clim_dist coeff values when their p-values are >0.05, or
-         is that part of the point? (I looked and they're mostly far-north places
-         that will go away with proper masking anyhow...)
-"""
-
 import geopandas as gpd
 import numpy as np
 import glob
