@@ -38,18 +38,19 @@ np.random.seed(1)
 taxa = pd.read_csv('./all_inat_plant_phen_taxa_w_TRY_pgf.csv')
 assert len(np.unique(taxa['tid'])) == len(taxa)
 print('\n\n')
-print(f"\n{len(taxa)} total taxa with flowering phenology info in iNat\n\n")
+print(f"\n{len(taxa)} total taxa with flowering phenology info in iNat\n")
 
 # subset to only taxa with the minimum requisite number of observations
 min_obs = 50
 taxa = taxa[taxa['count'] >= min_obs]
+print(f"\n{len(taxa)} taxa with >= {min_obs} flowering phenology observations\n")
 
 # compare and subset against already-processed taxa
 processed_file_writemode = 'w'
 processed_taxa_filename = 'inat_flower_phen_results.json'
 if os.path.isfile(processed_taxa_filename):
     processed_file_writemode = 'a'
-    print('\treading already-processed taxa...\n')
+    print('\treading already-processed taxa...')
     processed_taxa = gpd.read_file(processed_taxa_filename)
     taxa = taxa[~taxa['tid'].isin(processed_taxa['tid'])]
 print(f"\n{len(taxa)} taxa remaining to be processed\n\n")
@@ -239,13 +240,15 @@ res_dict ={'tid': [],
 
 # for each taxon, get histogram
 total_failure = False
+runtimes = []
 for i, row in taxa.iterrows():
     obs_dict = make_obs_dict()
     try:
+        start_time = time.time()
         tid = row['tid']
         tax_name = row['name']
         max_count = row['count']
-        print(f"\n\n{'.'*80}\nprocessing {tax_name}...")
+        print(f"\n\n{'.'*80}\nprocessing {tax_name} ({i+1} of {len(taxa)})...")
 
         # get observation histogram
         hist_success = False
@@ -350,6 +353,7 @@ for i, row in taxa.iterrows():
                                y=ys,
                               )
         r2_sem_adj = calc_r2_adj(r2_sem, reg_sem, len(reg_df))
+        print(f"\n\n\tR^2 ratio: {r2_sem/r2_ann}")
 
         # get the stat and P-value for a dip test on the histogram
         # NOTE: dip test appears to fail on int (i.e., discrete) data,
@@ -359,7 +363,7 @@ for i, row in taxa.iterrows():
         #       only make our result more conservative on histograms with some true
         #       indication of multi-modality
         dip, pval = run_diptest_in_R(ys, noise_sigma=diptest_sigma)
-        print(f'\n\n\tdip: {np.round(dip, 2)} (P-value: {np.round(pval, 2)})\n')
+        print(f'\tdip: {np.round(dip, 2)} (P-value: {np.round(pval, 2)})\n')
 
         # get the Euclidean distance between the histogram (rotated to its min
         # value before the greatest slope over the 7 following weeks) and both
@@ -422,6 +426,7 @@ for i, row in taxa.iterrows():
         fig_filename = os.path.join(data_dir,
                     f"phen_plots/TID_{tid}_{tax_name.replace(' ', '_')}.png")
         fig.savefig(fig_filename, dpi=400)
+        plt.close('all')
 
         # store and save taxon observations
         obs_dict['datetime'].extend([str(d).replace(' ', 'T') for d in dates])
@@ -437,6 +442,22 @@ for i, row in taxa.iterrows():
                         f"obs_data/TID_{tid}_{tax_name.replace(' ', '_')}.json")
         obs_gdf.to_file(obs_filename)
 
+        # save what data we have thus far
+        print(f"\n\trolling-average runtime: {np.round(np.sum(runtimes)/(i+1), 1)} sec per taxon\n")
+        res_df = pd.DataFrame.from_dict(res_dict)
+        res_gdf = gpd.GeoDataFrame(res_df,
+                                   geometry='geom',
+                                   crs=4326,
+                                  )
+        assert len(np.unique(res_gdf['tid'])) == len(res_gdf)
+        res_gdf['r2_ratio'] = res_gdf['r2_sem']/res_gdf['r2_ann']
+
+        stop_time = time.time()
+        time_diff = stop_time - start_time
+        runtimes.append(time_diff)
+        res_gdf.to_file(processed_taxa_filename,
+                    mode=processed_file_writemode)
+
     except Exception as e:
         print(f"EXCEPTION THROWN: {e}")
         print('\n\nWill save current data, then exit.\n')
@@ -447,19 +468,9 @@ for i, row in taxa.iterrows():
 #------------------------------------------------------------------------------
 # analyze results
 #------------------------------------------------------------------------------
-res_df = pd.DataFrame.from_dict(res_dict)
-res_gdf = gpd.GeoDataFrame(res_df,
-                           geometry='geom',
-                           crs=4326,
-                          )
-assert len(np.unique(res_gdf['tid'])) == len(res_gdf)
-res_gdf['r2_ratio'] = res_gdf['r2_sem']/res_gdf['r2_ann']
 if total_failure:
-    res_gdf.iloc[:-1, :].to_file(processed_taxa_filename,
-                                 mode=processed_file_writemode)
+    print("\n\nTOTAL FAILURE! Interim results saved. Debug and rerun.\n\n")
 else:
-    res_gdf.to_file(processed_taxa_filename,
-                    mode=processed_file_writemode)
     fig, ax = plt.subplots(1)
     res_gdf.to_crs(3857).plot(alpha=0.7,
                               color=res_gdf['color'],

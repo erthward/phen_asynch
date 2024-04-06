@@ -1,6 +1,6 @@
 library(rtry)
 
-try = rtry_import(input = './32735.txt')
+try = rtry_import(input = '/media/deth/SLAB/diss/3-phn/try_db/32735.txt')
 
 # get just the rows with plant growth form data
 try = try[try$TraitID == 42, ]
