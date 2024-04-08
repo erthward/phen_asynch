@@ -19,7 +19,11 @@ import os
 # silence the unhelpful shapely deprecation warnings
 import warnings
 from shapely.errors import ShapelyDeprecationWarning
-warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning) 
+warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
+
+
+# TODO:
+    # check how often week 54 is 0 and if disproportionate then drop
 
 
 #------------------------------------------------------------------------------
@@ -254,7 +258,8 @@ for i, row in taxa.iterrows():
         start_time = time.time()
         tid = row['tid']
         tax_name = row['name']
-        print(f"\n\n{'.'*80}\nprocessing {tax_name} ({i+1} of {len(taxa)})...")
+        print((f"\n\n{'.'*80}\nprocessing {tax_name} (TID: {tid}) "
+               f"({i+1} of {len(taxa)})..."))
 
         # get observation histogram
         hist_success = False

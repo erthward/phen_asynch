@@ -40,9 +40,9 @@ import warnings
 import h3
 
 # local modules
-from MMRR import MMRR
 sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
                     'seasonal_asynchrony/etc/'))
+from MMRR import MMRR
 import phen_helper_fns as phf
 
 # BEHAVIORAL PARAMS:
