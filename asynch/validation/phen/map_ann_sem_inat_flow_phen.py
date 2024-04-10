@@ -9,6 +9,7 @@ import contextily as ctx
 import geopandas as gpd
 import pandas as pd
 import numpy as np
+import xyzservices
 import alphashape
 import subprocess
 import datetime
@@ -122,6 +123,9 @@ npeak_bandwidth = 5
 npeak_minheight = 0.6
 npeak_nperm = 100
 
+# whether to re-plot the histogram plots
+replot_hists = True
+
 #------------------------------------------------------------------------------
 # helper fns
 #------------------------------------------------------------------------------
@@ -172,6 +176,7 @@ def calc_euc_dist(a1, a2):
 
 def rotate_time_series_to_min(ts,
                               nsteps=7,
+                              return_cutidx=False,
                              ):
     '''
     shift time series so that it starts on its min value
@@ -200,7 +205,10 @@ def rotate_time_series_to_min(ts,
         cutidx = minidx[minidx_maxdif]
     #print('cutidx: ', cutidx)
     ts_rot = np.concatenate((ts[cutidx:], ts[:cutidx]))
-    return ts_rot
+    if return_cutidx:
+        return ts_rot, cutidx
+    else:
+        return ts_rot
 
 
 def run_diptest_in_R(vals, is_hist=True, noise_sigma=0):
@@ -268,14 +276,9 @@ def calc_n_kde_peaks(hist,
                               height=peak_minheight,
                              )
     npk = len(peaks)
-    # fit a Gaussian mixture model using that number of peaks, save AIC and BIC
-    D = minmax_dens.reshape((-1, 1))
-    gmm = GaussianMixture(npk).fit(D)
-    aic = gmm.aic(D)
-    bic = gmm.bic(D)
     # calculate absolute lag-1 temporal autocorrelation
     acorr = np.abs(np.corrcoef(hist[:-1], hist[1:])[0,1])
-    return npk, aic, bic, acorr
+    return npk, acorr, minmax_dens
 
 
 def estimate_n_peaks(hist,
@@ -283,38 +286,35 @@ def estimate_n_peaks(hist,
                      peak_minheight=0.6,
                      n_perm=100,
                      plot=False,
+                     return_dens=False,
                     ):
     '''
     combine a few metrics to estimate the number of peaks in a histogram
     '''
     # rotate and minmax scale the histogram
-    hist = rotate_time_series_to_min(hist)
-    npk, aic, bic, acorr = calc_n_kde_peaks(hist,
-                                          kde_bandwidth=kde_bandwidth,
-                                          peak_minheight=peak_minheight,
-                                          plot=False,
-                                         )
-    # permute the histogram n_perm times, run the same process, and collect AICs
+    hist, cutidx = rotate_time_series_to_min(hist, return_cutidx=True)
+    npk, acorr, scaled_dens = calc_n_kde_peaks(hist,
+                                               kde_bandwidth=kde_bandwidth,
+                                               peak_minheight=peak_minheight,
+                                               plot=False,
+                                              )
+    # permute the histogram n_perm times, run the same process, collect results
     perm_npk = []
-    perm_aic = []
-    perm_bic = []
     perm_acorr = []
     for i in range(n_perm):
         hist_perm = np.random.choice(hist, len(hist), replace=False,
                                            )
         assert len(hist_perm) == len(hist)
-        pnpk, paic, pbic, pacorr = calc_n_kde_peaks(hist_perm,
-                                                 kde_bandwidth=kde_bandwidth,
-                                                 peak_minheight=peak_minheight,
-                                                 plot=False,
-                                                )
+        pnpk, pacorr, pscaled_dens=calc_n_kde_peaks(hist_perm,
+                                                    kde_bandwidth=kde_bandwidth,
+                                                    peak_minheight=peak_minheight,
+                                                    plot=False,
+                                                   )
         perm_npk.append(pnpk)
-        perm_aic.append(paic)
-        perm_bic.append(pbic)
         perm_acorr.append(pacorr)
     if plot:
         fig = plt.figure()
-        ax = fig.add_subplot(2,2,1)
+        ax = fig.add_subplot(1,2,1)
         _ = calc_n_kde_peaks(hist,
                              kde_bandwidth=kde_bandwidth,
                              peak_minheight=peak_minheight,
@@ -322,21 +322,18 @@ def estimate_n_peaks(hist,
                              ax=ax,
                             )
         ax.set_title(f'true data (n peaks={npk})')
-        ax = fig.add_subplot(2,2,2)
-        ax.hist(perm_aic, alpha=0.5)
-        ax.plot(aic, 0, 'or')
-        ax.set_title('true AIC vs. nulls')
-        ax = fig.add_subplot(2,2,3)
-        ax.hist(perm_bic, alpha=0.5)
-        ax.plot(bic, 0, 'or')
-        ax.set_title('true BIC vs. nulls')
-        ax = fig.add_subplot(2,2,4)
+        ax = fig.add_subplot(1,2,2)
         ax.hist(perm_acorr, alpha=0.5)
         ax.plot(acorr, 0, 'or')
         ax.set_title('true lag-1 autocorrelation vs. nulls')
     # get empirical P-val from true and permuted absolute lag-1 autocorr vals
     pval = np.mean(np.array(perm_acorr)>= acorr)
-    return npk, pval
+    if return_dens:
+        scaled_dens_unrotated = np.concatenate((scaled_dens[-cutidx:],
+                                                scaled_dens[:-cutidx]))
+        return npk, pval, scaled_dens_unrotated
+    else:
+        return npk, pval
 
 
 
@@ -378,6 +375,8 @@ for i, row in taxa.iterrows():
                         f"hist_data/TID_{tid}_{tax_name.replace(' ', '_')}.csv")
         if not os.path.isfile(hist_filename):
             print("\n\n\thistogram file does not exist; hitting API...\n\n")
+            # set var to indicate we need to save the hist fig
+            save_hist_fig = True
             hist_success = False
             n_trys=0
             while not hist_success:
@@ -409,6 +408,11 @@ for i, row in taxa.iterrows():
         else:
             print("\n\n\treading histogram from file...\n\n")
             hist_vals = pd.read_csv(hist_filename).loc[:, 'n_obs'].values
+            # set var to indicate we don't need to save the hist fig
+            if replot_hists:
+                save_hist_fig = True
+            else:
+                save_hist_fig = False
         if np.sum(hist_vals) == 0:
             res_dict['tid'].append(tid)
             res_dict['name'].append(tax_name)
@@ -521,6 +525,7 @@ for i, row in taxa.iterrows():
                 # read in the observation data instead, if it already exists
                 print("\treading observations from file...\n\n")
                 obs_gdf = gpd.read_file(obs_filename)
+                coords = [(g.x, g.y) for g in obs_gdf.geometry]
 
             # compare R2s between annual and semi-annual harmonic regressions
             reg_ann = LinearRegression().fit(X=reg_df.loc[:, ['woy_sin_ann', 'woy_cos_ann']],
@@ -537,7 +542,7 @@ for i, row in taxa.iterrows():
                                    y=hist_vals,
                                   )
             r2_sem_adj = calc_r2_adj(r2_sem, reg_sem, len(reg_df))
-            print(f"\n\n\tR^2 ratio: {r2_sem/r2_ann}")
+            print(f"\tR^2 ratio: {r2_sem/r2_ann}\n")
 
             # get the stat and P-value for a dip test on the histogram
             # NOTE: dip test appears to fail on int (i.e., discrete) data,
@@ -559,12 +564,14 @@ for i, row in taxa.iterrows():
 
             # estimate the number of peaks in the histogram and the empirival
             # P-value on that metric
-            npeaks, npeaks_pval = estimate_n_peaks(hist_vals,
+            npeaks, npeaks_pval, kde = estimate_n_peaks(hist_vals,
                                                   kde_bandwidth=npeak_bandwidth,
                                                   peak_minheight=npeak_minheight,
                                                   n_perm=npeak_nperm,
                                                   plot=False,
+                                                  return_dens=True,
                                                   )
+            print(f"\tn fitted peaks: {npeaks} (P={np.round(npeaks_pval, 2)})")
 
             # calculate alpha of observation coordinates
             hull =  alphashape.alphashape(np.array(coords), alpha=alpha)
@@ -581,31 +588,21 @@ for i, row in taxa.iterrows():
                                     freq, r2 in zip(['ann', 'sem'], [r2_ann, r2_sem])}
             fig = plt.figure(figsize=(4,4))
             ax = fig.add_subplot(1,1,1)
-            ax.plot([*range(len(hist))], [*hist.values()], ':k', label='observations')
-            pred_ann = np.sum(reg_df.loc[:, ['woy_sin_ann',
-                                             'woy_cos_ann']] * reg_ann.coef_, axis=1)
-            pred_sem = np.sum(reg_df.loc[:, ['woy_sin_sem',
-                                             'woy_cos_sem']] * reg_ann.coef_, axis=1)
-            ax.plot([*range(len(hist))],
-                    scale_arr(pred_ann, np.max([*hist.values()])),
-                    line_types['ann'],
-                    color=color,
-                    label='annual fit',
-                   )
-            ax.plot([*range(len(hist))],
-                    scale_arr(pred_sem, np.max([*hist.values()])),
-                    line_types['sem'],
-                    color=color,
-                    label='semiannual fit',
-                   )
-            fig.legend()
+            # TODO: FIGURE OUT BUG IN HISTOGRAM PLOTTING!
+            ax.plot([*range(len(hist_vals))], hist_vals, ':k')
+            ax.plot(np.linspace(0, len(hist_vals), len(kde)),
+                    kde*np.max(hist_vals), '-', color=color)
+            ax.text(45, 0.9*ax.get_ylim()[1],
+                    f"P={np.round(npeaks_pval, 2)}", size=10)
             ax.set_xlabel('week of year')
             ax.set_ylabel('number of observations')
             ax.set_title((f"TID {tid}: {tax_name}\n"
-                f"({np.sum([*hist.values()])} total flowering observations)"))
+                f"({np.sum(hist_vals)} total flowering observations)"))
             fig_filename = os.path.join(data_dir,
                        f"hist_plots/TID_{tid}_{tax_name.replace(' ', '_')}.png")
-            fig.savefig(fig_filename, dpi=400)
+            if save_hist_fig:
+                print("\tsaving histogram plot...n")
+                fig.savefig(fig_filename, dpi=400)
             plt.close('all')
 
             # store results
@@ -620,8 +617,8 @@ for i, row in taxa.iterrows():
             res_dict['dip_pval'].append(pval)
             res_dict['dist_1xsin'].append(eud1)
             res_dict['dist_2xsin'].append(eud2)
-            res_dict['npeaks'].append(np.nan)
-            res_dict['npeaks_pval'].append(np.nan)
+            res_dict['npeaks'].append(npeaks)
+            res_dict['npeaks_pval'].append(npeaks_pval)
             res_dict['color'].append(color)
             res_dict['geometry'].append(hull)
 
@@ -671,7 +668,8 @@ else:
                               legend='name',
                              )
     try:
-        ctx.add_basemap(ax=ax)
+        ctx.add_basemap(ax=ax,
+                        source=xyzservices.providers.OpenStreetMap['Mapnik'])
     except Exception as e:
         print("\n\n\tCONTEXTILY ERROR; NO BASEMAP\n\n")
         world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
