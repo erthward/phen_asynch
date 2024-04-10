@@ -1,6 +1,8 @@
 from shapely.geometry import Point, MultiPolygon
 from sklearn.linear_model import LinearRegression
+from sklearn.neighbors import KernelDensity
 from pyinaturalist import clear_cache
+from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 import pyinaturalist as pynat
 import contextily as ctx
@@ -23,7 +25,9 @@ warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
 
 
 # TODO:
-    # check how often week 54 is 0 and if disproportionate then drop
+    # check how often week 53 is 0 and if disproportionate then drop
+
+
 
 
 #------------------------------------------------------------------------------
@@ -58,10 +62,10 @@ if os.path.isfile(processed_taxa_filename):
     print('\treading already-processed taxa...')
     processed_taxa = gpd.read_file(processed_taxa_filename)
     taxa = taxa[~taxa['tid'].isin(processed_taxa['tid'])]
-# reset the index (so that iterrows gives incrementing ints starting from 0)
-taxa = taxa.reset_index()
-print((f"\n{len(taxa)} taxa remaining to be processed "
-       f"({len(processed_taxa)} already complete)\n\n"))
+    print((f"\n{len(taxa)} taxa remaining to be processed "
+           f"({len(processed_taxa)} already complete)\n\n"))
+    # reset index, so that iterrows gives incrementing ints starting from 0
+    taxa = taxa.reset_index()
 
 # regression df
 # NOTE: has to be 53 weeks, to match iNat output
@@ -112,6 +116,11 @@ diptest_sigma = 1
 #       asynchrony analysis (Fig. 4)
 alpha = 0.75
 
+# KDE bandwidth, min peak height, and number of permutations for procedure
+# estimating number of histogram peaks and its p-value
+npeak_bandwidth = 5
+npeak_minheight = 0.6
+npeak_nperm = 100
 
 #------------------------------------------------------------------------------
 # helper fns
@@ -229,6 +238,107 @@ def run_diptest_in_R(vals, is_hist=True, noise_sigma=0):
     return res['dip'], res['p']
 
 
+def calc_n_kde_peaks(hist,
+                     kde_bandwidth=5,
+                     peak_minheight=0.6,
+                     plot=False,
+                     ax=None,
+                    ):
+    '''
+    combine a few metrics to estimate the number of peaks in a histogram
+    '''
+    # draw samples representing the histogram
+    samps = [i for i, v in enumerate(hist) for _ in range(v)]
+    S = np.array(samps).reshape((-1, 1))
+    # calculate original KDE
+    kde = KernelDensity(bandwidth=kde_bandwidth).fit(S)
+    # get fitted density
+    xs = np.arange(0, len(hist)+0.1, 0.1).reshape((-1, 1))
+    log_dens = kde.score_samples(xs)
+    dens = np.exp(log_dens)
+    minmax_dens = (dens - np.min(dens))/(np.max(dens) - np.min(dens))
+    if plot:
+        minmax_hist = (hist - np.min(hist))/(np.max(hist) - np.min(hist))
+        if ax is None:
+            fig, ax = plt.subplots(1,1)
+        ax.plot(minmax_hist)
+        ax.plot(xs, minmax_dens)
+    # use simple neighbor-comparison & peak properties to estimate n peaks
+    peaks, props = find_peaks(minmax_dens,
+                              height=peak_minheight,
+                             )
+    npk = len(peaks)
+    # fit a Gaussian mixture model using that number of peaks, save AIC and BIC
+    D = minmax_dens.reshape((-1, 1))
+    gmm = GaussianMixture(npk).fit(D)
+    aic = gmm.aic(D)
+    bic = gmm.bic(D)
+    # calculate absolute lag-1 temporal autocorrelation
+    acorr = np.abs(np.corrcoef(hist[:-1], hist[1:])[0,1])
+    return npk, aic, bic, acorr
+
+
+def estimate_n_peaks(hist,
+                     kde_bandwidth=5,
+                     peak_minheight=0.6,
+                     n_perm=100,
+                     plot=False,
+                    ):
+    '''
+    combine a few metrics to estimate the number of peaks in a histogram
+    '''
+    # rotate and minmax scale the histogram
+    hist = rotate_time_series_to_min(hist)
+    npk, aic, bic, acorr = calc_n_kde_peaks(hist,
+                                          kde_bandwidth=kde_bandwidth,
+                                          peak_minheight=peak_minheight,
+                                          plot=False,
+                                         )
+    # permute the histogram n_perm times, run the same process, and collect AICs
+    perm_npk = []
+    perm_aic = []
+    perm_bic = []
+    perm_acorr = []
+    for i in range(n_perm):
+        hist_perm = np.random.choice(hist, len(hist), replace=False,
+                                           )
+        assert len(hist_perm) == len(hist)
+        pnpk, paic, pbic, pacorr = calc_n_kde_peaks(hist_perm,
+                                                 kde_bandwidth=kde_bandwidth,
+                                                 peak_minheight=peak_minheight,
+                                                 plot=False,
+                                                )
+        perm_npk.append(pnpk)
+        perm_aic.append(paic)
+        perm_bic.append(pbic)
+        perm_acorr.append(pacorr)
+    if plot:
+        fig = plt.figure()
+        ax = fig.add_subplot(2,2,1)
+        _ = calc_n_kde_peaks(hist,
+                             kde_bandwidth=kde_bandwidth,
+                             peak_minheight=peak_minheight,
+                             plot=True,
+                             ax=ax,
+                            )
+        ax.set_title(f'true data (n peaks={npk})')
+        ax = fig.add_subplot(2,2,2)
+        ax.hist(perm_aic, alpha=0.5)
+        ax.plot(aic, 0, 'or')
+        ax.set_title('true AIC vs. nulls')
+        ax = fig.add_subplot(2,2,3)
+        ax.hist(perm_bic, alpha=0.5)
+        ax.plot(bic, 0, 'or')
+        ax.set_title('true BIC vs. nulls')
+        ax = fig.add_subplot(2,2,4)
+        ax.hist(perm_acorr, alpha=0.5)
+        ax.plot(acorr, 0, 'or')
+        ax.set_title('true lag-1 autocorrelation vs. nulls')
+    # get empirical P-val from true and permuted absolute lag-1 autocorr vals
+    pval = np.mean(np.array(perm_acorr)>= acorr)
+    return npk, pval
+
+
 
 #------------------------------------------------------------------------------
 # get histograms and observations
@@ -245,6 +355,8 @@ res_dict ={'tid': [],
            'dip_pval': [],
            'dist_1xsin': [],
            'dist_2xsin': [],
+           'npeaks': [],
+           'npeaks_pval': [],
            'color': [],
            'geometry': [],
           }
@@ -262,31 +374,41 @@ for i, row in taxa.iterrows():
                f"({i+1} of {len(taxa)})..."))
 
         # get observation histogram
-        hist_success = False
-        n_trys=0
-        while not hist_success:
-            try:
-                hist = pynat.get_observation_histogram(taxon_id=tid,
-                                                       term_id=term_id,
-                                                       term_value_id=term_value_id,
-                                                       date_file=date_file,
-                                                       interval=interval,
-                                                       quality_grade=quality_grade,
-                                                       native=native,
-                                                       captive=captive,
-                                              )
-                hist_success = True
-                print((f"\n\t{np.sum([*hist.values()])} observations returned "
-                       f"(vs. {taxa[taxa['tid'] == tid]['count'].values[0]} "
-                        "expected based on initial taxa table).\n"))
-            except Exception as e:
-                print((f"Error thrown during histogram API call: {e}\n\n"
-                       f"Waiting {60 * n_trys} sec, then trying again...\n"))
-                time.sleep(60 * n_trys)
-                n_trys += 1
+        hist_filename = os.path.join(data_dir,
+                        f"hist_data/TID_{tid}_{tax_name.replace(' ', '_')}.csv")
+        if not os.path.isfile(hist_filename):
+            print("\n\n\thistogram file does not exist; hitting API...\n\n")
+            hist_success = False
+            n_trys=0
+            while not hist_success:
+                try:
+                    hist = pynat.get_observation_histogram(taxon_id=tid,
+                                                           term_id=term_id,
+                                                           term_value_id=term_value_id,
+                                                           date_file=date_file,
+                                                           interval=interval,
+                                                           quality_grade=quality_grade,
+                                                           native=native,
+                                                           captive=captive,
+                                                  )
+                    hist_success = True
+                    print((f"\n\t{np.sum([*hist.values()])} observations returned "
+                           f"(vs. {taxa[taxa['tid'] == tid]['count'].values[0]} "
+                            "expected based on initial taxa table).\n"))
+                except Exception as e:
+                    print((f"Error thrown during histogram API call: {e}\n\n"
+                           f"Waiting {60 * n_trys} sec, then trying again...\n"))
+                    time.sleep(60 * n_trys)
+                    n_trys += 1
 
-        # if hist is all zeros then skip and return missing data
-        hist_vals = [*hist.values()]
+
+            # if hist is all zeros then skip and return missing data
+            hist_vals = [*hist.values()]
+            hist_df = pd.DataFrame({'n_obs': hist_vals}).to_csv(hist_filename,
+                                                                index=False)
+        else:
+            print("\n\n\treading histogram from file...\n\n")
+            hist_vals = pd.read_csv(hist_filename).loc[:, 'n_obs'].values
         if np.sum(hist_vals) == 0:
             res_dict['tid'].append(tid)
             res_dict['name'].append(tax_name)
@@ -299,6 +421,8 @@ for i, row in taxa.iterrows():
             res_dict['dip_pval'].append(np.nan)
             res_dict['dist_1xsin'].append(np.nan)
             res_dict['dist_2xsin'].append(np.nan)
+            res_dict['npeaks'].append(np.nan)
+            res_dict['npeaks_pval'].append(np.nan)
             res_dict['color'].append(np.nan)
             res_dict['geometry'].append(MultiPolygon())
 
@@ -308,72 +432,95 @@ for i, row in taxa.iterrows():
             obs_dict['doy_circ'].extend([np.nan])
             obs_dict['geometry'].extend([Point()])
 
-        # get actual observations
         else:
-            obs_success = False
-            n_trys = 0
-            while not obs_success:
-                try:
-                    curr_page = 0
-                    coords = []
-                    dates = []
-                    doys = []
-                    doys_circ = []
-                    obs_pg_ct = 999999
-                    while curr_page < obs_pg_ct:
-                        curr_page += 1
-                        if curr_page == 1:
-                            print("\tgetting observations, page 1...")
-                        else:
-                            print((f"\tgetting observations, page {curr_page} "
-                                   f"of {obs_pg_ct}..."))
-                        obs = pynat.get_observations(taxon_id=tid,
-                                                     term_id=term_id,
-                                                     term_value_id=term_value_id,
-                                                     date_file=date_file,
-                                                     quality_grade=quality_grade,
-                                                     per_page=per_page,
-                                                     page=curr_page,
-                                                     native=native,
-                                                     captive=captive,
-                                                    )
-                        for o in obs['results']:
-                            pos_acc_ok = (o['positional_accuracy'] is not None and
-                                          o['positional_accuracy']<=max_pos_acc_val)
-                            if pos_acc_ok:
-                                # get coords
-                                # NOTE: given in lat,lon order rather than lon,lat!
-                                obs_coords = o['location'][::-1]
-                                coords.append(obs_coords)
-                                # get datetime
-                                obs_date = o['observed_on']
-                                if isinstance(obs_date, str):
-                                    obs_date = datetime.datetime.strptime(obs_date,
-                                                                        '%Y-%m-%d')
-                                assert isinstance(obs_date, datetime.datetime)
-                                dates.append(obs_date)
-                                # convert to doy in rads
-                                obs_yr = obs_date.year
-                                days_in_yr = datetime.datetime.strptime(
-                                                    f"{obs_yr}-12-31",
-                                                    '%Y-%m-%d').timetuple().tm_yday
-                                doy = obs_date.timetuple().tm_yday
-                                doy_circ = (doy/days_in_yr) * 2 * np.pi
-                                doys.append(doy)
-                                doys_circ.append(doy_circ)
-                        if curr_page == 1:
-                            # NOTE: taking a maximum number of points per species
-                            #       to speed things up, at least for now
-                            obs_ct = np.min((obs['total_results'],
-                                             max_points_per_species))
-                            obs_pg_ct = int(np.ceil(obs_ct/per_page))
-                    assert len(coords) == len(dates) == len(doys) == len(doys_circ)
-                    obs_success = True
-                except Exception as e:
-                    print((f"Error thrown during observations API call: {e}\n\n"
-                           f"Waiting {60 * n_trys} sec, then trying again...\n"))
-                    time.sleep(60 * n_trys)
-                    n_trys += 1
+            # get actual observations
+            obs_filename = os.path.join(data_dir,
+                        f"obs_data/TID_{tid}_{tax_name.replace(' ', '_')}.json")
+            if not os.path.isfile(hist_filename):
+                print("\tobservation file does not exist; hitting API...\n\n")
+                obs_success = False
+                n_trys = 0
+                while not obs_success:
+                    try:
+                        curr_page = 0
+                        coords = []
+                        dates = []
+                        doys = []
+                        doys_circ = []
+                        obs_pg_ct = 999999
+                        while curr_page < obs_pg_ct:
+                            curr_page += 1
+                            if curr_page == 1:
+                                print("\tgetting observations, page 1...")
+                            else:
+                                print((f"\tgetting observations, page {curr_page} "
+                                       f"of {obs_pg_ct}..."))
+                            obs = pynat.get_observations(taxon_id=tid,
+                                                         term_id=term_id,
+                                                         term_value_id=term_value_id,
+                                                         date_file=date_file,
+                                                         quality_grade=quality_grade,
+                                                         per_page=per_page,
+                                                         page=curr_page,
+                                                         native=native,
+                                                         captive=captive,
+                                                        )
+                            for o in obs['results']:
+                                pos_acc_ok = (o['positional_accuracy'] is not None and
+                                              o['positional_accuracy']<=max_pos_acc_val)
+                                if pos_acc_ok:
+                                    # get coords
+                                    # NOTE: given in lat,lon order rather than lon,lat!
+                                    obs_coords = o['location'][::-1]
+                                    coords.append(obs_coords)
+                                    # get datetime
+                                    obs_date = o['observed_on']
+                                    if isinstance(obs_date, str):
+                                        obs_date = datetime.datetime.strptime(obs_date,
+                                                                            '%Y-%m-%d')
+                                    assert isinstance(obs_date, datetime.datetime)
+                                    dates.append(obs_date)
+                                    # convert to doy in rads
+                                    obs_yr = obs_date.year
+                                    days_in_yr = datetime.datetime.strptime(
+                                                        f"{obs_yr}-12-31",
+                                                        '%Y-%m-%d').timetuple().tm_yday
+                                    doy = obs_date.timetuple().tm_yday
+                                    doy_circ = (doy/days_in_yr) * 2 * np.pi
+                                    doys.append(doy)
+                                    doys_circ.append(doy_circ)
+                            if curr_page == 1:
+                                # NOTE: taking a maximum number of points per species
+                                #       to speed things up, at least for now
+                                obs_ct = np.min((obs['total_results'],
+                                                 max_points_per_species))
+                                obs_pg_ct = int(np.ceil(obs_ct/per_page))
+                        assert len(coords) == len(dates) == len(doys) == len(doys_circ)
+                        obs_success = True
+                    except Exception as e:
+                        print((f"Error thrown during observations API call: {e}\n\n"
+                               f"Waiting {60 * n_trys} sec, then trying again...\n"))
+                        time.sleep(60 * n_trys)
+                        n_trys += 1
+
+                # store taxon observations
+                obs_dict['datetime'].extend([str(d).replace(' ', 'T') for d in dates])
+                obs_dict['doy'].extend(doys)
+                obs_dict['doy_circ'].extend(doys_circ)
+                obs_dict['geometry'].extend([Point(c) for c in coords])
+
+                # save the observation data
+                obs_df = pd.DataFrame.from_dict(obs_dict)
+                obs_gdf = gpd.GeoDataFrame(obs_df,
+                                   geometry='geometry',
+                                   crs=4326,
+                                  )
+                obs_gdf.to_file(obs_filename)
+
+            else:
+                # read in the observation data instead, if it already exists
+                print("\treading observations from file...\n\n")
+                obs_gdf = gpd.read_file(obs_filename)
 
             # compare R2s between annual and semi-annual harmonic regressions
             reg_ann = LinearRegression().fit(X=reg_df.loc[:, ['woy_sin_ann', 'woy_cos_ann']],
@@ -409,6 +556,15 @@ for i, row in taxa.iterrows():
                                  minmax_scale(rotate_time_series_to_min(hist_vals)))
             eud2 = calc_euc_dist(sin_2x,
                                  minmax_scale(rotate_time_series_to_min(hist_vals)))
+
+            # estimate the number of peaks in the histogram and the empirival
+            # P-value on that metric
+            npeaks, npeaks_pval = estimate_n_peaks(hist_vals,
+                                                  kde_bandwidth=npeak_bandwidth,
+                                                  peak_minheight=npeak_minheight,
+                                                  n_perm=npeak_nperm,
+                                                  plot=False,
+                                                  )
 
             # calculate alpha of observation coordinates
             hull =  alphashape.alphashape(np.array(coords), alpha=alpha)
@@ -448,7 +604,7 @@ for i, row in taxa.iterrows():
             ax.set_title((f"TID {tid}: {tax_name}\n"
                 f"({np.sum([*hist.values()])} total flowering observations)"))
             fig_filename = os.path.join(data_dir,
-                        f"phen_plots/TID_{tid}_{tax_name.replace(' ', '_')}.png")
+                       f"hist_plots/TID_{tid}_{tax_name.replace(' ', '_')}.png")
             fig.savefig(fig_filename, dpi=400)
             plt.close('all')
 
@@ -464,24 +620,10 @@ for i, row in taxa.iterrows():
             res_dict['dip_pval'].append(pval)
             res_dict['dist_1xsin'].append(eud1)
             res_dict['dist_2xsin'].append(eud2)
+            res_dict['npeaks'].append(np.nan)
+            res_dict['npeaks_pval'].append(np.nan)
             res_dict['color'].append(color)
             res_dict['geometry'].append(hull)
-
-            # store taxon observations
-            obs_dict['datetime'].extend([str(d).replace(' ', 'T') for d in dates])
-            obs_dict['doy'].extend(doys)
-            obs_dict['doy_circ'].extend(doys_circ)
-            obs_dict['geometry'].extend([Point(c) for c in coords])
-
-        # save all data
-        obs_df = pd.DataFrame.from_dict(obs_dict)
-        obs_gdf = gpd.GeoDataFrame(obs_df,
-                                   geometry='geometry',
-                                   crs=4326,
-                                  )
-        obs_filename = os.path.join(data_dir,
-                        f"obs_data/TID_{tid}_{tax_name.replace(' ', '_')}.json")
-        obs_gdf.to_file(obs_filename)
 
         # save what data we have thus far
         res_df = pd.DataFrame.from_dict(res_dict)
@@ -505,7 +647,8 @@ for i, row in taxa.iterrows():
         stop_time = time.time()
         time_diff = stop_time - start_time
         runtimes.append(time_diff)
-        print(f"\n\trolling-average runtime: {np.round(np.sum(runtimes)/(i+1), 1)} sec per taxon\n")
+        print(("\n\trolling-average runtime: "
+               f"{np.round(np.sum(runtimes)/(i+1), 1)} sec per taxon\n"))
 
     except Exception as e:
         print(f"EXCEPTION THROWN: {e}")
@@ -547,7 +690,4 @@ else:
     # - calculate ratio of r2_sem/r2_ann
     # - plot distribution of all centroids, then overplot all centroids with ratio>1
     # - regression of ratio and asynch values to abs(lat)? point asynch? etc
-
-
-
 
