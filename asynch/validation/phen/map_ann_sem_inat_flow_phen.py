@@ -30,7 +30,6 @@ warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
 
 
 
-
 #------------------------------------------------------------------------------
 # path mgmt
 #------------------------------------------------------------------------------
@@ -406,8 +405,9 @@ for i, row in taxa.iterrows():
             hist_df = pd.DataFrame({'n_obs': hist_vals}).to_csv(hist_filename,
                                                                 index=False)
         else:
-            print("\n\n\treading histogram from file...\n\n")
             hist_vals = pd.read_csv(hist_filename).loc[:, 'n_obs'].values
+            print((f"\n\n\treading histogram of {np.sum(hist_vals)} "
+                   "sightings from file...\n"))
             # set var to indicate we don't need to save the hist fig
             if replot_hists:
                 save_hist_fig = True
@@ -523,8 +523,9 @@ for i, row in taxa.iterrows():
 
             else:
                 # read in the observation data instead, if it already exists
-                print("\treading observations from file...\n\n")
                 obs_gdf = gpd.read_file(obs_filename)
+                print((f"\treading {len(obs_gdf)} observations "
+                   "from file...\n\n"))
                 coords = [(g.x, g.y) for g in obs_gdf.geometry]
 
             # compare R2s between annual and semi-annual harmonic regressions
@@ -571,7 +572,8 @@ for i, row in taxa.iterrows():
                                                   plot=False,
                                                   return_dens=True,
                                                   )
-            print(f"\tn fitted peaks: {npeaks} (P={np.round(npeaks_pval, 2)})")
+            print((f"\tn fitted peaks: {npeaks} "
+                   f"(P-value: {np.round(npeaks_pval, 2)})\n\n"))
 
             # calculate alpha of observation coordinates
             hull =  alphashape.alphashape(np.array(coords), alpha=alpha)
@@ -635,6 +637,10 @@ for i, row in taxa.iterrows():
         assert res_gdf_curr_it['tid'].values[0] == tid
         res_gdf_curr_it.to_file(processed_taxa_filename,
                                 mode=processed_file_writemode)
+        # switch to appending to the results file after the first taxon,
+        # if the script started a new results file and ∴ started in write mode
+        if processed_file_writemode == 'w' and i == 0:
+            processed_file_writemode = 'a'
 
         # clear cache every 10 calls, so laptop memory doesn't top out
         if i % 10 == 0:

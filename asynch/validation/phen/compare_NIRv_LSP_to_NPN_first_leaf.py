@@ -13,6 +13,8 @@ from shapely.geometry import Point
 #------------------------------------------------------------
 # TODO:
 
+# get rid of quadratic! (logistic instead? unnecessary?)
+
 # what to do about very late 'first's?
 '''
 fig, ax = plt.subplots(1,1)
@@ -21,9 +23,7 @@ npn[npn['mean_first_yes_doy']>300].plot('mean_first_yes_doy', ax=ax, zorder=1)
 print(npn[npn['mean_first_yes_doy']>300].loc[:, ['genus', 'species']])
 '''
 
-# drop duplicate sites and deal with spatial autocorrelation!
-
-# should SI-x regression be logistic instead?
+# how/if to deal with spatial autocorrelation?
 
 #------------------------------------------------------------
 
@@ -64,10 +64,10 @@ lsp = phf.get_raster_info_points(phf.COEFFS_FILE,
                                  fill_tol=neigh_dist_sea_fill_tol,
                                 )
 print((f"\n\n{np.round(100*np.mean(np.any(pd.isnull(lsp), axis=1)), 2)} % "
-        "of sea_dist consists of missing values"))
+        "of lsp consists of missing values"))
 
 # subset to points where we have data
-not_missing = np.all(pd.notnull(sea_dist), axis=1)
+not_missing = np.all(pd.notnull(lsp), axis=1)
 npn = npn.loc[not_missing, ]
 lsp = lsp[not_missing, :]
 assert lsp.shape[0] == len(npn)
@@ -102,18 +102,12 @@ for i in range(len(comp_cols)):
     cols = comp_cols[i]
     keep_rows = np.all(pd.notnull(npn.loc[:, cols]), axis=1)
     subnpn = npn.loc[keep_rows, :]
-    # build a regression; if comparison involves SIx data then include
-    # a quadratic term, to account for the decreasing-increase form of the relxn
-    X = subnpn.loc[:, cols[0]].values.reshape((len(subnpn), 1))
-    quadratic = 'six_leaf_val' in cols
-    if quadratic:
-        X = np.hstack((X, (subnpn.loc[:, cols[0]].values**2).reshape(
-                                                            (len(subnpn), 1))))
+    # simple linear regression
+    X = np.stack((np.ones(subnpn.shape[0]), subnpn.loc[:, cols[0]].values)).T
     y = subnpn.loc[:, cols[1]].values
     mod = sm.OLS(endog=y, exog=X, hasconst=False).fit()
-    pred_X = np.vstack([np.arange(0, 365, 0.5)**i for i in range(1,3)]).T
-    if not quadratic:
-        pred_X = pred_X[:, 0].reshape((pred_X.shape[0], 1))
+    pred_X = np.arange(0, 365, 0.5).reshape((-1, 1))
+    pred_X = np.hstack((np.ones(pred_X.shape), pred_X))
     pred_y = mod.predict(exog=pred_X)
     coeffs = mod.params
     coffs_pvals = mod.pvalues
@@ -125,19 +119,15 @@ for i in range(len(comp_cols)):
                s=2,
                alpha=0.8,
               )
-    ax.plot(pred_X[:, 0],
+    ax.plot(pred_X[:, 1],
             pred_y,
             '-r',
             alpha=0.6,
             linewidth=0.75,
            )
-    predictor = f"{np.round(coeffs[0], 2)} {label_dict[cols[0]]}"
-    if quadratic:
-        joiner = {True: '', False: '+'}[coeffs[1]<0]
-        predictor = joiner.join([predictor, (f"{np.round(coeffs[1], 4)} "
-                                            f"{label_dict[cols[0]]}")])
-        predictor += "$^{2}$"
-    eqxn_txt = f"{label_dict[cols[1]]} ~ {predictor}"
+    predictor = f"{np.round(coeffs[1], 2)} {label_dict[cols[0]]}"
+    intercept= f"{np.round(coeffs[0], 2)}"
+    eqxn_txt = f"{label_dict[cols[1]]} ~ {intercept} + {predictor}"
     r2_pval_txt = "$R^2 = $" f"{np.round(r2, 2)} (P={np.round(pval, 2)})"
     ax.text(10, 345, eqxn_txt, size=9)
     ax.text(10, 320, r2_pval_txt, color='red', size=9)
@@ -151,4 +141,4 @@ fig.subplots_adjust(left=0.06,
                     top=0.96,
                     wspace=0.25,
                    )
-
+fig.savefig('NIRv_NPN_SI-x_SOS_comparison.png', dpi=600)
