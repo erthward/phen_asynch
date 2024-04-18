@@ -163,6 +163,6 @@ fms = base::merge(fms, species[, c('species_id', 'family_id', 'family_common_nam
 
 
 # write to disk
-write.csv(fms, 'NPN_flower_data_dom_tree_spp.csv', row.names=F)
+write.csv(fms, 'NPN_flowers_data_dom_tree_spp.csv', row.names=F)
 
 

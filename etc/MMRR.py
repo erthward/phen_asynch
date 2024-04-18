@@ -50,7 +50,7 @@ def MMRR(Y, X, Xnames=None, standardize=True, intercept=True, nperm=999):
     r2 = mod.rsquared
     tstat = mod.tvalues
     Fstat = mod.fvalue
-    tprob = np.zeros((len(tstat)))
+    tprob = np.ones((len(tstat)))
     Fprob = 1
     # get the row numbers
     rownums = [*range(nrowsY)]

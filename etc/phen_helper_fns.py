@@ -201,7 +201,8 @@ def gapfill_and_rewrite_raster(rast_filepath, fill_tol=5):
 
 
 def get_raster_info_points(rast_filepath, pts, return_format='vals',
-                           standardize=False, fill_nans=False, fill_tol=5):
+                           standardize=False, fill_nans=False, fill_tol=5,
+                           minmax_scale_rast=False):
     """
     takes a raster (e.g. coeffs from the harmonic seasonality regression)
     and an nx2 np.array of n points' x and y (i.e. lon, lat) coordinates,
@@ -216,6 +217,10 @@ def get_raster_info_points(rast_filepath, pts, return_format='vals',
     f = rio.open(rast_filepath)
     rast = f.read()
     #rast = rxr.open_rasterio(rast_filepath, masked=True)
+
+    # min-max scale the raster, if requested
+    if minmax_scale_rast:
+        rast = (rast - np.min(rast))/(np.max(rast) - np.min(rast))
 
     # fill missing values in each band of the raster,
     # using rasterio.fill.fillnodata, if requested
