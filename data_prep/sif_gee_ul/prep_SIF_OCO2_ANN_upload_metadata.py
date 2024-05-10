@@ -7,7 +7,7 @@ import os
 import re
 
 # define directory, files, output file, output DataFrame
-data_dir = ("/run/media/drew/SLAB/seasonality/SIF/OCO-2/"
+data_dir = ("/media/deth/SLAB/diss/3-phn/SIF/OCO-2/"
             "gridded/Global_High_Res_SIF_OCO2_1696/data")
 files = glob.glob(os.path.join(data_dir, '*.nc'))
 #files = glob.glob(os.path.join(data_dir, '*.tif'))
