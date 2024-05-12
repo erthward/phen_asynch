@@ -73,6 +73,5 @@ for i, row in gdf.iterrows():
 ax.set_xlim(xlim)
 ax.set_ylim(ylim)
 
-fig.savefig('quintero_results_map.png', dpi=700)
-
+fig.savefig('quintero_results_map.png', dpi=500)
 

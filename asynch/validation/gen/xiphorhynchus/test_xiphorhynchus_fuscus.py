@@ -9,10 +9,6 @@ by running an MMRR and using our LSP
 patterns to test the Asynchrony of Seasons Hypothesis
 """
 
-# TODO:
-
-    # add subnational bounds to maps
-
 import numpy as np
 import pandas as pd
 import geopandas as gpd
@@ -21,8 +17,10 @@ import rasterio as rio
 import rioxarray as rxr
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import pyproj
+import os
 import sys
+import re
+import pprint
 from sklearn.cluster import KMeans
 from Bio import SeqIO
 
@@ -33,9 +31,11 @@ import phen_helper_fns as phf
 from MMRR import MMRR
 
 
+print('\n\nRunning LSP MMRR test for Xiphorhynchus fuscus...')
+
+
 # set the numpy.random seed
 np.random.seed(1)
-
 
 # whether to interpolate missing LSP coefficients, 
 # and if so, how far away can rasterio look for neighbor to interpolate from?
@@ -45,6 +45,18 @@ neigh_dist_sea_fill_tol = 5
 
 # how many MMRR permutations to use
 MMRR_nperm = 999
+
+
+# load country boundaries
+countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
+                                       'NewWorldFile_2020.shp'))
+
+# load level-1 subnational jurisdictions (downloaded from:
+#                                 https://gadm.org/download_country.html)
+subnational = []
+for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
+    subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,f)))
+subnational = pd.concat(subnational)
 
 
 # read genetic distance matrix
@@ -132,8 +144,7 @@ print(("\n\nThe following voucher IDs occur at locations where seasonality "
        f"{'   '.join(missing_sea_vouch)}\n\n"))
 
 fig, ax = plt.subplots(1,1)
-world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
-world.plot(color='none', ax=ax)
+countries.plot(color='none', ax=ax)
 missing_sea_color = ['blue' if v not in missing_sea_vouch else 'red' for
                                                     v in geo['id'].values]
 geo['missing_sea'] = missing_sea_color
@@ -141,7 +152,7 @@ ax.scatter(x=geo['lon'], y=geo['lat'], c=geo['missing_sea'], s=25, alpha=0.5)
 ax.set_title('red points missing seasonality data in our LSP dataset')
 ax.set_xlim(-57.5, -34)
 ax.set_ylim(-30, 0)
-fig.show()
+fig.savefig('xiphorhynchus_fuscus_sites_missing_LSP_data.png', dpi=300)
 
 gen_dist = gen_dist.values
 gen_dist = gen_dist[~missing_sea].T[~missing_sea]
@@ -164,13 +175,13 @@ res = MMRR(Y=gen_dist,
            intercept=True,
            nperm=MMRR_nperm,
           )
-
-print(res)
+print('\nMMRR results:\n')
+pprint.pprint(res)
 
 
 # map genetic sampling locations on left
 # and plot fitted seasonal time series on right,
-# in both instances colored by a K-means clustering
+# all colored by a K-means clustering
 # with K=2, using colors taken from Thomé et al. plots
 sea_ts = phf.get_raster_info_points(phf.COEFFS_STRICT_FILE,
                                     pts[~missing_sea,:],
@@ -179,41 +190,70 @@ sea_ts = phf.get_raster_info_points(phf.COEFFS_STRICT_FILE,
                                     fill_nans=interp_sea_data,
                                     fill_tol=neigh_dist_sea_fill_tol,
                                    )
-fig  plt.figure(figsize=(6,6))
-gs1 = gridspec.GridSpec(2,2)
+km_lsp = KMeans(n_clusters=2).fit(sea_ts)
+# flip the two clusters' labels so that the first point is cluster 0
+# (labels are arbitrary anyhow, but this aligns the colors with Thomé Fig. 5,
+# i.e. blue in North)
+if km_lsp.labels_[0] == 1:
+    km_lsp.labels_ = np.int16(km_lsp.labels_ == 0)
+fig  = plt.figure(figsize=(10,5))
+gs = gridspec.GridSpec(2,2)
 red = '#ca1957'
 blue = '#2d5098'
 colors = np.array([blue, red])
 # plot map
 ax = plt.subplot(gs[:, 0])
-world.plot(color='none', zorder=1, ax=ax)
+subnational.plot(color='none',
+                 edgecolor='black',
+                 zorder=0,
+                 ax=ax,
+                 alpha=0.6,
+                 linewidth=0.05,
+                )
+countries.plot(color='none',
+                            edgecolor='black',
+                            linewidth=0.2,
+                            zorder=1,
+                            ax=ax,
+                            )
 ax.scatter(pts[~missing_sea, 0],
            pts[~missing_sea, 1],
-           c=colors[km.labels_],
+           s=11,
+           c=colors[km_lsp.labels_],
+           edgecolor='black',
+           linewidth=0.5,
+           alpha=0.6,
            zorder=2,
           )
-ax.set_xlim(-47.5, -32.5)
-ax.set_ylim(-25, 0)
+ax.set_xlim(-57.5, -34)
+ax.set_ylim(-30, 0)
 ax.set_xticks(())
 ax.set_yticks(())
 ax.set_title('sampling points,\nclustered by LSP pattern',
-             fontdict={'fontsize': 19})
+             fontdict={'fontsize': 10})
 # plot LSP time series clusters
 ax = plt.subplot(gs[0, 1])
-km = KMeans(n_clusters=2).fit(sea_ts)
 for i in range(sea_ts.shape[0]):
-    ax.plot(sea_ts[i, :], color=colors[km.labels_[i]], alpha=0.7)
+    ax.plot(sea_ts[i, :],
+            color=colors[km_lsp.labels_[i]],
+            alpha=0.7,
+            linewidth=0.5,
+           )
 xax_ticks = [0, 90, 180, 271, 364]
 xax_ticklabs = ['Jan', 'Apr', 'Jul', 'Oct', 'Jan']
 ax.set_xticks(xax_ticks)
-ax.set_xticklabels(xax_ticklabs, size=14)
-ax.set_yticklabels(ax.get_yticklabels(), size=14)
+ax.set_xticklabels(xax_ticklabs, size=7)
+assert np.round(np.max(sea_ts), 0) == 2
+assert np.round(np.min(sea_ts), 0) == -2
+ax.set_yticks([*range(-2, 3)],
+              [str(n) for n in range(-2, 3)],
+              size=7,
+             )
 ax.set_xlim(0, 364)
-ax.set_xlabel('day of calendar year', fontdict={'fontsize': 19})
-ax.set_ylabel('normalized LSP value', fontdict={'fontsize': 19})
+ax.set_xlabel('day of calendar year', fontdict={'fontsize': 8})
+ax.set_ylabel('normalized LSP value', fontdict={'fontsize': 8})
 ax.set_title('colored by LSP cluster',
-             fontdict={'fontsize': 19})
-fig.show()
+             fontdict={'fontsize': 10})
 
 # load genetic data
 seqs = []
@@ -239,20 +279,39 @@ for n, base in enumerate(['a', 'c', 'g', 't']):
     seqs_n[seqs==base] = n
 # plot LSP time series, colored by genetic clusters
 ax = plt.subplot(gs[1, 1])
-km = KMeans(n_clusters=2).fit(seqs_n)
+km_gen = KMeans(n_clusters=2).fit(seqs_n)
+# flip the two clusters' labels so that the first point is cluster 0
+# (labels are arbitrary anyhow, but this aligns the colors with Thomé Fig. 5,
+# i.e. blue in North)
+if km_gen.labels_[0] == 1:
+    km_gen.labels_ = np.int16(km_gen.labels_ == 0)
 for i in range(sea_ts.shape[0]):
-    ax.plot(sea_ts[i, :], color=colors[km.labels_[i]], alpha=0.7)
+    ax.plot(sea_ts[i, :],
+            color=colors[km_gen.labels_[i]],
+            alpha=0.7,
+            linewidth=0.5,
+           )
 xax_ticks = [0, 90, 180, 271, 364]
 xax_ticklabs = ['Jan', 'Apr', 'Jul', 'Oct', 'Jan']
 ax.set_xticks(xax_ticks)
-ax.set_xticklabels(xax_ticklabs, size=14)
-ax.set_yticklabels(ax.get_yticklabels(), size=14)
+ax.set_xticklabels(xax_ticklabs, size=7)
+assert np.round(np.max(sea_ts), 0) == 2
+assert np.round(np.min(sea_ts), 0) == -2
+ax.set_yticks([*range(-2, 3)],
+              [str(n) for n in range(-2, 3)],
+              size=7,
+             )
 ax.set_xlim(0, 364)
-ax.set_xlabel('day of calendar year', fontdict={'fontsize': 19})
-ax.set_ylabel('normalized LSP value', fontdict={'fontsize': 19})
+ax.set_xlabel('day of calendar year', fontdict={'fontsize': 8})
+ax.set_ylabel('normalized LSP value', fontdict={'fontsize': 8})
 ax.set_title('colored by genetic cluster',
-             fontdict={'fontsize': 19})
-fig.show()
-
-
+             fontdict={'fontsize': 10})
+fig.subplots_adjust(hspace=0.5,
+                    wspace=0.1,
+                    left=0.0,
+                    right=0.97,
+                    bottom=0.1,
+                    top=0.9,
+                   )
+fig.savefig('xiphorhynchus_fuscus_results.png', dpi=600)
 
