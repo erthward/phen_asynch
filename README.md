@@ -1,19 +1,18 @@
-# overview:
-This repo contains all the code used to produce the analysis in
-"Global phenology maps reveal the diversity, convergence, and asynchrony of ecosystem function"
-(Terasaki Hart et al. 2024), chapter 3 of Drew E. Terasaki Hart's PhD dissertation.
+# <PUT TITLE HERE>
+### < PUT CITATION HERE >
+This repo contains all the code used to produce the analysis for this paper
+and for its precursor, chapter 3 of my PhD dissertation.
 
-# < PUT CITATION HERE >
-
-Code was written by Drew Ellison Terasaki Hart,
+Code was written by me (Drew Ellison Terasaki Hart),
 with input from Lauren Di Maggio and Thao-Nguyen Bui.
+
 It is made freely available under the MIT License,
 to be distributed and/or modified with proper attribution.
 
-Data is archived <PUT DATA DOI HERE>
+Data are archived **PUT DATA DOI HERE**
 
 Any questions, concerns, or other interests can be directed
-to drew *dot* hart *at* berkeley *dot* edu. 
+to me at: drew *dot* hart *at* berkeley *dot* edu. 
 
 
 
