@@ -1,4 +1,4 @@
-# <PUT TITLE HERE>
+# < PUT TITLE HERE >
 ### < PUT CITATION HERE >
 This repo contains all the code used to produce the analysis for this paper
 and for its precursor, chapter 3 of my PhD dissertation.
