@@ -1094,7 +1094,7 @@ def plot_signif_taxon(tid,
         ax.set_yticks(())
         ax.set_title('')
     if savefig:
-        fig.savefig(f"TID_{tid}_{name.replace(' ', '_')}_top_MMRR_res.png",
+        fig.savefig(f"./MMRR_res_figs/TID_{tid}_{name.replace(' ', '_')}_top_MMRR_res.png",
                     dpi=600,
                    )
     return fig

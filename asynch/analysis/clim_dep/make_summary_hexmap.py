@@ -9,7 +9,7 @@ import os, re
     # https://towardsdatascience.com/uber-h3-for-data-analysis-with-python-1e54acdcc908
 
 # load climate-distance analysis results
-res_df = gpd.read_file('./clim_dist_all_MMRR_results_100kmrad.shp')
+res_df = gpd.read_file('./clim_dep_all_MMRR_results_100kmrad.shp')
 
 # load country boundaries
 countries = gpd.read_file('../../../data/bounds/NewWorldFile_2020.shp')
@@ -73,4 +73,4 @@ ax.set_yticks(())
 ax.set_title('')
 fig.subplots_adjust(top=1, bottom=0, left=0, right=1)
 
-fig.savefig('clim_dist_hex_summary.png', dpi=700)
+fig.savefig('clim_dep_hex_summary.png', dpi=700)

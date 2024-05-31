@@ -19,15 +19,11 @@ NOTE: This is only necessary because the GEE bug won't read my results files
 # imports
 #--------
 
-#from sklearn.linear_model import LinearRegression
 from shapely.geometry import Point
-#from scipy.spatial import cKDTree
 import matplotlib.pyplot as plt
 from pprint import pprint
-#import geopandas as gpd
 import tensorflow as tf
 import rasterio as rio
-#from rasterio.profiles import DefaultGTiffProfile
 import numpy as np
 import glob
 import json
@@ -43,7 +39,7 @@ import os
 
 # get the files directory
 DATA_DIR = sys.argv[1]
-#DATA_DIR = ('/home/deth/Desktop/UCB/research/projects'
+#DATA_DIR = ('/home/deth/Desktop/CAL/research/projects'
 #            '/seasonality/GEE_output/NA_agg/')
 
 # output filepath
@@ -84,7 +80,7 @@ if DATA_TYPE == 'a':
     NEIGH_RAD = sys.argv[4]
     assert re.search('^\d+$', NEIGH_RAD) is not None, ('NEIGH_RAD must be an '
                                                        'integer (i.e., the radius '
-                                                       'expressed in  km')
+                                                       'expressed in km')
     # convert to str used in filenames
     NEIGH_RAD = NEIGH_RAD+'000mrad-'
 
@@ -117,11 +113,14 @@ def read_mixer_file(data_dir):
     Gets the info out of the mixerfile located at data_dir.
     """
     mixerfilepaths = glob.glob(os.path.join(data_dir, '*mixer.json'))
-    assert len(mixerfilepaths) == 1, "MORE THAN 1 MIXER FILE FOUND!"
-    mixerfilepath = mixerfilepaths[0]
-    # read the mixer file
-    mixer = json.load(open(mixerfilepath, 'r'))
-    return mixer
+    assert len(mixerfilepaths) <= 1, "MORE THAN 1 MIXER FILE FOUND!"
+    if len(mixerfilepaths) == 0:
+        return
+    else:
+        mixerfilepath = mixerfilepaths[0]
+        # read the mixer file
+        mixer = json.load(open(mixerfilepath, 'r'))
+        return mixer
 
 
 def get_mixer_info(mixer_content):
@@ -131,7 +130,7 @@ def get_mixer_info(mixer_content):
     """
     # get patch dimensions, adding the kernel size to correct for error
     # in the GEE TFRecord output
-    dims = calc_patch_dimensions(mixer_content, KERNEL_SIZE)
+    dims = calc_patch_dimensions(mixer_content)
     # get the SRS and its affine projection matrix
     srs = mixer_content['projection']
     crs = srs['crs']
@@ -157,7 +156,7 @@ def get_mixer_info(mixer_content):
     return dims, crs, xmin, ymin, xres, yres, patches_per_row, tot_patches
 
 
-def calc_patch_dimensions(mixer_content, kernel_size):
+def calc_patch_dimensions(mixer_content):
     """
     Calculates and returns the patch dimensions using the input mixerfile info
     and kernel size.
@@ -251,7 +250,6 @@ def get_row_col_patch_ns_allfiles(data_dir, patt_b4_filenum):
         print('getting FILES_DICT info for file %s\n' % filepath)
         # create the subdict 
         file_dict = {}
-        # stash the outfile path
         file_dict['row_is'] = []
         file_dict['col_js'] = []
         file_dict['patch_ns'] = []
@@ -335,53 +333,54 @@ def write_geotiff(output_filepath, output_arr, bands):
 #------------------------------------------------
 
 mix = read_mixer_file(DATA_DIR)
-(DIMS, CRS, XMIN, YMIN, XRES, YRES, patches_per_row,
-                                    tot_patches) = get_mixer_info(mix)
+if mix is not None:
+    (DIMS, CRS, XMIN, YMIN, XRES, YRES, patches_per_row,
+                                        tot_patches) = get_mixer_info(mix)
 
-OUTPUT = make_empty_output_array(patches_per_row, tot_patches, DIMS, BANDS)
+    OUTPUT = make_empty_output_array(patches_per_row, tot_patches, DIMS, BANDS)
 
-#------------------------------------
-# get files' row, col, and patch info
-#------------------------------------
+    #------------------------------------
+    # get files' row, col, and patch info
+    #------------------------------------
 
-FILES_DICT = get_row_col_patch_ns_allfiles(DATA_DIR, PATT_B4_FILENUM)
+    FILES_DICT = get_row_col_patch_ns_allfiles(DATA_DIR, PATT_B4_FILENUM)
 
-#--------------------------------------------------------
-# loop over all files, patches and write them into output
-#--------------------------------------------------------
-if len(FILES_DICT) > 0:
-    for filepath, patchinfo in FILES_DICT.items():
-        print("INSERTING DATA FOR %s\n" % filepath)
-        # grab patch info
-        row_is = patchinfo['row_is']
-        col_js = patchinfo['col_js']
-        patch_ns = patchinfo['patch_ns']
+    #--------------------------------------------------------
+    # loop over all files, patches and write them into output
+    #--------------------------------------------------------
+    if len(FILES_DICT) > 0:
+        for filepath, patchinfo in FILES_DICT.items():
+            print("INSERTING DATA FOR %s\n" % filepath)
+            # grab patch info
+            row_is = patchinfo['row_is']
+            col_js = patchinfo['col_js']
+            patch_ns = patchinfo['patch_ns']
 
-        # read the file's data into an iterator
-        patches = read_tfrecord_file(filepath, DIMS, BANDS)
+            # read the file's data into an iterator
+            patches = read_tfrecord_file(filepath, DIMS, BANDS)
 
-        # loop over and grab data
-        for patch_n, patch in enumerate(patches):
-            # get the OUTPUT indices for this patch's data
-            i_inds, j_inds = get_patch_insert_indices(row_is[patch_n],
-                                                      col_js[patch_n], DIMS)
+            # loop over and grab data
+            for patch_n, patch in enumerate(patches):
+                # get the OUTPUT indices for this patch's data
+                i_inds, j_inds = get_patch_insert_indices(row_is[patch_n],
+                                                          col_js[patch_n], DIMS)
 
-            # if these are unprocessed GEE output (i.e. coefficients),
-            # then trim the margin
-            if DATA_TYPE in ['c', 'r2']:
-                print('\nTRIMMING MARGIN AROUND COEFFICIENTS PATCHES\n')
-                patch = patch[:, HKW:-HKW, HKW:-HKW]
+                # if these are unprocessed GEE output (i.e. coefficients),
+                # then trim the margin
+                if DATA_TYPE in ['c', 'r2']:
+                    print('\nTRIMMING MARGIN AROUND COEFFICIENTS PATCHES\n')
+                    patch = patch[:, HKW:-HKW, HKW:-HKW]
 
-            # insert the data
-            OUTPUT[:, i_inds[0]:i_inds[1], j_inds[0]:j_inds[1]] = patch
+                # insert the data
+                OUTPUT[:, i_inds[0]:i_inds[1], j_inds[0]:j_inds[1]] = patch
 
 
-    #--------------------
-    # write out to raster
-    #--------------------
+        #--------------------
+        # write out to raster
+        #--------------------
 
-    print('\nWRITING RESULTS TO FILE...\n')
-    write_geotiff(OUTPUT_FILEPATH, OUTPUT, BANDS)
+        print(f'\nWRITING RESULTS TO {OUTPUT_FILEPATH}...\n')
+        write_geotiff(OUTPUT_FILEPATH, OUTPUT, BANDS)
 
 else:
-    print('\nNO FILES FOUND. MOSAIC UNSUCCESSFUL.\n\n')
+    print('\nNO MIXERFILE FOUND. MOSAIC UNSUCCESSFUL.\n\n')

@@ -42,7 +42,8 @@ neigh_rads = [50, 100, 150]
 DATA_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
             'seasonal_asynchrony/data')
 EXTERNAL_DATA_DIR = '/media/deth/SLAB/diss/3-phn/GEE_outputs/final/'
-EXTERNAL_RF_DATA_DIR = '/media/deth/SLAB/diss/3-phn/rf_data'
+EXTERNAL_MASK_DATA_DIR = '/media/deth/SLAB/diss/3-phn/GEE_outputs/LSP_masks/'
+EXTERNAL_RF_DATA_DIR = '/media/deth/SLAB/diss/3-phn/rf_data/'
 EXTERNAL_FLUX_DATA_DIR = '/media/deth/SLAB/diss/3-phn/other/flux/'
 COEFFS_FILE = os.path.join(EXTERNAL_DATA_DIR, 'NIRv_coeffs.tif')
 COEFFS_STRICT_FILE = os.path.join(EXTERNAL_DATA_DIR, 'NIRv_STRICT_coeffs.tif')

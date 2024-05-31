@@ -128,8 +128,8 @@ loop_vals = [[*deepcopy(loop_vals)][i] for i in indices]
 
 # get rid of loop vals that already exist in CSV of partial output,
 # if it exists
-if os.path.isfile('clim_dist_all_MMRR_results_%ikmrad.shp' % neigh_rad):
-    partial_results = gpd.read_file('clim_dist_all_MMRR_results_%ikmrad.shp' %
+if os.path.isfile('clim_dep_all_MMRR_results_%ikmrad.shp' % neigh_rad):
+    partial_results = gpd.read_file('clim_dep_all_MMRR_results_%ikmrad.shp' %
                                     neigh_rad)
     # map fiona's laundered column names back to original names
     partial_results = partial_results.rename(columns={
@@ -396,7 +396,7 @@ if remaining_n_loop_vals > 0:
         assert np.all(all_loop_MMRR_res_gdf.columns == MMRR_res_gdf.columns)
         if save_all_results:
             all_loop_MMRR_res_gdf.to_file(
-                'clim_dist_all_MMRR_results_%ikmrad.shp' % neigh_rad,
+                'clim_dep_all_MMRR_results_%ikmrad.shp' % neigh_rad,
                                           index=False)
 
         # increment loop count

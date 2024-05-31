@@ -6,140 +6,177 @@ This repo contains all the code used to produce the analysis in
 # < PUT CITATION HERE >
 
 Code was written by Drew Ellison Terasaki Hart,
-Thao-Nguyen Bui, and Lauren Di Maggio.
+with input from Lauren Di Maggio and Thao-Nguyen Bui.
 It is made freely available under the MIT License,
 to be distributed and/or modified with proper attribution.
 
+Data is archived <PUT DATA DOI HERE>
 
 Any questions, concerns, or other interests can be directed
 to drew *dot* hart *at* berkeley *dot* edu. 
 
 
-# contents
 
+-------------------------------------------
+
+
+
+## contents
 Analyses were run in two major stages, so the two major directories of content are organized to reflect this:
   1. `/phen/`: calculation of global maps of characteristic seasonal phenology, and associated analysis
   2. `/asynch/`: calculation of global maps of phenological asynchrony, and associated analysis
+
 Other directories include:
+
   - `/data_prep`: code used to download the SIF dataset used, convert to Geotiff, and upload to Google Earth Enginge (GEE)
   - `/data`: ancillary data (not our main datasets) that lives in this repo and is used in analysis
-  - `/etc`: a script full of helper functions, and other odds and ends
-
-***NOTE:*** **All GEE Javascript code must be run in GEE. Other code was designed either to be run on UC Berkeley's Savio compute cluster or on a Linux laptop.**
+  - `/etc`: includes a script of commonly used helper functions, a Python port of [MMRR] (https://onlinelibrary.wiley.com/doi/10.1111/evo.12134), and other odds and ends
 
 
-# workflow:
 
-## phenology analysis
+-------------------------------------------
 
-### data prep:
 
+
+## workflow:
+All steps of the following workflow were executed on a local computer unless otherwise noted in (*italicized parentheticals*)
+(e.g., steps run on GEE or on UC Berkeley Savio cluster; see **working environments** below for more details).
+
+
+### phenology analysis
+
+#### prep and evaluate SIF data:
 1. Download [SIF dataset](https://doi.org/10.3334/ORNLDAAC/1696)
 2. Translate SIF data from NetCDF to GeoTIFF (`data_prep/sif_gee_ul/convert_SIF_OCO2_ANN_NetCDF_to_GTiff.sh`)
 3. Create CSV of SIF metadata (`data_prep/sif_gee_ul/prep_SIF_OCO2_ANN_upload_metadata.py`)
 4. Upload SIF data to GEE as individual Images (`data_prep/sif_gee_ul/upload_SIF_OCO2_ANN_data_to_GEE_collections.py`)
 5. Combine GEE SIF data into an ImageCollection (`data_prep/sif_gee_ul/make_image_collection.sh`)
+6. Manually download [gridded TROPOMI data](ftp://fluo.gps.caltech.edu/data/tropomi/gridded/).
+7. Run `phen/evaluation/orbital_gaps/evaluate_ANN-gridded_OCO2_orbital_gaps_FIG_S3_S4.py` to check that the seasonality of the OCO2-SIF ANN-interpolated data products within OCO2 orbital gaps compares favorably to another gridded SIF dataset, for three regions across the tropics.
 
+#### calculate masking and preprocessing maps for seasonality-fitting procedure:
+0. Establish all desired parameter values for data reading and masking, harmonic regression fitting, significance calculation, and data exports in `phen/calculation/GEE/params.js` (note, tweaked and resaved a few times during the following workflow) (*run on GEE*)
+1. Call `phen/calculation/GEE/masking/calc_month_data_avail_props.js` to produce a set of 12 global Image assets, each indicating the average proportion of monthly MODIS NBAR data availability at each pixel, to be used for masking based on proportional data availability and to derive the monthly data-availability evenness mask. (*run on GEE*) (**12 jobs, each ~8-12h runtime**)
+2. Call `phen/calculation/GEE/masking/calc_month_evenness.js` to produce a global map of monthly Pielou's evenness of the MODIS NBAR data, as a GEE asset, derived from the outputs of `phen/calculation/GEE/masking/calc_month_data_avail_props.js`. (*run on GEE*) (**2 jobs, both <10m runtime**)
+3. Call `phen/calculation/GEE/masking/calc_land_cover_mask.js` to produce a global map indicating all pixels that are valid (i.e., not water, urban, barren, or permanent ice/snow) and that are always 'natural' across our time series (i.e., forest, savanna, shrub, grass, wetland) and/or always agricultural. (All of those pixels will be used in the LSP analyses, but only the 'always natural' pixels will be used in the asynchrony analyses, to try to avoid places subject to anthropogenically created spatial asynchrony.) (*run on GEE*) (**2 jobs, both <10m runtime**)
+4. Call `phen/calculation/GEE/masking/calc_ts_pct_data_availability.js` to produce a map of overall data availability for the entire 20-year archive. (*run on GEE*) (**1 job, ~4h runtime**)
+5. Call `phen/calculation/GEE/masking/calc_permutation_fail_count_maps.js` to produce GEE assets representing, in total, 20 permutations of the seasonal phenology-fitting code for the NIRv data (unreasonable to produce more because of compute limitations). (*run on GEE*) (**10 jobs, each ~6-20h runtime**)
+6. Call `phen/calculation/GEE/masking/calc_permutation_signif_mask.js` to combine the outputs of the previous step into the overall significance masks, to be used in the masking procedure for the final phenology maps. (*run on GEE*) (**1 job, <10m runtime**)
+7. Call `phen/calculation/GEE/masking/create_overall_mask.js` twice, once with 'maskingMode' set to 'default' in `phen/calculation/GEE/params.js` and once with it set to 'strict', to combine all previously created masks into a pair of default (used for LSP analyses) and strict (used for asynchrony analyses) mask assets. (*run on GEE*) (**7 jobs total, <10m runtime**)
+8. Call `phen/calculation/GEE/io/calc_min_pos_NIRv.js` to calculate a global map asset of each pixel's minimum positive NIRv value (to be used to backfill negative NIRv values that occur, mainly in places and times with solid snow cover. (*run on GEE*) (** 1 job, ~8h runtime**)
 
-### calculate masking maps for seasonality-fitting procedure:
-
-1. Call `phen/calculation/GEE/masking/calc_MODIS_month_evenness.js` to produce a global map of monthly Pielou's evenness of the MODIS data, as a GEE asset, to be used in the masking procedure for the final phenology maps.
-2. Call `phen/calculation/GEE/masking/calc_land_cover_stability.js` to produce a global map indicating how 'stable' (i.e., time-invariant) each pixel's MODIS land cover is, as a GEE asset, to be used in the masking procedure for the final phenology maps.
-3. Call `phen/calculation/GEE/masking/calc_permutation_fail_count_maps.js` numerous times, each time varying the values of `permNIts` and `permSeedStart` in 'params.js' so as to produce GEE assets representing, in total, 25 permutations of the seasonal phenology-fitting code for the NIRv (impractical to produce more because of compute limitations). See explanatory notes in the script, which document this workflow.
-4. Call `phen/calculation/GEE/masking/calc_permutation_signif_mask.js` to combine the outputs of the previous step into the overall significance masks, to be used in the masking procedure for the final phenology maps.
-5. Call `phen/calculation/GEE/masking/create_preLC_mask.js` to combine all masks (other than the majority land cover mask) into a single masking (as a GEE asset) that will be used during the actual LSP-fitting procedure (either 'phen_mask_DEFAULT' or 'phen_mask_STRICT', depending on the 'maskingMode' param).
-
-
-### calculate fitted seasonality maps:
-
+#### calculate fitted seasonality maps:
 1. Call `phen/calculation/GEE/main.js` to launch a GEE job that will save tiled results to Google Drive.
   NOTE: Results will be formatted as overlapping TFRecord tiles.
   NOTE: In order to produce all results, this script must be manually called once for each combination of NIRv or SIF and default or strict masking, as well as once per climate variable (TerraClimate min temperature, precipitation, and climatic water deficit, as well as MODIS cloud). To do this, the `datasetName`, `climateVar`, and `maskingMode` variables must be manually swapped in this script.
   NOTE: To execute the full phenology-mapping workflow, main.js will in turn call a variety of other scripts located in `phen/calculation`.
+  (*run on GEE*) (**9 jobs total, ranging from ~12m to ~*XXXX*h runtime**)
 
 
-### download seasonality results:
-
+#### download seasonality results:
 1. After all seasonality-fitting jobs successfully finish, use rclone to download all results into a common parent directory on UC Berkeley's Savio compute cluster, then manually move each run's results into a separately named child directory.
-2. **DOWNLOAD LOCALLY AS WELL?**
 
 
-### mosaic all results:
-**TODO**
 
-
-### produce RGB phenology map:
-
+#### produce RGB phenology map:
 1. Download ancillary cheatgrass data from [Maestas *et. al*](https://www.sciencebase.gov/catalog/item/5ec5159482ce476925eac3b7) (to be used in a statistical test embedded in `phen/analysis/div/plot_eof_maps_and_ts_FIG_S3.py`).
-2. Run `phen/analysis/div/aggregate_great_basin_cheatgrass_data.sh` to aggregate that dataset to our analysis resolution of $0.05^{circ}$.
-3. Run `phen/analysis/div/plot_eof_maps_and_ts_FIG_1_S1_S2.py` three times, one for each of the three values of `what_to_plot` (provided in comments inline) to produce **Fig. 1**'s global and regionally-zoomed RGB land surface phenology maps and the two EOF supplemental figures.
+2. Run `phen/analysis/div/aggregate_great_basin_cheatgrass_data.sh` to aggregate that dataset to our analysis resolution of $0.05^{\circ}$.
+3. Run `phen/analysis/div/plot_eof_maps_and_ts_FIG_1_S1_S2.py` three times, one for each of the three values of `what_to_plot` (provided in comments inline) to produce **Fig. XXX**'s global and regionally-zoomed RGB land surface phenology maps and the two EOF supplemental figures.
 
 
-### run gridded SIF orbital-gap seasonality validation:
+#### run phenology-observation evaluation:
+1. Call `phen/evaluation/NPN_and_SI-x/get_NPN_leaf_data.r` to download, for a wide range of dominant US tree genera and at all NPN sites, both the day of year of first leaf based on NPN ground observations and mean day of year of start of season (SOS) based on MODIS-derived SI-x phenology maps.
+2. Call `phen/evaluation/NPN_and_SI-x/compare_NIRv_LSP_to_NPN_first_leaf.py` to evaluate SOS estimates derived from our NIRv LSP data against both the NPN first-leaf and SI-x SOS datasets.
 
-1. Manually download TROPOMI data from ***WHERE FROM?***.
-2. Run `phen/validation/orbital_gap_seasonality/validate_ANN-gridded_OCO2_orbital_gaps_FIG_S3_S4.py` to validate the seasonality of the OCO2-SIF ANN-interpolated data products within OCO2 orbital gaps for three regions across the pantropics.
 
-
-### run flux-tower validation:
-
+#### run flux-tower evaluation:
 1. Manually download all subset data products (using DownThemAll!) from the Fluxnet network's [download page](https://fluxnet.org/data/download-data/).
-2. Call `phen/validation/flux_tower_seasonality_validation/validate_at_all_fluxnet_sites.py <DS>` twice, once where '<DS>' is replaced with 'NIRv' and once with 'SIF', to run validation on both the fitted NIRv and SIF seasonality results against GPP seasonality at all usable Fluxnet sites (producing **Fig. 1**).
-3. Run `phen/validation/compare_NIRv_SIF_maps/compare_NIRv_SIF_fitted_phenology.py` (on Savio) to calculate a global map of the $R^2$s between the NIRv and SIF fitted phenology time series.
-4. Run `phen/validation/plot_phen_validation_results_FIG_S3.py` to combine both of those validations' results to make Fig. 1.
+2. Call `phen/evaluation/flux_tower_GPP/evaluate_at_all_fluxnet_sites.py <DS>` twice, once where '\<DS\>' is replaced with 'NIRv' and once with 'SIF', to run evaluation on both the fitted NIRv and SIF seasonality results against GPP seasonality at all usable Fluxnet sites (producing **Fig. XXX**).
+3. Run `phen/evaluation/compare_NIRv_SIF_maps/compare_NIRv_SIF_fitted_phenology.py` (on Savio) to calculate a global map of the $R^2$s between the NIRv and SIF fitted phenology time series.
+4. Run `phen/evaluation/plot_phen_evaluation_results_FIG_S3.py` to combine both of those evaluations' results to make Fig. XXX.
 
 
-### run phenology-observation validation:
-**TODO**
+
+### asynchrony analysis
+
+#### produce asynchrony conceptual figure:
+1. Run `asynch/viz/make_conceptual_FIG_SXXX.py` to create the asynchrony-calculation conceptual figure (Fig. SXXXX)
 
 
-## asynchrony analysis
-
-### calculate asynchrony maps:
-
+#### calculate asynchrony maps:
 1. Feed `asynch/calculation/asynch_job.sh` to slurm's sbatch command to calculate asynchrony maps for all fitted phenological and climatic seasonality datasets.
   NOTE: Do this once for each of the three neighborhood radii (50 km, 100 km, 150 km) for which we calculate asynchrony, each time concordantly changing the line in `asynch_job.sh` that sets the `neigh_rad` variable and the line that creates the slrum `--job-name` flag's value.
 2. Once all 3 jobs are complete, feed `asynch/calculation/mosaic_job.sh` to slurm's sbatch command to mosaic all TFRecord files into a single GeoTIFF file for each phenological and climatic dataset (yielding a map of seasonality coefficients, a map of seasonality-fitting $R^{2}$s, and 3 maps of asynchrony, one per neighborhood radius).
 
 
-### prepare other physiographic covariates:
+#### run asynchrony evaluation:
+1. Run `asynch/evaluation/compare_SIF_and_NIRv_asynch.py` to compare the two datasets' phenological asynchrony maps across all three neighborhood radii (50 km, 100 km, 150 km).
+2. Run `asynch/evaluation/calc_asynch_r2s_btwn_neighborhood_radii.py` to produce Table S2, containing R2s for all neighborhood radius comparisons and for all variables for which we produced asynchrony maps.
 
-1. Run `phen/calculation/GEE/other_datasets/calc_veg_entropy.js` to produce the vegetation cover entropy map that will be used as a covariate in the phenological asynchrony predictive model.
+
+#### mosaic all results:
+1. Run `asynch/calculation/mosaic_job.sh` to mosaic the regression coefficient, regression $R^2$, and asynchrony-result files for all LSP and climate variables and all asynchrony neighborhoods, producing a set of GeoTIFF outputs for downstream plotting and analysis.
+
+
+#### prepare other physiographic covariates:
+1. Run `phen/calculation/GEE/other_datasets/calc_veg_entropy.js` to produce the vegetation cover entropy map that will be used as a covariate in the phenological asynchrony predictive model. (*run on GEE*) (**1 job, <10m runtime**)
 2. Download SRTM-based 50 km median vector ruggedness metric (file 'vrm_50KMmd_SRTM/tif') from the [EarthEnv website](http://www.earthenv.org/topography).
 NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` will also be used as covariates in the phenological asynchrony predictive model.
 
 
-### run asynchrony validation:
-
-1. Run `asynch/validation/compare_SIF_and_NIRv_asynch.py` to compare the two datasets' phenological asynchrony maps across all three neighborhood radii (50 km, 100 km, 150 km).
-2. Run `asynch/validation/calc_asynch_r2s_btwn_neighborhood_radii.py` to produce Table S2, containing R2s for all neighborhood radius comparisons and for all variables for which we produced asynchrony maps.
-
-
-### produce asynchrony map and conceptual figure:
-
-1. Run `asynch/viz/make_conceptual_fig_and_asynch_maps_FIG_3_S6-S12.py` to create the asynch map figures for the main paper (**Fig. 3**) and the supplements (**Figs. S3, S4**).
-
-
-### run phenological asynchrony modeling workflow:
-
-1. On Savio, run `asynch/analysis/rf/prep_data/prep_phen_asynch_rf_data.r NIRv 100` to prep data for random forest analysis of the main phenological asynchrony dataset (i.e., NIRv-based phenological asynchrony using a 100 km radial neighborhood).
-2. In an RStudio session on Savio, run `asynch/analysis/rf/run_rf/run_phen_asynch_rf.r` with var set to 'NIRv' and neigh.rad set to '100' (i.e., uncommenting lines at top), to execute the random forest analysis on the main phenological asynchrony dataset (i.e., NIRv-based phenological asynchrony using a 100 km radial neighborhood). Be sure the execute the code blocks captured by `if (F){ ... }`, to run hyperparameter-tuning, Boruta feature selection, and other interactive analyses.
-3. Manually inspect the results of the interactive analysis. Use the results of that to set the hyperparameters (in the code block starting at line 410 in `asynch/analysis/rf/run_rf/run_phen_asynch_rf.r`) and the feature selection (code block starting at line 486 in the same file) for the main global RF model that will be used for both datasets (NIRv and SIF) and all 3 neighborhood radii (50 km, 100 km, 150 km).
-4. Run `asynch/analysis/rf/run_rf/ch3_rf_job.sh` to loop over vars (NIRv, SIF) and neighborhood radii, each time prepping data layers, running the random forest analysis, and generating identical results.
-5. Run `asynch/analysis/rf/summ_results/ch3_rasterize_SHAP_job.sh` to convert output CSVs of global SHAP values to GeoTIFFs.
-6. Run `asynch/analysis/rf/summ_results/ch3_rasterize_err_job.sh` to convert output CSVs of global RF prediction errors to GeoTIFFs.
-7. Run `asynch/analysis/rf/summ_results/tabulate_model_summaries.py` to combine all permuation-based and SHAP-based importance values and model $R^2$s and MSEs into a single output table, for supplmental materials.
-8. Run `asynch/analysis/rf/make_asynch_viz_and_analysis_maps_FIG_3_S8-16.py` 4 times, once each with a different command line arg ('main', 'asynch_supps', 'error_supp', 'predom_supp'), to produce the main RF-summary fig (Fig. 3, which maps predominance for the two top-importance covariates, ppt.asy and tmp.min.asy) and the supplementary figs presenting all asynchrony maps (Figs. S8-S14), the RF error map (Fig. S15), and the RF summary map showing all predominant covariates (Fig. S16).
+#### run phenological asynchrony drivers analysis:
+1. On Savio, run `asynch/analysis/drivers/prep_data/prep_phen_asynch_rf_data.r NIRv 100` to prep data for random forest analysis of the main phenological asynchrony dataset (i.e., NIRv-based phenological asynchrony using a 100 km radial neighborhood).
+2. In an RStudio session on Savio, run `asynch/analysis/drivers/run_rf/run_phen_asynch_rf.r` with var set to 'NIRv' and neigh.rad set to '100' (i.e., uncommenting lines at top), to execute the random forest analysis on the main phenological asynchrony dataset (i.e., NIRv-based phenological asynchrony using a 100 km radial neighborhood). Be sure the execute the code blocks captured by `if (F){ ... }`, to run hyperparameter-tuning, Boruta feature selection, and other interactive analyses.
+3. Manually inspect the results of the interactive analysis. Use the results of that to set the hyperparameters (in the code block starting at line 410 in `asynch/analysis/drivers/run_rf/run_phen_asynch_rf.r`) and the feature selection (code block starting at line 486 in the same file) for the main global RF model that will be used for both datasets (NIRv and SIF) and all 3 neighborhood radii (50 km, 100 km, 150 km).
+4. Run `asynch/analysis/drivers/run_rf/ch3_rf_job.sh` to loop over vars (NIRv, SIF) and neighborhood radii, each time prepping data layers, running the random forest analysis, and generating identical results.
+5. Run `asynch/analysis/drivers/summ_results/ch3_rasterize_SHAP_job.sh` to convert output CSVs of global SHAP values to GeoTIFFs.
+6. Run `asynch/analysis/drivers/summ_results/ch3_rasterize_err_job.sh` to convert output CSVs of global RF prediction errors to GeoTIFFs.
+7. Run `asynch/analysis/drivers/summ_results/tabulate_model_summaries.py` to combine all permuation-based and SHAP-based importance values and model $R^2$s and MSEs into a single output table, for supplmental materials.
+8. Run `asynch/analysis/drivers/make_figs/make_asynch_viz_and_analysis_maps_FIG_3_S10-18.py` 4 times, once each with a different command line arg ('main', 'asynch_supps', 'error_supp', 'predom_supp'), to produce the main RF-summary fig (Fig. XXX, which maps predominance for the two top-importance covariates, ppt.asy and tmp.min.asy) and the supplementary figs presenting all asynchrony maps (Figs. SXXX-SXXX), the RF error map (Fig. SXXX), and the RF summary map showing all predominant covariates (Fig. SXXX).
 
 
-### run climate-distance analysis:
-
-1. Run `asynch/analysis/clim_dist/compare_phen_clim_geog_dist_FIG_5.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce the analysis summary in **Fig. 5**.
-
-
-### run iNaturalist flowering-phenology analysis:
-**TODO**
+#### run climate-distance analysis:
+1. Run `asynch/analysis/clim_dep/compare_phen_clim_geog_dist_FIG_5.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce the analysis summary in **Fig. XXX**.
 
 
-### run genetic analyses:
-**TODO**
+#### run iNaturalist flowering-phenology analysis:
+1. Run `asynch/analysis/phen/get_all_inat_plant_phen_taxa.py` to save a table of the counts of all phenology-annotated and valid (i.e., native, non-captive, and research-grade) observations for all iNaturalist taxa with at least one observation.
+2. **KEEPING THIS?** Manually download plant functional-trait data from the TRY database for trait numbers XXXXXX.
+3. **KEEPING THIS?** Run `asynch/analysis/phen/preprocess_TRY_PGF_data.r` to preprocess the raw data downloaded from the TRY database.
+4. **KEEPING THIS?** Run script to merge the TRY functional-trait data onto the table of iNat taxa and observation counts.
+5. Run `asynch/analysis/phen/get_all_inat_phen_obs_and_fit_npeaks.py` to download phenology observation histograms and raw observations for all iNat taxa with at least 50 phenology-annotated and otherwise valid observations and estimate the number of peaks (0, 1, or 2) in their flowering-week histograms.
+6. Run `asynch/analysis/phen/analyze_inat_flow_phen_results.py` to run an MMRR, predicting flowering observation-time distance as a function of geographic and LSP distances, for all iNat taxa with non-unimodal flowering week histograms (i.e., 0 or 2 peaks).
+
+#### run genetic analyses:
+1. Download the [supplemental data in Dryad](https://datadryad.org/stash/dataset/doi:10.5061/dryad.pc866t1p4) from [Thomé et al. 2021](https://www.nature.com/articles/s41437-021-00460-7), the only genomic test of the asynchrony of seasons hypothesis (ASH) of which we are aware.
+2. Call `asynch/analysis/gen/rhinella/convert_STRUCTURE_to_gendist_mat.r` to produce a genetic distance matrix for the _Rhinella granulosa_ genetic data (i.e., the Thomé et al. supplemental data).
+3. Call `asynch/analysis/gen/rhinella/test_rhinella_granulosa.py` to run an MMRR for _Rhinella granulosa_, predicting genetic distance as a function of our NIRv-based phenological distance instead of the Thomé et al. precipitation-seasonality distance variable (and controlling for geographic and environmental distances).
+4. Manually compile the sample locations (from the [supplemental data in Zenodo](https://zenodo.org/records/5012226)) and FASTA-format sequences (from NCBI, based on sample voucher IDs in the supplemental data) for all samples of the only speciesin [Quintero et al. 2014](https://www.journals.uchicago.edu/doi/full/10.1086/677261) (a multi-species test of the ASH using archived microsatellite data) that overlaps with the eastern Brazilian Thomé et al. study region.
+5. Call `asynch/analysis/gen/xiphorhynchus/align_xiphorhynchus_fuscus.sh` to use [MAFFT v7.520](https://mafft.cbrc.jp/alignment/software/) to align all raw sequence data for the Xiphorhynchus fuscus samples (i.e., to Quintero et al. species that co-occurs in the Thomé et al. study region).
+6. Call `asynch/analysis/gen/xiphorhynchus/calc_gen_dist_mat_xiphorhynchus_fuscus.r` to produce a genetic distance matrix from the aligned _Xiphorhynchus fuscus_ sequences.
+7. Call `asynch/analysis/gen/xiphorhynchus/test_xiphorhynchus_fuscus.py` to run an MMRR for _Xiphorhynchus fuscus_, predicting genetic distance as a function of our NIRv-based phenological distance instead of the Quintero et al. precipitation asynchrony variable (and controlling for geographic and environmental distances).
+8. **COMPILE FIGURE 5 USING WHAT SCRIPTS/TOOLS?**
+
+
+
+-------------------------------------------
+
+
+
+## working environments
+**TODO: NEED TO LIST PACKAGE VERSIONS TOO!**
+**local**:
+  - Linux laptop running Pop!\_OS v22.04 LTS (except Ubuntu v18.x used for SIF data prep and evaluation)
+  - Python v3.9.x (except Python v3.7.x used for SIF data prep and evaluation)
+  - Bash v5.x (except Bash v4.x used for SIF data prep and evaluation)
+
+**UC Berkeley Savio Cluster**:
+  - Bash v**XXXXX**
+  - Python v**XXXX**
+  - R v**XXXXX**
+  - Julia v**XXXXX**
+
+**GEE**:
+  - browser-based Javascript IDE (GEE API ≥v0.1.404)
+
+

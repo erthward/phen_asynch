@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 from matplotlib.colors import ListedColormap
 import pandas as pd
 import geopandas as gpd
@@ -12,18 +13,12 @@ import sys
 import re
 
 
-# TODO:
-    # - GET RID OF LINE CHANGING SINGLE PIXEL IN SUMMED LC MASK
-    # - DELETE '_DUMMY' IN LABEL-PROCESSING CODE
-
-
-
 sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
                     'seasonal_asynchrony/etc/'))
 import phen_helper_fns as phf
 
 # set data-directory path
-data_dir = phf.EXTERNAL_RF_DATA_DIR
+data_dir = phf.EXTERNAL_MASK_DATA_DIR
 
 # general plotting params:
 title_fontsize = 12
@@ -62,6 +57,14 @@ cbarlabel_fontdict = {'fontsize': 14}
 cbarticklabel_fontsize = 12
 partlabel_fontsize=40
 target_crs = 8857
+
+
+# load the water mask (just for nicer plotting)
+water_mask_unproj = rxr.open_rasterio(os.path.join(data_dir,
+                                            'waterMask.tif'), masked=False)[0]
+water_mask= water_mask_unproj.rio.write_crs(4326).rio.reproject(target_crs,
+                                                  resampling=Resampling.mode,
+                                                 )
 
 # load shapefiles
 countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
@@ -106,40 +109,44 @@ def plot_juris_bounds(ax, subnat_zorder=0, nat_zorder=1,
                   )
 
 
-def map_mask(ax, mask_filename, axlabel):
+def map_mask(ax, mask_filename, axlabel, lcMask_mode=None):
     """
     plot a masking map from the LSP-fitting process
     """
-    if isinstance(mask_filename, str):
-        files = [f for f in os.listdir(phf.EXTERNAL_DATA_DIR) if
-                 os.path.split(f)[-1] == mask_filename]
-        assert len(files) == 1
-        mask = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR, files[0]),
+    files = [f for f in os.listdir(data_dir) if
+             os.path.split(f)[-1] == mask_filename]
+    assert len(files) == 1
+    mask = rxr.open_rasterio(os.path.join(data_dir, files[0]),
                              masked=True)[0]
-        assert np.all(np.unique(mask.values) == np.array((0, 1)))
-        # get zonal stats
+    # NOTE: for some reason, the short ts mask and significance mask
+    #       saved with one extra row and column and with order of y coordinates
+    #       reversed, but a simple reproject_match to the unprojected
+    #       water_mask fixes this
+    assert mask.shape in [(2700, 6900), (2701, 6901)]
+    if mask.shape == (2701, 6901):
+        mask = mask.rio.reproject_match(water_mask_unproj)
+    if 'lcMask' in mask_filename:
+        unique_vals = np.array((0, 1, 2))
+    else:
+        unique_vals = np.array((0, 1))
+    assert np.all(np.unique(mask.values) == unique_vals)
+    # get zonal stats
+    if 'lcMask' in mask_filename:
+        # get zonal stats for both 'default' and 'strict' land cover masking
+        # (i.e., mask for all values >0 (default) and all values >1 (strict))
+        zonal_means = [zonal_stats(vectors=cont.to_crs(mask.rio.crs),
+                                   raster=(mask > val).values,
+                                   affine=mask.rio.transform(),
+                                   stats=["mean"],
+                                   geojson_out=True,
+                                  ) for val in range(2)]
+    else:
         zonal_means = [zonal_stats(vectors=cont.to_crs(mask.rio.crs),
                                    raster=mask.values,
                                    affine=mask.rio.transform(),
                                    stats=["mean"],
                                    geojson_out=True,
                                   )]
-    elif isinstance(mask_filename, list):
-        files = [f for f in os.listdir(phf.EXTERNAL_DATA_DIR) if
-                 os.path.split(f)[-1] in mask_filename]
-        assert len(files) == 2
-        mask = [rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR, f),
-                                  masked=True)[0] for f in files]
-        zonal_means = [zonal_stats(vectors=cont.to_crs(m.rio.crs),
-                                   raster=m.values,
-                                   affine=m.rio.transform(),
-                                   stats=["mean"],
-                                   geojson_out=True,
-                                  ) for m in mask]
-        # TODO: DELETE ME
-        mask[0][10:100, 10:100] = 1
-        mask = mask[0] + mask[1]
-        assert np.all(np.unique(mask.values) == np.array((0, 1, 2)))
     mask = mask.rio.write_crs(4326).rio.reproject(target_crs,
                                                   resampling=Resampling.mode,
                                                  )
@@ -151,13 +158,15 @@ def map_mask(ax, mask_filename, axlabel):
     #       xarray.core.dataarray.DataArray;
     #       for now, a hacky fix is just assigning a string to that attr
     mask.attrs['long_name'] = ''
-    if isinstance(mask_filename, str):
-        cmap = 'gist_gray'
-        vmax = 1
-    elif isinstance(mask_filename, list):
-        colors = ['black', 'red', 'white']
-        cmap = ListedColormap(colors)
+    if 'lcMask' in mask_filename:
+        colors = ['red', 'black', 'white']
         vmax = 2
+    else:
+        colors = ['red', 'white']
+        vmax = 1
+    cmap = ListedColormap(colors)
+    # mask out oceans, seas, and other large water bodies
+    mask = mask.where((water_mask==1).values)
     mask.plot.imshow(ax=ax,
                      cmap=cmap,
                      vmin=0,
@@ -171,7 +180,8 @@ def map_mask(ax, mask_filename, axlabel):
     # NOTE: chopping off western edge because the equal earth projection
     #       makes NZ appear twice
     ax.set_xlim(0.95 * ax.get_xlim()[0], ax.get_xlim()[1])
-    ax.set_title(axlabel, fontdict={'fontsize': 10})
+    ax.set_title('')
+    ax.text(-1.4e7, -6.4e6, axlabel, size=7)
     ax.set_xlabel('')
     ax.set_ylabel('')
     ax.set_xticks(())
@@ -190,53 +200,40 @@ if __name__ == '__main__':
     fracs['mask'] = []
 
     # dict for renaming masks, for display in fig and in table
-    label_dict = {'lcSummaryMask_NIRv_default': 'land cover',
-                  'lcSummaryMask_NIRv_strict': 'land cover',
-                  'lcStabilityMask_NIRv': 'land cover stability',
+    label_dict = {'lcMask': 'land cover',
                   'monthPropsMinMask_NIRv': 'monthly data avail.',
                   'evennessMask_NIRv': 'monthly data evenness',
                   'shortTSMask_NIRv': 'total data avail.',
                   'signifMask_NIRv': 'regression signif.',
                  }
 
-    fig = plt.figure(figsize=(8, 11))
-    filenames = [['lcSummaryMask_NIRv_default_DUMMY.tif',
-                  'lcSummaryMask_NIRv_strict_DUMMY.tif'],
-                 'lcStabilityMask_NIRv_DUMMY.tif',
-                 'monthPropsMinMask_NIRv_DUMMY.tif',
-                 'evennessMask_NIRv_DUMMY.tif',
-                 'shortTSMask_NIRv_DUMMY.tif',
-                 'signifMask_NIRv_DUMMY.tif',
+    fig = plt.figure(figsize=(8.7, 6))
+    gs = GridSpec(3, 2, figure=fig)
+    filenames = ['lcMask.tif',
+                 'monthPropsMinMask_NIRv.tif',
+                 'evennessMask_NIRv.tif',
+                 'shortTSMask_NIRv.tif',
+                 'signifMask_NIRv.tif',
                 ]
 
-    for ct, fn in enumerate(filenames, 1):
+    for ct, fn in enumerate(filenames):
         print(f"\n\nNOW PROCESSING {fn}...\n\n")
-        ax = fig.add_subplot(3,2,ct)
-        if isinstance(fn, list):
-            # TODO: DELETE '_DUMMY' BELOW
-            label = label_dict[fn[0].replace('_DUMMY.tif', '')]
-            zonal_means = map_mask(ax, fn, label)
-            for i, f in enumerate(fn):
-                if 'strict' in f:
-                    sublabel = label + ' (incl. ag.)'
-                else:
-                    sublabel = label
-                fracs['mask'].append(sublabel)
-                [fracs[c].append(v) for c, v in zonal_means[i].items()]
-        elif isinstance(fn, str):
-            # TODO: DELETE '_DUMMY' BELOW
-            label = label_dict[fn.replace('_DUMMY.tif', '')]
-            zonal_means = map_mask(ax, fn, label)
+        ax = fig.add_subplot(gs[ct//2, ct%2])
+        label = label_dict[fn.replace('.tif', '')]
+        zonal_means = map_mask(ax, fn, label)
+        if 'lcMask' in fn:
+            fracs['mask'].append(label+' (default mask)')
+            fracs['mask'].append(label+' (strict mask)')
+        else:
             fracs['mask'].append(label)
-            [fracs[c].append(v) for c, v in zonal_means[0].items()]
+        [fracs[c].append(v) for zm in zonal_means for c, v in zm.items()]
 
-
-    fig.subplots_adjust(left=0.02,
-                        right = 0.98,
-                        bottom=0.08,
-                        top=0.98,
-                        hspace=0.8,
-                        wspace=0.0,
+    fig.subplots_adjust(left=0,
+                        right=1,
+                        bottom=0.01,
+                        top=0.99,
+                        hspace=0,
+                        wspace=0,
                        )
     fig.savefig('FIG_SXXX_mask_maps.png', dpi=500)
 
