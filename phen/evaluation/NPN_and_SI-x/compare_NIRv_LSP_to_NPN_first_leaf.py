@@ -9,7 +9,6 @@ import geopandas as gpd
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 from shapely.geometry import Point
-from pykrige.uk import UniversalKriging
 
 # local modules
 sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
@@ -283,23 +282,3 @@ fig.subplots_adjust(left=0.06,
                    )
 fig.savefig('NPN_MMRR_results.png', dpi=600)
 
-
-# krig and display results
-npn_krig = npn[npn['longitude'].between(-130, -60)]
-# TODO: DELETE NEXT ROW TO RUN FOR FULL DATA
-npn_krig = npn_krig.iloc[::10, :]
-krig = UniversalKriging(npn_krig.to_crs(8857)['longitude'],
-                        npn_krig.to_crs(8857)['latitude'],
-                        npn_krig['site_mean_first_yes_doy'],
-                       )
-minx, miny = np.min(npn_krig.to_crs(8857).bounds.loc[:, ['minx', 'miny']],
-                    axis=0).values
-maxx, maxy = np.max(npn_krig.to_crs(8857).bounds.loc[:, ['maxx', 'maxy']],
-                    axis=0).values
-# krig values to a ~5km grid
-gridx = np.arange(minx, maxx, 5000)
-gridy = np.arange(miny, maxy, 5000)
-krig_grid, krig_ss = krig.execute("grid", gridx, gridy)
-fig, ax = plt.subplots(1,1, figsize=(5,5))
-ax.imshow(krig_grid, cmap='twilight', zorder=0)
-world.to_crs(8857).plot(color='none', edgecolor='black', alpha=0.5, zorder=1)

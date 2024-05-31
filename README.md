@@ -166,17 +166,104 @@ NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` w
 ## working environments
 **TODO: NEED TO LIST PACKAGE VERSIONS TOO!**
 **local**:
-  - Linux laptop running Pop!\_OS v22.04 LTS (except Ubuntu v18.x used for SIF data prep and evaluation)
-  - Python v3.9.x (except Python v3.7.x used for SIF data prep and evaluation)
-  - Bash v5.x (except Bash v4.x used for SIF data prep and evaluation)
+  - Linux laptop running Pop!\_OS 22.04 LTS (except Ubuntu 18 used for SIF data prep and evaluation)
+  - Python 3.9 (except Python 3.7 used for SIF data prep and evaluation)
+    - numpy 1.22.4
+    - rasterio 1.2.10
+    - xarray 2022.3.0
+    - rioxarray 0.11.1
+    - pandas 2.2.1
+    - shapely 2.0.3
+    - geopandas 0.14.3
+    - zipfile36 0.1.3
+    - tensorflow 2.4.1
+    - pyproj 3.6.1
+    - cartopy 0.20.2
+    - geopy 1.13.0
+    - scipy 1.13.0
+    - sklearn 1.0.2
+    - alphashape 1.3.1
+    - rasterstats 0.16.0
+    - statsmodels 0.13.2
+    - seaborn 0.11.2
+    - fuzzywuzzy 0.18.0
+    - Bio 1.79
+    - pyinaturalist 0.19.0
+    - json 2.0.9
+    - nlmpy
+    - matplotlib 3.7.0
+    - h3 3.7.4
+    - descartes
+    - contextily 1.2.0
+    - xyzservices 2022.4.0
+    - palettable 3.3.0
+    - cmocean 2.0
+    - cmcrameri 1.8
+    - colormap 1.0.4
+    - imageio 2.19.0
+    - cv2 4.9.0 
+  - R 
+    - adegent 2.1.5
+    - poppr 2.9.5
+    - ape 5.6.2
+  - Bash 5 (except Bash 4 used for SIF data prep and evaluation)
+  - GDAL 3.3.1
+  - MAFFT 7.520
 
 **UC Berkeley Savio Cluster**:
-  - Bash v**XXXXX**
-  - Python v**XXXX**
-  - R v**XXXXX**
-  - Julia v**XXXXX**
+  - Bash **XXXXX**
+  - Python **XXXX**
+    - affine **XXXX**
+    - haversine **XXXX**
+    - eofs **XXXX**
+  - R **XXXXX**
+    - sp  **XXXX**
+    - sf **XXXX**
+    - spdep **XXXX**
+    - raster **XXXX**
+    - terra **USE THIS??**
+    - rsample  **XXXX**
+    - RRF **XXXX**
+    - ranger **XXXX**
+    - randomForest  **USE THIS??**
+    - spatialRF **USE THIS??**
+    - rfUtilities  **USE THIS??**
+    - h2o  **USE THIS??**
+    - Boruta **XXXX**
+    - fastshap **XXXX**
+    - SpatialML **USE THIS??**
+    - GWmodel **USE THIS??**
+    - vip **XXXX**
+    - pdp **XXXX**
+    - DALEX **XXXX**
+    - ggplot2 **XXXX**
+    - ggthemes **XXXX**
+    - grid **XXXX**
+    - cowplot **XXXX**
+    - tmap **XXXX**
+    - maps **XXXX**
+    - RColorBrewer **XXXX**
+    - cmocean **XXXX**
+    - wesanderson **XXXX**
+    - dplyr **XXXX**
+    - caret **USE THIS??**
+  - Julia **XXXXX**
+    - OrderedCollections **XXXX**
+    - NearestNeighbors **XXXX**
+    - StaticArrays **XXXX**
+    - Distributed **XXXX**
+    - Statistics **XXXX**
+    - StatsBase **XXXX**
+    - Distances **XXXX**
+    - TFRecord **XXXX**
+    - ArchGDAL **XXXX**
+    - Printf **XXXX**
+    - Colors **XXXX**
+    - Dates **XXXX**
+    - JSON **XXXX**
+    - Glob **XXXX**
+    - GLM **XXXX**
 
 **GEE**:
-  - browser-based Javascript IDE (GEE API ≥v0.1.404)
-
+  - browser-based Javascript IDE (GEE API ≥0.1.404)
 

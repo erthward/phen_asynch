@@ -13,7 +13,6 @@ import xyzservices
 import alphashape
 import subprocess
 import datetime
-import diptest
 import random
 import string
 import time
@@ -107,9 +106,6 @@ quality_grade = 'research'
 per_page = 200
 native = True
 captive = False
-
-# sigma on the normal dist used to add noise to discrete data for diptest input
-diptest_sigma = 1
 
 # alpha value to use for the alpha-hull algo
 # NOTE: 0.75 is the mid value of the 3 values used in the climate-distance
