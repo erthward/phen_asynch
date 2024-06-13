@@ -77,8 +77,7 @@ All steps of the following workflow were executed on a local computer unless oth
 
 
 ### calculate asynchrony:
-1. Feed `asynch/calculation/asynch_job.sh` to slurm's sbatch command to calculate asynchrony maps for all fitted phenological and climatic seasonality datasets.
-  NOTE: Do this once for each of the three neighborhood radii (50 km, 100 km, 150 km) for which we calculate asynchrony, each time concordantly changing the line in `asynch_job.sh` that sets the `neigh_rad` variable and the line that creates the slrum `--job-name` flag's value.
+1. Feed all three `asynch/calculation/asynch_job_*kmneigh.sh` job scripts to slurm's `sbatch` command to calculate asynchrony maps for all fitted phenological and climatic seasonality datasets and all three neighborhood radii (50 km, 100 km, 150 km).
 2. Once all 3 jobs are complete, feed `asynch/calculation/mosaic_job.sh` to slurm's sbatch command to mosaic all TFRecord files into a single GeoTIFF file for each phenological and climatic dataset (yielding a map of seasonality coefficients, a map of seasonality-fitting $R^{2}$s, and 3 maps of asynchrony, one per neighborhood radius).
 
 
