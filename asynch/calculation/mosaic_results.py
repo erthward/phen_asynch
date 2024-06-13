@@ -39,8 +39,6 @@ import os
 
 # get the files directory
 DATA_DIR = sys.argv[1]
-#DATA_DIR = ('/home/deth/Desktop/CAL/research/projects'
-#            '/seasonality/GEE_output/NA_agg/')
 
 # output filepath
 OUTPUT_FILEPATH = sys.argv[2]
@@ -59,7 +57,7 @@ assert DATA_TYPE in ['c', 'a', 'r2'], ('the third argument must be "c" '
 # pattern that occurs just before the file number in each file's number
 if DATA_TYPE in ['c', 'r2']:
     PATT_B4_FILENUM = '\D+-'
-else if DATA_TYPE in ['a']:
+elif DATA_TYPE in ['a']:
     PATT_B4_FILENUM = '\D+-OUT-'
 else:
     raise ValueError('DATA_TYPE must be "c", "r2", or "a"')
