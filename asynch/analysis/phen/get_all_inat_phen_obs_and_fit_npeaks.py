@@ -1,5 +1,4 @@
 from shapely.geometry import Point, MultiPolygon
-from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KernelDensity
 from pyinaturalist import clear_cache
 from scipy.signal import find_peaks
@@ -24,10 +23,6 @@ from shapely.errors import ShapelyDeprecationWarning
 warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
 
 
-# TODO:
-    # check how often week 53 is 0 and if disproportionate then drop
-
-
 
 #------------------------------------------------------------------------------
 # path mgmt
@@ -43,7 +38,7 @@ data_dir = '/media/deth/SLAB/diss/3-phn/inat/'
 np.random.seed(1)
 
 # read in all taxa with plant phenology data
-taxa = pd.read_csv('./all_inat_plant_phen_taxa_w_TRY_pgf.csv')
+taxa = pd.read_csv('./all_inat_plant_phen_taxa.csv')
 assert len(np.unique(taxa['tid'])) == len(taxa)
 print('\n\n')
 print(f"\n{len(taxa)} total taxa with flowering phenology info in iNat\n")
@@ -66,21 +61,6 @@ if os.path.isfile(processed_taxa_filename):
     # reset index, so that iterrows gives incrementing ints starting from 0
     taxa = taxa.reset_index()
 
-# regression df
-# NOTE: has to be 53 weeks, to match iNat output
-#       (since a week technically has 52.143 weeks on non-leap years)
-reg_df = pd.DataFrame.from_dict({'woy': [*range(1,54)]})
-reg_df['woy_sin_ann'] = np.sin(reg_df['woy']/53*2*np.pi)
-reg_df['woy_cos_ann'] = np.cos(reg_df['woy']/53*2*np.pi)
-reg_df['woy_sin_sem'] = np.sin(reg_df['woy']/53*2*2*np.pi)
-reg_df['woy_cos_sem'] = np.cos(reg_df['woy']/53*2*2*np.pi)
-
-# construct canonical 1x and 2x sinusoidal curves, against which data will be
-# compared using earth-mover's distance
-minmax_scale = lambda a: (a-np.min(a))/(np.max(a)-np.min(a))
-sin_1x = minmax_scale(np.cos(np.linspace(np.pi, 3*np.pi, 53)))
-sin_2x = minmax_scale(np.cos(np.linspace(np.pi, (3+2)*np.pi, 53)))
-
 
 #------------------------------------------------------------------------------
 # data-collection and processing params
@@ -92,7 +72,7 @@ sin_2x = minmax_scale(np.cos(np.linspace(np.pi, (3+2)*np.pi, 53)))
 max_pos_acc_val = 1000
 
 # max number of points we want to use to construct a taxon's alpha hull
-max_points_per_species = 2000
+max_points_per_species = 5000
 
 # set fixed API params
 # (NOTE: for details, see return value of `pynat.get_controlled_terms()`)
@@ -137,36 +117,12 @@ def make_obs_dict():
     return obs_dict
 
 
-def scale_arr(arr, max_val):
-    '''
-    scale array between 0 and n
-    '''
-    return (arr - np.min(arr))/(np.max(arr) - np.min(arr)) * max_val
-
-
 def get_hex_color():
     '''
     get a random hex color (not too light!)
     '''
     hex_choices = random.choices(string.hexdigits[3:], k=6)
     return f"#{''.join(hex_choices)}".upper()
-
-
-def calc_r2_adj(r2, reg, n):
-    '''
-    calculate the adjusted R^2 for the given R^2, regression, and n
-    (where reg is a sklearn.LinearRegression object)
-    '''
-    p = reg.coef_.size + int(reg.intercept_ != 0)
-    r2_adj = 1 - ((1 - r2) * ((n-1)/(n-p-1)))
-    return r2_adj
-
-
-def calc_euc_dist(a1, a2):
-    '''
-    calc the n-dimensional Euclidean distance between two n-dimensional arrays
-    '''
-    return np.sqrt(np.sum([(v1-v2)**2 for v1, v2 in zip(a1, a2)]))
 
 
 def rotate_time_series_to_min(ts,
@@ -204,41 +160,6 @@ def rotate_time_series_to_min(ts,
         return ts_rot, cutidx
     else:
         return ts_rot
-
-
-def run_diptest_in_R(vals, is_hist=True, noise_sigma=0):
-    '''
-    use the histogram values to run the dip test in R
-
-    If input vals are samples from the distribution to be tested then set
-    is_hist to False.
-
-    If input vals are densities within the subsequent bins of a histogram
-    calculated from samples from that distribution then set is_hist to True.
-    '''
-    assert not np.all(np.array(vals)==0), 'cannot run dip test on all zeros!'
-    tmp_filename = 'diptest_data.tmp'
-    if is_hist:
-        # rotate
-        hist_rot = rotate_time_series_to_min(vals)
-        # turn into hist samples
-        samp = [i for i,v in enumerate(hist_rot) for _ in range(v)]
-        # add noise
-        samp += np.random.normal(0, noise_sigma, len(samp))
-    else:
-        samp = vals
-    # cast as data.frame
-    df = pd.DataFrame.from_dict({'samp': samp})
-    # save to 'diptest_data.tmp'
-    df.to_csv(tmp_filename, index=False)
-    # call Rscript and get results as dict
-    out = subprocess.getoutput('Rscript --vanilla run_diptest.r')
-    stats = out.split('\n')
-    res = {s.split(': ')[0]: float(s.split(': ')[1]) for s in stats}
-    # delete tmp file
-    os.remove(tmp_filename)
-    # return results
-    return res['dip'], res['p']
 
 
 def calc_n_kde_peaks(hist,
@@ -341,12 +262,6 @@ res_dict ={'tid': [],
            'hist_count': [],
            'hist_count_expec': [],
            'obs_count': [],
-           'r2_ann': [],
-           'r2_sem': [],
-           'dip_stat': [],
-           'dip_pval': [],
-           'dist_1xsin': [],
-           'dist_2xsin': [],
            'npeaks': [],
            'npeaks_pval': [],
            'color': [],
@@ -373,9 +288,11 @@ for i, row in taxa.iterrows():
             # set var to indicate we need to save the hist fig
             save_hist_fig = True
             hist_success = False
-            n_trys=0
+            n_trys=1
             while not hist_success:
                 try:
+                    # add a 1-second wait, just to help avoid 429 errors
+                    time.sleep(1)
                     hist = pynat.get_observation_histogram(taxon_id=tid,
                                                            term_id=term_id,
                                                            term_value_id=term_value_id,
@@ -386,15 +303,14 @@ for i, row in taxa.iterrows():
                                                            captive=captive,
                                                   )
                     hist_success = True
-                    print((f"\n\t{np.sum([*hist.values()])} observations returned "
+                    print((f"\n\t\t{np.sum([*hist.values()])} observations returned "
                            f"(vs. {taxa[taxa['tid'] == tid]['count'].values[0]} "
                             "expected based on initial taxa table).\n"))
                 except Exception as e:
                     print((f"Error thrown during histogram API call: {e}\n\n"
-                           f"Waiting {60 * n_trys} sec, then trying again...\n"))
-                    time.sleep(60 * n_trys)
+                           f"Waiting {120 * n_trys} sec, then trying again...\n"))
+                    time.sleep(120 * n_trys)
                     n_trys += 1
-
 
             # if hist is all zeros then skip and return missing data
             hist_vals = [*hist.values()]
@@ -415,12 +331,6 @@ for i, row in taxa.iterrows():
             res_dict['hist_count'].append(np.nan)
             res_dict['hist_count_expec'].append(row['count'])
             res_dict['obs_count'].append(np.nan)
-            res_dict['r2_ann'].append(np.nan)
-            res_dict['r2_sem'].append(np.nan)
-            res_dict['dip_stat'].append(np.nan)
-            res_dict['dip_pval'].append(np.nan)
-            res_dict['dist_1xsin'].append(np.nan)
-            res_dict['dist_2xsin'].append(np.nan)
             res_dict['npeaks'].append(np.nan)
             res_dict['npeaks_pval'].append(np.nan)
             res_dict['color'].append(np.nan)
@@ -436,10 +346,10 @@ for i, row in taxa.iterrows():
             # get actual observations
             obs_filename = os.path.join(data_dir,
                         f"obs_data/TID_{tid}_{tax_name.replace(' ', '_')}.json")
-            if not os.path.isfile(hist_filename):
+            if not os.path.isfile(obs_filename):
                 print("\tobservation file does not exist; hitting API...\n\n")
                 obs_success = False
-                n_trys = 0
+                n_trys = 1
                 while not obs_success:
                     try:
                         curr_page = 0
@@ -451,10 +361,12 @@ for i, row in taxa.iterrows():
                         while curr_page < obs_pg_ct:
                             curr_page += 1
                             if curr_page == 1:
-                                print("\tgetting observations, page 1...")
+                                print("\t\tgetting observations, page 1...")
                             else:
-                                print((f"\tgetting observations, page {curr_page} "
+                                print((f"\t\tgetting observations, page {curr_page} "
                                        f"of {obs_pg_ct}..."))
+                            # add a 1-second wait, just to help avoid 429 errors
+                            time.sleep(1)
                             obs = pynat.get_observations(taxon_id=tid,
                                                          term_id=term_id,
                                                          term_value_id=term_value_id,
@@ -499,8 +411,8 @@ for i, row in taxa.iterrows():
                         obs_success = True
                     except Exception as e:
                         print((f"Error thrown during observations API call: {e}\n\n"
-                               f"Waiting {60 * n_trys} sec, then trying again...\n"))
-                        time.sleep(60 * n_trys)
+                               f"Waiting {120 * n_trys} sec, then trying again...\n"))
+                        time.sleep(120 * n_trys)
                         n_trys += 1
 
                 # store taxon observations
@@ -524,43 +436,8 @@ for i, row in taxa.iterrows():
                    "from file...\n\n"))
                 coords = [(g.x, g.y) for g in obs_gdf.geometry]
 
-            # compare R2s between annual and semi-annual harmonic regressions
-            reg_ann = LinearRegression().fit(X=reg_df.loc[:, ['woy_sin_ann', 'woy_cos_ann']],
-                                             y=hist_vals,
-                                            )
-            r2_ann = reg_ann.score(X=reg_df.loc[:, ['woy_sin_ann', 'woy_cos_ann']],
-                                   y=hist_vals,
-                                  )
-            r2_ann_adj = calc_r2_adj(r2_ann, reg_ann, len(reg_df))
-            reg_sem = LinearRegression().fit(X=reg_df.loc[:, ['woy_sin_sem', 'woy_cos_sem']],
-                                             y=hist_vals,
-                                            )
-            r2_sem = reg_sem.score(X=reg_df.loc[:, ['woy_sin_sem', 'woy_cos_sem']],
-                                   y=hist_vals,
-                                  )
-            r2_sem_adj = calc_r2_adj(r2_sem, reg_sem, len(reg_df))
-            print(f"\tR^2 ratio: {r2_sem/r2_ann}\n")
-
-            # get the stat and P-value for a dip test on the histogram
-            # NOTE: dip test appears to fail on int (i.e., discrete) data,
-            #       but week numbers are coarse approximations of the true
-            #       continuous-time timepoint at which each observation was made,
-            #       so adding some noise is totally reasonable and if anything should
-            #       only make our result more conservative on histograms with some true
-            #       indication of multi-modality
-            dip, pval = run_diptest_in_R(hist_vals, noise_sigma=diptest_sigma)
-            print(f'\tdip: {np.round(dip, 2)} (P-value: {np.round(pval, 2)})\n')
-
-            # get the Euclidean distance between the histogram (rotated to its min
-            # value before the greatest slope over the 7 following weeks) and both
-            # 1x and 2x sine curves
-            eud1 = calc_euc_dist(sin_1x,
-                                 minmax_scale(rotate_time_series_to_min(hist_vals)))
-            eud2 = calc_euc_dist(sin_2x,
-                                 minmax_scale(rotate_time_series_to_min(hist_vals)))
-
-            # estimate the number of peaks in the histogram and the empirival
-            # P-value on that metric
+            # estimate the number of peaks in the histogram
+            # and the empirical P-value associated with that metric
             npeaks, npeaks_pval, kde = estimate_n_peaks(hist_vals,
                                                   kde_bandwidth=npeak_bandwidth,
                                                   peak_minheight=npeak_minheight,
@@ -568,10 +445,10 @@ for i, row in taxa.iterrows():
                                                   plot=False,
                                                   return_dens=True,
                                                   )
-            print((f"\tn fitted peaks: {npeaks} "
+            print((f"\n\n\tn fitted peaks: {npeaks} "
                    f"(P-value: {np.round(npeaks_pval, 2)})\n\n"))
 
-            # calculate alpha of observation coordinates
+            # calculate an alpha hull around the observation coordinates
             hull =  alphashape.alphashape(np.array(coords), alpha=alpha)
             if not isinstance(hull, MultiPolygon):
                 hull = MultiPolygon([hull])
@@ -581,12 +458,9 @@ for i, row in taxa.iterrows():
             color = get_hex_color()
 
             # plot hist and both regressions
-            max_r2 = np.max([r2_ann, r2_sem])
-            line_types = {freq: [':', '-'][int(r2 == max_r2)] for
-                                    freq, r2 in zip(['ann', 'sem'], [r2_ann, r2_sem])}
             fig = plt.figure(figsize=(4,4))
             ax = fig.add_subplot(1,1,1)
-            # TODO: FIGURE OUT BUG IN HISTOGRAM PLOTTING!
+            # TODO: FIGURE OUT KDE-UNROTATIING BUG
             ax.plot([*range(len(hist_vals))], hist_vals, ':k')
             ax.plot(np.linspace(0, len(hist_vals), len(kde)),
                     kde*np.max(hist_vals), '-', color=color)
@@ -599,7 +473,7 @@ for i, row in taxa.iterrows():
             fig_filename = os.path.join(data_dir,
                        f"hist_plots/TID_{tid}_{tax_name.replace(' ', '_')}.png")
             if save_hist_fig:
-                print("\tsaving histogram plot...n")
+                print("\tsaving histogram plot...\n")
                 fig.savefig(fig_filename, dpi=400)
             plt.close('all')
 
@@ -609,12 +483,6 @@ for i, row in taxa.iterrows():
             res_dict['hist_count'].append(np.sum(hist_vals))
             res_dict['hist_count_expec'].append(row['count'])
             res_dict['obs_count'].append(len(coords))
-            res_dict['r2_ann'].append(r2_ann)
-            res_dict['r2_sem'].append(r2_sem)
-            res_dict['dip_stat'].append(dip)
-            res_dict['dip_pval'].append(pval)
-            res_dict['dist_1xsin'].append(eud1)
-            res_dict['dist_2xsin'].append(eud2)
             res_dict['npeaks'].append(npeaks)
             res_dict['npeaks_pval'].append(npeaks_pval)
             res_dict['color'].append(color)
@@ -627,7 +495,6 @@ for i, row in taxa.iterrows():
                                    crs=4326,
                                   )
         assert len(np.unique(res_gdf['tid'])) == len(res_gdf)
-        res_gdf['r2_ratio'] = res_gdf['r2_sem']/res_gdf['r2_ann']
         res_gdf_curr_it = res_gdf[res_gdf['name'] == tax_name]
         assert len(res_gdf_curr_it) == 1
         assert res_gdf_curr_it['tid'].values[0] == tid
@@ -661,33 +528,24 @@ for i, row in taxa.iterrows():
 if total_failure:
     print("\n\nTOTAL FAILURE! Interim results saved. Debug and rerun.\n\n")
 else:
-    fig, ax = plt.subplots(1)
-    res_gdf.to_crs(3857).plot(alpha=0.7,
-                              color=res_gdf['color'],
-                              edgecolor='black',
-                              markersize=10,
-                              ax=ax,
-                              legend='name',
-                             )
-    try:
-        ctx.add_basemap(ax=ax,
-                        source=xyzservices.providers.OpenStreetMap['Mapnik'])
-    except Exception as e:
-        print("\n\n\tCONTEXTILY ERROR; NO BASEMAP\n\n")
-        world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
-        world = world[world['continent'] != 'Antarctica']
-        world.to_crs(3857).plot(color='none', edgecolor='black', linewidth=0.5,
-                                alpha=0.5, ax=ax, zorder=0)
-    fig.savefig("inat_flower_phen_obs_locs.png", dpi=600)
-
-
-# do places with higher asynchrony have a higher percentage of semi-annual
-# flowering phenologies?
-
-# how does that percentage map/krig out?
-
-# TODO: mapping/analysis thoughts:
-    # - calculate ratio of r2_sem/r2_ann
-    # - plot distribution of all centroids, then overplot all centroids with ratio>1
-    # - regression of ratio and asynch values to abs(lat)? point asynch? etc
-
+    if len(taxa) > 0:
+        fig, ax = plt.subplots(1)
+        res_gdf.to_crs(3857).plot(alpha=0.7,
+                                  color=res_gdf['color'],
+                                  edgecolor='black',
+                                  markersize=10,
+                                  ax=ax,
+                                  legend='name',
+                                 )
+        try:
+            ctx.add_basemap(ax=ax,
+                            source=xyzservices.providers.OpenStreetMap['Mapnik'])
+        except Exception as e:
+            print("\n\n\tCONTEXTILY ERROR; NO BASEMAP\n\n")
+            world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
+            world = world[world['continent'] != 'Antarctica']
+            world.to_crs(3857).plot(color='none', edgecolor='black', linewidth=0.5,
+                                    alpha=0.5, ax=ax, zorder=0)
+        fig.savefig("inat_flower_phen_obs_locs.png", dpi=600)
+    else:
+        print("\n\nNo taxa remaining to be processed!\n")

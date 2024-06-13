@@ -138,7 +138,7 @@ const INBANDS = ["constant", "sin_1", "cos_1", "sin_2", "cos_2"]
 """
 names of the bands to save in the output TFRecord files
 """
-const OUTBANDS = ["asynch", "asynch_R2", "asynch_euc", "asynch_euc_R2", "asynch_n"]
+const OUTBANDS = ["asynch", "asynch_r2", "asynch_pval", "asynch_n"]
 
 """
 approximate radius of the earth (for the Haversine distance-based,
@@ -462,21 +462,26 @@ function run_linear_regression(x::Array{Float64,1}, y::Array{Float64,1};
         R2 = r2(mod)
         if fit_intercept
             int, slope = coef(mod)
+            Pval = coeftable(mod).cols[4][2]
         else
             int = NaN
             slope = coef(mod)[1]
+            Pval = coeftable(mod).cols[4][1]
         end
         output = Dict("slope" => slope,
                       "intercept" => int,
-                      "R2" => R2)
+                      "R2" => R2,
+                      "Pval" => Pval)
         return output
     catch error
         R2 = NaN
         int = NaN
         slope = NaN
+        Pval = NaN
         output = Dict("slope" => slope,
                       "intercept" => int,
-                      "R2" => R2)
+                      "R2" => R2,
+                      "Pval" => Pval)
         @warn "ERROR THROWN!"
         return output
     end
@@ -656,8 +661,10 @@ function get_inpatches_outpatches(infilepath::String, inbands::Array{String,1},
     # create a data container for all the asynch patches
     outpatches = Dict()
     for (i, patch) in inpatches
-        # create the output arrays, to be filled in (start as all NaNs)
-        outpatches[i] = similar(patch) * NaN
+        # create the output arrays, to be filled in (start as all NaNs),
+        # but specify the same sizes on dims 1 and 2 and new output size on dim 3
+        # (dim 3 is size 4 because it holds layers for the asynch metric, its R^2, its P-value, and its n)
+        outpatches[i] = similar(patch, size(patch)[1], size(patch)[2], 4) * NaN
     end
     return (inpatches, sort(outpatches))
 end
@@ -847,6 +854,7 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
         # extract both results into vars
         asynch_ts = res_ts["slope"]
         R2_ts = res_ts["R2"]
+        Pval_ts = res_ts["Pval"]
         # extract sample size (i.e. number of neighbors) for this focal pixel,
         # checking that there was no issue with uneven numbers of results
         @assert(length(geo_dists) == length(ts_dists)), ("Lengths of " *
@@ -856,12 +864,12 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
                                                                        "not equal!")
 
         # update the output patch with the new values
-        outpatch[i, j, :] = [NaN, NaN, asynch_ts, R2_ts, convert(Float32, num_neighs)]
+        outpatch[i, j, :] = [asynch_ts, R2_ts, Pval_ts, convert(Float32, num_neighs)]
 
     # if we don't have at least the minimum number of neighbors
     # then just add NaNs to the outpatch, except for the neighbor count
     else
-        outpatch[i, j, :] = [NaN, NaN, NaN, NaN, convert(Float32, num_neighs)]
+        outpatch[i, j, :] = [NaN, NaN, NaN, convert(Float32, num_neighs)]
         if verbose
             println("TOO FEW NEIGHBORS!")
 	end

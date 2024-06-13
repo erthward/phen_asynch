@@ -10,11 +10,6 @@ from shapely.geometry import MultiPoint
 import contextily as ctx
 
 
-# TODO:
-
-    # add any additional QC filters?
-
-
 # set fixed API params
 # (NOTE: for details, see return value of `pynat.get_controlled_terms()`)
 term_id = 12                # "Plant phenology"
@@ -23,7 +18,6 @@ quality_grade = 'research'
 native = True
 captive = False
 per_page = 500
-
 
 # get actual observations
 taxa_dict = {'tid': [],
