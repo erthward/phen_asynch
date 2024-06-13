@@ -49,16 +49,20 @@ OUTPUT_FILEPATH = sys.argv[2]
 # or processed output (asynch metrics)
 DATA_TYPE = sys.argv[3].lower()
 assert DATA_TYPE in ['c', 'a', 'r2'], ('the third argument must be "c" '
-                                       '(for coefficients), "a" (for '
-                                       '"asynchrony"), or "r2" to mosaic.'
-                                       'just the harmonic regression\'s R2'
-                                       'values')
+                                       'to mosaic the harmonic-regression '
+                                       'coefficients, "a" to mosaic the '
+                                       'asynchrony metric and its regression '
+                                       'stats, or "r2" to mosaic '
+                                       'just the harmonic regression\'s'
+                                       ' R2 value.')
 
 # pattern that occurs just before the file number in each file's number
 if DATA_TYPE in ['c', 'r2']:
     PATT_B4_FILENUM = '\D+-'
-else:
+else if DATA_TYPE in ['a']:
     PATT_B4_FILENUM = '\D+-OUT-'
+else:
+    raise ValueError('DATA_TYPE must be "c", "r2", or "a"')
 
 # kernel size used by GEE to output the TFRecord files
 KERNEL_SIZE = 288
@@ -69,7 +73,7 @@ NODATA_VAL = -9999.0
 
 # names of the bands saved into the TFRecord files
 if DATA_TYPE == 'a':
-    BANDS = ['asynch_euc', 'asynch_euc_R2', 'asynch_n']
+    BANDS = ['asynch', 'asynch_r2', 'asynch_pval', 'asynch_n']
 elif DATA_TYPE == 'c':
     BANDS = ['constant', 'sin_1', 'cos_1', 'sin_2', 'cos_2']
 elif DATA_TYPE == 'r2':
@@ -81,6 +85,7 @@ if DATA_TYPE == 'a':
     assert re.search('^\d+$', NEIGH_RAD) is not None, ('NEIGH_RAD must be an '
                                                        'integer (i.e., the radius '
                                                        'expressed in km')
+    assert NEIGH_RAD in ['50', '100', '150']
     # convert to str used in filenames
     NEIGH_RAD = NEIGH_RAD+'000mrad-'
 
@@ -312,14 +317,6 @@ def write_geotiff(output_filepath, output_arr, bands):
             'tiled': False, ## ?
             'interleave': 'band' ## ?
            }
-    # rename bands, if outputting asynch files
-    # NOTE: DOING THIS BECAUSE I WOUND UP DROPPING THE LINEAR REGRESSION-BASED
-    #       METHOD OF ASYNCH CALCULATION IN FAVOR OF THE 'CLEANER'
-    #       EUCLIDEAN DISTANCE-BASED METHOD, BUT I STILL LEFT 5 OUTPUT BANDS IN
-    #       THE ASYNCH OUTPUT TFRECORD FILES (EVEN THOUGH FIRST 2 ARE EMPTY),
-    #       BECAUSE EASIEST TO JUST DROP THOSE 2 BLANK BANDS HERE
-    if DATA_TYPE == 'a':
-        bands = ['asynch', 'asynch_r2', 'asynch_n']
     # open the file connection, unpacking the profile
     with rio.open(output_filepath, 'w', **meta) as f:
         # Write an array as a raster band to a new file

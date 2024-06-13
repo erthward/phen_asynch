@@ -4,7 +4,7 @@ overwrite = True
 
 # map layers' arg strings to their filename strings
 lyrs_dict = {'c': 'coeffs',
-             'r2': 'R2',
+             'r2': 'harm_reg_R2',
              'a': 'asynch',
             }
 # map neigh_rads' arg strings to their filename strings

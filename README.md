@@ -81,9 +81,10 @@ All steps of the following workflow were executed on a local computer unless oth
 2. Once all 3 jobs are complete, feed `asynch/calculation/mosaic_job.sh` to slurm's sbatch command to mosaic all TFRecord files into a single GeoTIFF file for each phenological and climatic dataset (yielding a map of seasonality coefficients, a map of seasonality-fitting $R^{2}$s, and 3 maps of asynchrony, one per neighborhood radius).
 
 
-### mosaic all results:
+### mosaic and store all results:
 1. Run `asynch/calculation/mosaic_job.sh` to mosaic the regression coefficient, regression $R^2$, and asynchrony-result files for all LSP and climate variables and all asynchrony neighborhoods, producing a set of GeoTIFF outputs for downstream plotting and analysis.
-
+2. Run `asynch/calculation/ul_mosaicked_results_from_savio_to_bdrive.sh` to copy all mosaicked results from Savio back up to Google Drive. 
+3. Run `asynch/calculation/dl_mosaicked_results_from_bdrive.sh` to then also copy those results down to their intended location on laptop external drive.
 
 ### map masks and R2s:
 1. Navigate to the local directory where the mask files should be stored, then run `phen/calculation/masking/dl_GEE_masks.sh` to download all 6 mask GeoTIFFs output by GEE.

@@ -141,18 +141,18 @@ if __name__ == '__main__':
 
     fig = plt.figure(figsize=(8.7, 8))
     gs = GridSpec(4, 2, figure=fig)
-    filenames = ['NIRv_R2.tif',
-                 'SIF_R2.tif',
-                 'pr_R2.tif',
-                 'tmmn_R2.tif',
-                 'tmmx_R2.tif',
-                 'def_R2.tif',
-                 'cld_R2.tif',
+    filenames = ['NIRv_harm_reg_R2.tif',
+                 'SIF_harm_reg_R2.tif',
+                 'pr_harm_reg_R2.tif',
+                 'tmmn_harm_reg_R2.tif',
+                 'tmmx_harm_reg_R2.tif',
+                 'def_harm_reg_R2.tif',
+                 'cld_harm_reg_R2.tif',
                 ]
     for ct, fn in enumerate(filenames):
         print(f"\n\nNOW PROCESSING {fn}...\n\n")
         ax = fig.add_subplot(gs[ct//2, ct%2])
-        label = label_dict[fn.replace('_R2.tif', '')]
+        label = label_dict[fn.replace('_harm_reg_R2.tif', '')]
         map_r2(ax, fn, label)
 
     fig.subplots_adjust(left=0,
@@ -162,5 +162,5 @@ if __name__ == '__main__':
                         hspace=0,
                         wspace=0,
                        )
-    fig.savefig('FIG_SXXX_R2_maps.png', dpi=500)
+    fig.savefig('FIG_SXXX_harm_reg_R2_maps.png', dpi=500)
 

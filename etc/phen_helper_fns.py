@@ -41,7 +41,7 @@ neigh_rads = [50, 100, 150]
 # get the variables' filepaths
 DATA_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
             'seasonal_asynchrony/data')
-EXTERNAL_DATA_DIR = '/media/deth/SLAB/diss/3-phn/GEE_outputs/final/'
+EXTERNAL_DATA_DIR = '/media/deth/SLAB/diss/3-phn/final_seas_and_asynch_maps/'
 EXTERNAL_MASK_DATA_DIR = '/media/deth/SLAB/diss/3-phn/GEE_outputs/LSP_masks/'
 EXTERNAL_RF_DATA_DIR = '/media/deth/SLAB/diss/3-phn/rf_data/'
 EXTERNAL_FLUX_DATA_DIR = '/media/deth/SLAB/diss/3-phn/other/flux/'
