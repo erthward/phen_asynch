@@ -86,6 +86,7 @@ All steps of the following workflow were executed on a local computer unless oth
 2. Run `asynch/calculation/ul_mosaicked_results_from_savio_to_bdrive.sh` to copy all mosaicked results from Savio back up to Google Drive. 
 3. Run `asynch/calculation/dl_mosaicked_results_from_bdrive.sh` to then also copy those results down to their intended location on laptop external drive.
 
+
 ### map masks and R2s:
 1. Navigate to the local directory where the mask files should be stored, then run `phen/calculation/masking/dl_GEE_masks.sh` to download all 6 mask GeoTIFFs output by GEE.
 2. Run `phen/calculation/masking/make_masking_maps_supp.py` to produce **Fig. SXXX**, showing all masks used on the LSP datasets.
@@ -93,9 +94,10 @@ All steps of the following workflow were executed on a local computer unless oth
 
 
 ### produce RGB phenology map:
-1. Download ancillary cheatgrass data from [Maestas *et. al*](https://www.sciencebase.gov/catalog/item/5ec5159482ce476925eac3b7) (to be used in a statistical test embedded in `phen/analysis/div/plot_eof_maps_and_ts_FIG_S3.py`).
-2. Run `phen/analysis/div/aggregate_great_basin_cheatgrass_data.sh` to aggregate that dataset to our analysis resolution of $0.05^{\circ}$.
-3. Run `phen/analysis/div/plot_eof_maps_and_ts_FIG_1_S1_S2.py` three times, one for each of the three values of `what_to_plot` (provided in comments inline) to produce **Fig. XXX**'s global and regionally-zoomed RGB land surface phenology maps and the two EOF supplemental figures.
+1. Log into Savio through Open OnDemand (browser-based interface for Jupyer notebooks, etc.) and run `phen/analysis/div/calc_phenology_EOFs.ipynb` in a Jupyter notebook running on a regular `savio_3` node (**1 job, ~XXXXh runtime**).
+2. Download ancillary cheatgrass data from [Maestas *et. al*](https://www.sciencebase.gov/catalog/item/5ec5159482ce476925eac3b7) (to be used in a statistical test embedded in `phen/analysis/div/plot_eof_maps_and_ts_FIG_S3.py`).
+3. Run `phen/analysis/div/aggregate_great_basin_cheatgrass_data.sh` to aggregate that dataset to our analysis resolution of $0.05^{\circ}$.
+4. Run `phen/analysis/div/plot_eof_maps_and_ts_FIG_1_S1_S2.py` three times, one for each of the three values of `what_to_plot` (provided in comments inline) to produce **Fig. XXX**'s global and regionally-zoomed RGB land surface phenology maps and the two EOF supplemental figures.
 
 
 ### run phenology-observation evaluation:
@@ -209,11 +211,21 @@ NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` w
   - MAFFT 7.520
 
 **UC Berkeley Savio Cluster**:
-  - Bash **XXXXX**
-  - Python **XXXX**
-    - affine **XXXX**
-    - haversine **XXXX**
-    - eofs **XXXX**
+  - Python 3.7
+    - numpy 1.21.5
+    - rasterio 1.1.5
+    - xarray 0.20.2
+    - rioxarray 0.9.1
+    - pandas 1.3.5
+    - geopandas 0.8.1
+    - json 2.0.9
+    - tensorflow 2.3.1
+    - affine 2.3.0
+    - haversine
+    - eofs 1.4.0
+    - scipy 1.4.1
+    - sklearn 0.21.3
+    - matplotlib 3.1.1
   - R **XXXXX**
     - sp  **XXXX**
     - sf **XXXX**
@@ -259,6 +271,7 @@ NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` w
     - StatsBase 0.33.16
     - GLM 1.6.1
     - Colors 0.12.8
+  - Bash 4
 
 **GEE**:
   - browser-based Javascript IDE (GEE API ≥0.1.404)

@@ -17,7 +17,7 @@
 #
 ## Command(s) to run:
 
-module load gdal python
+module load gdal python/3.7
 
 python /global/home/users/drewhart/seasonality/seasonal_asynchrony/phen/validation/compare_NIRv_SIF_maps/compare_NIRv_SIF_fitted_phenology.py
 

@@ -19,6 +19,6 @@
 
 stdbuf -i0 -o0 -e0 command
 
-module load python
+module load python/3.7
 
 python /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/calculation/mosaic_all_results.py > mosaic_all_results.pyout

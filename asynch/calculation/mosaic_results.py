@@ -1,5 +1,5 @@
 #!/bin/python
-# calc_asynchrony.py
+# mosaic_results.py
 
 """
 Reads in the results calculated by Julia on Savio, mosaics them together,
@@ -19,7 +19,6 @@ NOTE: This is only necessary because the GEE bug won't read my results files
 # imports
 #--------
 
-from shapely.geometry import Point
 import matplotlib.pyplot as plt
 from pprint import pprint
 import tensorflow as tf

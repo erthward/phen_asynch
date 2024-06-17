@@ -19,7 +19,7 @@
 
 stdbuf -i0 -o0 -e0 command
 
-module load python julia/1.4.1
+module load julia/1.4.1
 
 # loop over vars, calculating asynch maps for each
 for neigh_rad in 100

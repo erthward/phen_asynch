@@ -1,9 +1,8 @@
-8mport pandas as pd
+import pandas as pd
 import geopandas as gpd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-import cmocean
 from copy import deepcopy
 import numpy as np
 import scipy.stats
@@ -11,7 +10,6 @@ import xarray as xr
 import rasterio as rio
 import rioxarray as rxr
 from datetime import datetime
-import seaborn as sns
 import re, os, sys, time
 
 # main behavioral params

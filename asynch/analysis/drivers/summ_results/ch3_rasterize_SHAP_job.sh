@@ -17,6 +17,6 @@
 #
 ## Command(s) to run:
 
-module load python
+module load python/3.7
 # run the SHAP-rasterization script
 python /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/analysis/rf/rasterize_SHAP_vals.py > rast_shap.pyout

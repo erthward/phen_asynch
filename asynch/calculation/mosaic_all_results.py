@@ -1,3 +1,5 @@
+# mosaic_all_results.py
+
 import os
 
 overwrite = True
