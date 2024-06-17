@@ -77,17 +77,16 @@ All steps of the following workflow were executed on a local computer unless oth
 
 
 ### calculate asynchrony:
-1. Feed all three `asynch/calculation/asynch_job_*kmneigh.sh` job scripts to slurm's `sbatch` command to calculate asynchrony maps for all fitted phenological and climatic seasonality datasets and all three neighborhood radii (50 km, 100 km, 150 km) (**3 jobs total, one per neighborhood radius, each ~XXXXh runtime**).
-2. Once all 3 jobs are complete, feed `asynch/calculation/mosaic_job.sh` to slurm's sbatch command to mosaic all TFRecord files into a single GeoTIFF file for each phenological and climatic dataset (yielding a map of seasonality coefficients, a map of seasonality-fitting $R^{2}$s, and 3 maps of asynchrony, one per neighborhood radius).
+1. Feed all three `asynch/calculation/asynch_job_*kmneigh.sh` job scripts to slurm's `sbatch` command to calculate asynchrony maps for all fitted phenological and climatic seasonality datasets and all three neighborhood radii (50 km, 100 km, 150 km) (**3 jobs total, one per neighborhood radius, runtimes of ~13h for 50km neighborhood, ~30h for 100km, and ~46h for 150km**).
 
 
 ### mosaic and store all results:
-1. Run `asynch/calculation/mosaic_job.sh` to mosaic the regression coefficient, regression $R^2$, and asynchrony-result files for all LSP and climate variables and all asynchrony neighborhoods, producing a set of GeoTIFF outputs for downstream plotting and analysis.
-2. Run `asynch/calculation/ul_mosaicked_results_from_savio_to_bdrive.sh` to copy all mosaicked results from Savio back up to Google Drive. 
-3. Run `asynch/calculation/dl_mosaicked_results_from_bdrive.sh` to then also copy those results down to their intended location on laptop external drive.
+1. Run `asynch/calculation/mosaic_job.sh` to mosaic the regression coefficient, regression $R^2$, and asynchrony-result files for all LSP and climate variables and for all three asynchrony neighborhoods (50 km, 100 km, 150 km), producing a set of GeoTIFF outputs for downstream plotting and analysis (**1 job, ~45m runtime**).
+2. Run `asynch/calculation/ul_mosaicked_results_from_savio_to_bdrive.sh` to copy all mosaicked results from Savio back up to Google Drive (**1 job, ~15m runtime**)
+3. Run `asynch/calculation/dl_mosaicked_results_from_bdrive.sh` to then also copy those results down to their intended location on laptop external driv (**1 job, ~15m runtime**).
 
 
-### map masks and R2s:
+### map masks and R2s from harmonic regressions:
 1. Navigate to the local directory where the mask files should be stored, then run `phen/calculation/masking/dl_GEE_masks.sh` to download all 6 mask GeoTIFFs output by GEE.
 2. Run `phen/calculation/masking/make_masking_maps_supp.py` to produce **Fig. SXXX**, showing all masks used on the LSP datasets.
 3. Run `phen/calculation/R2/make_R2_maps_supp.py` to produce **Fig. SXXX**, showing the $R^2$s of the harmonic regressions fitted to all LSP and climate datasets.
