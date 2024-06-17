@@ -4,5 +4,5 @@
 # copy all mosaicked GeoTIFFs back to Google Drive
 rclone copy bdrive:LSP_and_asynch_mosaicked_outputs/ .
 
-# ensure that the following prints out '27'
-ls . | wc -l
+# ensure that the following prints out '45' (5 layers for each of 9 variables)
+ls *.tif | wc -l

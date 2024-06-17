@@ -53,58 +53,60 @@ All steps of the following workflow were executed on a local computer unless oth
 
 ### calculate masking and preprocessing maps for seasonality-fitting procedure:
 1. Establish all desired parameter values for data reading and masking, harmonic regression fitting, significance calculation, and data exports in `phen/calculation/GEE/params.js` (note, tweaked and resaved a few times during the following workflow) (*run on GEE*)
-2. Run `phen/calculation/GEE/masking/calc_month_data_avail_props.js` to produce a set of 12 global Image assets, each indicating the average proportion of monthly MODIS NBAR data availability at each pixel, to be used for masking based on proportional data availability and to derive the monthly data-availability evenness mask. (*run on GEE*) (**12 jobs, each ~20-30m runtime, but note that a few may fail the first time and need to be rerun until successful**)
-3. Run `phen/calculation/GEE/masking/calc_month_evenness.js` to produce a global map of monthly Pielou's evenness of the MODIS NBAR data, as a GEE asset, derived from the outputs of `phen/calculation/GEE/masking/calc_month_data_avail_props.js`. (*run on GEE*) (**2 jobs, both <10m runtime**)
-4. Run `phen/calculation/GEE/masking/calc_land_cover_mask.js` to produce a global map indicating all pixels that are valid (i.e., not water, urban, barren, or permanent ice/snow) and that are always 'natural' across our time series (i.e., forest, savanna, shrub, grass, wetland) and/or always agricultural. (All of those pixels will be used in the LSP analyses, but only the 'always natural' pixels will be used in the asynchrony analyses, to try to avoid places subject to anthropogenically created spatial asynchrony.) (*run on GEE*) (**2 jobs, both <10m runtime**)
-5. Run `phen/calculation/GEE/masking/calc_ts_pct_data_availability.js` to produce a map of overall data availability for the entire 20-year archive. (*run on GEE*) (**1 job, ~4h runtime**)
-6. Run `phen/calculation/GEE/masking/calc_permutation_fail_count_maps.js` to produce GEE assets representing, in total, 20 permutations of the seasonal phenology-fitting code for the NIRv data (unreasonable to produce more because of compute limitations). (*run on GEE*) (**10 jobs, each ~6-20h runtime**)
-7. Run `phen/calculation/GEE/masking/calc_permutation_signif_mask.js` to combine the outputs of the previous step into the overall significance masks, to be used in the masking procedure for the final phenology maps. (*run on GEE*) (**1 job, <10m runtime**)
-8. Run `phen/calculation/GEE/masking/create_overall_mask.js` twice, once with 'maskingMode' set to 'default' in `phen/calculation/GEE/params.js` and once with it set to 'strict', to combine all previously created masks into a pair of default (used for LSP analyses) and strict (used for asynchrony analyses) mask assets. (*run on GEE*) (**7 jobs total, <10m runtime**)
-9. Run `phen/calculation/GEE/io/calc_min_pos_NIRv.js` to calculate a global map asset of each pixel's minimum positive NIRv value (to be used to backfill negative NIRv values that occur, mainly in places and times with solid snow cover. (*run on GEE*) (** 1 job, ~8h runtime**)
+2. Run `phen/calculation/GEE/masking/calc_month_data_avail_props.js` to produce a set of 12 global Image assets, each indicating the average proportion of monthly MODIS NBAR data availability at each pixel, to be used for masking based on proportional data availability and to derive the monthly data-availability evenness mask. (*run on GEE*) (**12 tasks, each ~20-30m runtime, but note that a few may fail the first time and need to be rerun until successful**)
+3. Run `phen/calculation/GEE/masking/calc_month_evenness.js` to produce a global map of monthly Pielou's evenness of the MODIS NBAR data, as a GEE asset, derived from the outputs of `phen/calculation/GEE/masking/calc_month_data_avail_props.js`. (*run on GEE*) (**2 tasks, both <10m runtime**)
+4. Run `phen/calculation/GEE/masking/calc_land_cover_mask.js` to produce a global map indicating all pixels that are valid (i.e., not water, urban, barren, or permanent ice/snow) and that are always 'natural' across our time series (i.e., forest, savanna, shrub, grass, wetland) and/or always agricultural. (All of those pixels will be used in the LSP analyses, but only the 'always natural' pixels will be used in the asynchrony analyses, to try to avoid places subject to anthropogenically created spatial asynchrony.) (*run on GEE*) (**2 tasks, both <10m runtime**)
+5. Run `phen/calculation/GEE/masking/calc_ts_pct_data_availability.js` to produce a map of overall data availability for the entire 20-year archive. (*run on GEE*) (**1 task, ~4h runtime**)
+6. Run `phen/calculation/GEE/masking/calc_permutation_fail_count_maps.js` to produce GEE assets representing, in total, 20 permutations of the seasonal phenology-fitting code for the NIRv data (unreasonable to produce more because of compute limitations). (*run on GEE*) (**10 tasks, each ~6-20h runtime**)
+7. Run `phen/calculation/GEE/masking/calc_permutation_signif_mask.js` to combine the outputs of the previous step into the overall significance masks, to be used in the masking procedure for the final phenology maps. (*run on GEE*) (**1 task, <10m runtime**)
+8. Run `phen/calculation/GEE/masking/create_overall_mask.js` twice, once with 'maskingMode' set to 'default' in `phen/calculation/GEE/params.js` and once with it set to 'strict', to combine all previously created masks into a pair of default (used for LSP analyses) and strict (used for asynchrony analyses) mask assets. (*run on GEE*) (**7 tasks total, <10m runtime**)
+9. Run `phen/calculation/GEE/io/calc_min_pos_NIRv.js` to calculate a global map asset of each pixel's minimum positive NIRv value (to be used to backfill negative NIRv values that occur, mainly in places and times with solid snow cover. (*run on GEE*) (** 1 task, ~8h runtime**)
 
 
 ### calculate fitted seasonality maps:
-1. Run `phen/calculation/GEE/fft/create_NIRv_harmonic_regression_asset.js` to run the main harmonic regression analysis on the MODIS NIRv dataset. (This is by far the most computationally intensive, so it's best to just run it once and save the result as an asset, which is then loaded, masked, and export to Drive by `phen/calculation/GEE/main.js`.) (**1 job, ~20h runtime**)
-2. Run `phen/calculation/GEE/main.js` to launch a GEE job that will save tiled results to Google Drive.
+1. Run `phen/calculation/GEE/fft/create_NIRv_harmonic_regression_asset.js` to run the main harmonic regression analysis on the MODIS NIRv dataset. (This is by far the most computationally intensive, so it's best to just run it once and save the result as an asset, which is then loaded, masked, and export to Drive by `phen/calculation/GEE/main.js`.) (**1 task, ~20h runtime**)
+2. Run `phen/calculation/GEE/main.js` to launch a GEE task that will save tiled results to Google Drive.
   NOTE: Results will be formatted as overlapping TFRecord tiles.
   NOTE: In order to produce all results, this script must be manually called once for each combination of NIRv or SIF and default or strict masking, as well as once per climate variable (TerraClimate min temperature, precipitation, and climatic water deficit, as well as MODIS cloud). To do this, the `datasetName`, `climateVar`, and `maskingMode` variables must be manually swapped in this script.
   NOTE: To execute the full phenology-mapping workflow, main.js will in turn call a variety of other scripts located in `phen/calculation`.
-  (*run on GEE*) (**9 jobs total, ranging from 10s of minutes (NIRv, SIF and TerraClimate jobs) to a handful of hours (MODIS cloud job)**)
+  (*run on GEE*) (**9 tasks total, ranging from 10s of minutes (NIRv, SIF and TerraClimate tasks) to a handful of hours (MODIS cloud task)**)
 
 
 ### download seasonality results:
-1. Navigate to the 'GEE\_outputs' directory where all fitted LSP and seasonality files from GEE should be stored, then run `phen/calculation/dl_and_organize_GEE_data.sh` to a.) download all results into the parent directory (using `rclone`) (both on UC Berkeley's Savio cluster and locally on external hard drive), then b.) move each run's results into corresponding child directory.
+1. *On both local machine and Savio*, navigate to the 'GEE\_outputs' directory where all fitted LSP and seasonality files from GEE should be stored, then run `phen/calculation/dl_and_organize_GEE_data.sh` to a.) download all results into the parent directory (using `rclone`) (both on UC Berkeley's Savio cluster and locally on external hard drive), then b.) move each run's results into corresponding child directory.
 
 
 ### calculate asynchrony:
-1. Feed all three `asynch/calculation/asynch_job_*kmneigh.sh` job scripts to slurm's `sbatch` command to calculate asynchrony maps for all fitted phenological and climatic seasonality datasets and all three neighborhood radii (50 km, 100 km, 150 km) (**3 jobs total, one per neighborhood radius, runtimes of ~13h for 50km neighborhood, ~30h for 100km, and ~46h for 150km**).
+1. *On Savio*, feed all three `asynch/calculation/asynch_job_*kmneigh.sh` job scripts to slurm's `sbatch` command to calculate asynchrony maps for all fitted phenological and climatic seasonality datasets and all three neighborhood radii (50 km, 100 km, 150 km) (**3 jobs total, one per neighborhood radius, runtimes of ~13h for 50km neighborhood, ~30h for 100km, and ~46h for 150km**).
 
 
 ### mosaic and store all results:
-1. Run `asynch/calculation/mosaic_job.sh` to mosaic the regression coefficient, regression $R^2$, and asynchrony-result files for all LSP and climate variables and for all three asynchrony neighborhoods (50 km, 100 km, 150 km), producing a set of GeoTIFF outputs for downstream plotting and analysis (**1 job, ~45m runtime**).
-2. Run `asynch/calculation/ul_mosaicked_results_from_savio_to_bdrive.sh` to copy all mosaicked results from Savio back up to Google Drive (**1 job, ~15m runtime**)
-3. Run `asynch/calculation/dl_mosaicked_results_from_bdrive.sh` to then also copy those results down to their intended location on laptop external driv (**1 job, ~15m runtime**).
+1. *On Savio*, run `asynch/calculation/mosaic_job.sh` to mosaic the regression coefficient, regression $R^2$, and asynchrony-result files for all LSP and climate variables and for all three asynchrony neighborhoods (50 km, 100 km, 150 km), producing a set of GeoTIFF outputs for downstream plotting and analysis (**1 job, ~45m runtime**).
+2. *On Savio*, run `asynch/calculation/ul_mosaicked_results_from_savio_to_bdrive.sh` to copy all mosaicked results from Savio back up to Google Drive (**1 task, ~15m runtime**)
+3. *On laptop*, run `asynch/calculation/dl_mosaicked_results_from_bdrive.sh` to then also copy those results down to their intended location on laptop external driv (**1 task, ~1h runtime**).
 
 
 ### map masks and R2s from harmonic regressions:
-1. Navigate to the local directory where the mask files should be stored, then run `phen/calculation/masking/dl_GEE_masks.sh` to download all 6 mask GeoTIFFs output by GEE.
-2. Run `phen/calculation/masking/make_masking_maps_supp.py` to produce **Fig. SXXX**, showing all masks used on the LSP datasets.
-3. Run `phen/calculation/R2/make_R2_maps_supp.py` to produce **Fig. SXXX**, showing the $R^2$s of the harmonic regressions fitted to all LSP and climate datasets.
+1. *On laptop*, navigate to the directory where the mask files should be stored, then run `phen/calculation/masking/dl_GEE_masks.sh` to download all 6 mask GeoTIFFs output by GEE (**1 task, <5m runtime**).
+2. *On laptop*, run `phen/calculation/masking/make_masking_maps_supp.py` to produce **Fig. SXXX**, showing all masks used on the LSP datasets (**1 task, <5m runtime**).
+3. *On laptop*, run `phen/calculation/R2/make_R2_maps_supp.py` to produce **Fig. SXXX**, showing the $R^2$s of the harmonic regressions fitted to all LSP and climate datasets (**1 task, <5m runtime**).
 
 
 ### produce RGB phenology map:
-1. Log into Savio through Open OnDemand (browser-based interface for Jupyer notebooks, etc.) and run `phen/analysis/div/calc_phenology_EOFs.ipynb` in a Jupyter notebook running on a regular `savio_3` node (**1 job, ~XXXXh runtime**).
-2. Download ancillary cheatgrass data from [Maestas *et. al*](https://www.sciencebase.gov/catalog/item/5ec5159482ce476925eac3b7) (to be used in a statistical test embedded in `phen/analysis/div/plot_eof_maps_and_ts_FIG_S3.py`).
-3. Run `phen/analysis/div/aggregate_great_basin_cheatgrass_data.sh` to aggregate that dataset to our analysis resolution of $0.05^{\circ}$.
-4. Run `phen/analysis/div/plot_eof_maps_and_ts_FIG_1_S1_S2.py` three times, one for each of the three values of `what_to_plot` (provided in comments inline) to produce **Fig. XXX**'s global and regionally-zoomed RGB land surface phenology maps and the two EOF supplemental figures.
+1. *On Savio*, run `phen/analysis/div/calc_LSP_EOFs.py` on Savio to calculate the global NIRv LSP EOF map and save results (**1 job, ~XXXXh total runtime (~1h for calculation of fitted annual series at all pixels; ~XXXXh for EOF calculation)**).
+2. *On Savio*, run `phen/analaysis/div/ul_LSP_EOFs.sh` to push the EOF results back to BDrive.
+3. *On laptop*, run `phen/analysis/div/dl_LSP_EOFs.sh` to download the EOF results to the local hard drive.
+4. *On laptop*, download ancillary cheatgrass data from [Maestas *et. al*](https://www.sciencebase.gov/catalog/item/5ec5159482ce476925eac3b7) (to be used in a statistical test embedded in `phen/analysis/div/plot_eof_maps_and_ts_FIG_S3.py`).
+5. *On laptop*, run `phen/analysis/div/aggregate_great_basin_cheatgrass_data.sh` to aggregate that dataset to our analysis resolution of $0.05^{\circ}$.
+6. *On laptop*, run `phen/analysis/div/plot_eof_maps_and_ts_FIG_1_S1_S2.py` three times, one for each of the three values of `what_to_plot` (provided in comments inline) to produce **Fig. XXX**'s global and regionally-zoomed RGB land surface phenology maps and the two EOF supplemental figures.
 
 
-### run phenology-observation evaluation:
+### run NPN and SI-x evaluation:
 1. Run `phen/evaluation/NPN_and_SI-x/get_NPN_leaf_data.r` to download, for a wide range of dominant US tree genera and at all NPN sites, both the day of year of first leaf based on NPN ground observations and mean day of year of start of season (SOS) based on MODIS-derived SI-x phenology maps.
 2. Run `phen/evaluation/NPN_and_SI-x/compare_NIRv_LSP_to_NPN_first_leaf.py` to evaluate SOS estimates derived from our NIRv LSP data against both the NPN first-leaf and SI-x SOS datasets.
 
 
-### run flux-tower evaluation:
+### run FLUXNET evaluation:
 1. Manually download all subset data products (using DownThemAll!) from the Fluxnet network's [download page](https://fluxnet.org/data/download-data/).
 2. Run `phen/evaluation/flux_tower_GPP/evaluate_at_all_fluxnet_sites.py <DS>` twice, once where '\<DS\>' is replaced with 'NIRv' and once with 'SIF', to run evaluation on both the fitted NIRv and SIF seasonality results against GPP seasonality at all usable Fluxnet sites (producing **Fig. XXX**).
 3. Run `phen/evaluation/compare_NIRv_SIF_maps/compare_NIRv_SIF_fitted_phenology.py` (on Savio) to calculate a global map of the $R^2$s between the NIRv and SIF fitted phenology time series.
@@ -121,7 +123,7 @@ All steps of the following workflow were executed on a local computer unless oth
 
 
 ### prepare physiographic covariates:
-1. Run `phen/calculation/GEE/other_datasets/calc_veg_entropy.js` to produce the vegetation cover entropy map that will be used as a covariate in the phenological asynchrony predictive model. (*run on GEE*) (**1 job, <10m runtime**)
+1. Run `phen/calculation/GEE/other_datasets/calc_veg_entropy.js` to produce the vegetation cover entropy map that will be used as a covariate in the phenological asynchrony predictive model. (*run on GEE*) (**1 task, <10m runtime**)
 2. Download SRTM-based 50 km median vector ruggedness metric (file 'vrm_50KMmd_SRTM/tif') from the [EarthEnv website](http://www.earthenv.org/topography).
 NOTE: Climate asynchrony maps calculated by `asynch/calculation/asynch_job.sh` will also be used as covariates in the phenological asynchrony predictive model.
 

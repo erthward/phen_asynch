@@ -133,7 +133,8 @@ eofs = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
                          (dataset, normts_file_substr, mask_filename_ext))[:3]
 
 # EOF percentages of variance explained
-eofs_pcts = [70.0, 17.7, 7.9]
+# TODO: LOAD THESE AND TIME SERIES FROM CSV!
+eofs_pcts = [np.nan]
 
 # define focal region bounding bboxes
 reg_bboxes = {

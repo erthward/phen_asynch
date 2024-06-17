@@ -60,13 +60,18 @@ partlabel_fontsize=40
 
 
 # load shapefiles
-countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR, 'NewWorldFile_2020.shp'))
+# NOTE: not reprojecting the R^2 maps because we want to show as close to the
+#       original values as possible (aside from plotting fn aggregating
+#       them) rather than first warping them to a projection; thus, reproject
+#       vector files to unprojected lat-lon EPSG:4326, the CRS of the R^2 files
+countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
+                                       'NewWorldFile_2020.shp')).to_crs(4326)
 # load level-1 subnational jurisdictions (downloaded from:
 #                                 https://gadm.org/download_country.html)
 subnational = []
 for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
     subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR, f)))
-subnational = pd.concat(subnational)
+subnational = pd.concat(subnational).to_crs(4326)
 
 
 def plot_juris_bounds(ax,
@@ -93,7 +98,7 @@ def plot_juris_bounds(ax,
                   )
 
 
-def map_r2(ax, r2_filename, axlabel, add_colorbar=False):
+def map_r2(ax, r2_filename, axlabel, add_colorbar=False, cbar_ax=None):
     """
     plot an R2 map from the LSP/seasonality-fitting process
     """
@@ -101,9 +106,6 @@ def map_r2(ax, r2_filename, axlabel, add_colorbar=False):
              os.path.split(f)[-1] == r2_filename]
     assert len(files) == 1
     r2 = rxr.open_rasterio(os.path.join(data_dir, files[0]), masked=True)[0]
-    # NOTE: not reprojecting because we want to show as close to the original
-    #       values as possible (aside from plotting fn aggregating
-    #       them) rather than first warping them to a projection
     # NOTE: annoying AttributeError is because da.attrs['long_name']
     #       is retained as a tuple of names (rather than being subsetted
     #       by indexing) when I index a single layer out of an
@@ -116,6 +118,7 @@ def map_r2(ax, r2_filename, axlabel, add_colorbar=False):
                    vmin=0,
                    vmax=1,
                    add_colorbar=add_colorbar,
+                   cbar_ax=cbar_ax,
                    zorder=0,
                   )
     plot_juris_bounds(ax=ax)
@@ -136,7 +139,7 @@ if __name__ == '__main__':
                   'tmmn': 'mean ann. min. monthly temp.',
                   'tmmx': 'mean ann. max. monthly temp.',
                   'def': 'mean ann. climate water deficit',
-                  'cld': 'cloud-cover percent',
+                  'cloud': 'cloud-cover percent',
                  }
 
     fig = plt.figure(figsize=(8.7, 8))
@@ -147,14 +150,26 @@ if __name__ == '__main__':
                  'tmmn_harm_reg_R2.tif',
                  'tmmx_harm_reg_R2.tif',
                  'def_harm_reg_R2.tif',
-                 'cld_harm_reg_R2.tif',
+                 'cloud_harm_reg_R2.tif',
                 ]
     for ct, fn in enumerate(filenames):
         print(f"\n\nNOW PROCESSING {fn}...\n\n")
         ax = fig.add_subplot(gs[ct//2, ct%2])
         label = label_dict[fn.replace('_harm_reg_R2.tif', '')]
-        map_r2(ax, fn, label)
-
+        if ct == len(filenames)-1:
+            add_colorbar = True
+            cbar_ax=fig.add_subplot(GridSpec(100, 100, figure=fig)[88:92,60:90])
+            cbar_kwargs = {'orientation': 'horizontal'}
+        else:
+            add_colorbar = False
+            cbar_ax = None
+            cbar_kwargs = None
+        map_r2(ax,
+               fn,
+               label,
+               add_colorbar=add_colorbar,
+               cbar_ax=cbar_ax,
+              )
     fig.subplots_adjust(left=0,
                         right=1,
                         bottom=0.01,
