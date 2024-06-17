@@ -3,13 +3,13 @@
 #       (the subdirs being NIRv, NIRv_STRICT, SIF, SIF_STRICT, tmmn, tmmx, pr, def, cloud)
 
 # copy all mosaicked GeoTIFFs back to Google Drive
-rclone copy ./NIRv/*tif bdrive:LSP_and_asynch_mosaicked_outputs/
-rclone copy ./NIRv_STRICT/*tif bdrive:LSP_and_asynch_mosaicked_outputs/
-rclone copy ./SIF/*tif bdrive:LSP_and_asynch_mosaicked_outputs/
-rclone copy ./SIF_STRICT/*tif bdrive:LSP_and_asynch_mosaicked_outputs/
-rclone copy ./tmmn/*tif bdrive:LSP_and_asynch_mosaicked_outputs/
-rclone copy ./tmmx/*tif bdrive:LSP_and_asynch_mosaicked_outputs/
-rclone copy ./pr/*tif bdrive:LSP_and_asynch_mosaicked_outputs/
-rclone copy ./def/*tif bdrive:LSP_and_asynch_mosaicked_outputs/
-rclone copy ./cloud/*tif bdrive:LSP_and_asynch_mosaicked_outputs/
+rclone copy --include *tif ./NIRv/ bdrive:LSP_and_asynch_mosaicked_outputs/
+rclone copy --include *tif ./NIRv_STRICT/ bdrive:LSP_and_asynch_mosaicked_outputs/
+rclone copy --include *tif ./SIF/ bdrive:LSP_and_asynch_mosaicked_outputs/
+rclone copy --include *tif ./SIF_STRICT/ bdrive:LSP_and_asynch_mosaicked_outputs/
+rclone copy --include *tif ./tmmn/ bdrive:LSP_and_asynch_mosaicked_outputs/
+rclone copy --include *tif ./tmmx/ bdrive:LSP_and_asynch_mosaicked_outputs/
+rclone copy --include *tif ./pr/ bdrive:LSP_and_asynch_mosaicked_outputs/
+rclone copy --include *tif ./def/ bdrive:LSP_and_asynch_mosaicked_outputs/
+rclone copy --include *tif ./cloud/ bdrive:LSP_and_asynch_mosaicked_outputs/
 

@@ -30,7 +30,7 @@ else:
 
 # loop over vars and lyrs
 for var in ['NIRv', 'NIRv_STRICT', 'SIF', 'SIF_STRICT',
-            'tmmn', 'pr', 'def', 'cloud']:
+            'tmmn', 'tmmx', 'pr', 'def', 'cloud']:
 
     print(f"MOSAICKING ALL DATA FOR {var}...\n\n")
 
