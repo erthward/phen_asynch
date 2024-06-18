@@ -109,7 +109,7 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ### run NIRv-SIF asynchrony comparison:
-1. *On Savio*, run `phen/evaluation/compare_NIRv_SIF_maps/ch3_phen_comparison_job.sh` to calculate a global map of $R^2$ values between the fitted annual NIRv-based and SIF-based LSP patterns (**1 task, ~XXXXh runtime**).
+1. *On Savio*, run `phen/evaluation/compare_NIRv_and_SIF_maps/ch3_phen_comparison_job.sh` to calculate a global map of $R^2$ values between the fitted annual NIRv-based and SIF-based LSP patterns (**1 task, ~XXXXh runtime**).
 2. **ADD UL SCRIPT**
 3. **ADD DL SCRIPT**
 
