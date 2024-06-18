@@ -37,8 +37,7 @@ import os
 
 ###############################################################################
 
-data_dir = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
-            'seasonal_asynchrony/analysis')
+data_dir = os.path.join(phf.DATA_DIR, 'itcz')
 
 # read in raw, digitized data for boreal-summer ITCZ
 itczJJA = pd.read_csv(os.path.join(data_dir, 'ITCZ_JJA.csv'), header=None)
@@ -97,4 +96,5 @@ df = {'time': ['JJA', 'DJF', 'mean'], 'geometry': [itczJJA_line,
 gdf = gpd.GeoDataFrame(df, crs='EPSG:4326')
 
 # write out
-gdf.to_file('ITCZ_li_zeng_2005_digitized.shp')
+gdf.to_file(os.path.join(phf.DATA_DIR, 'itcz',
+                         'ITCZ_li_zeng_2005_digitized.shp'))

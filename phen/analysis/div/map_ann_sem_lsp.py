@@ -3,14 +3,13 @@ import pandas as pd
 import geopandas as gpd
 import rioxarray as rxr
 from scipy.signal import find_peaks
+import matplotlib.pyplot as plt
 from copy import deepcopy
-import os, re
+import os, re, sys
 
 sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
                     'seasonal_asynchrony/etc/'))
 import phen_helper_fns as phf
-
-
 
 # whether to run in debug mode
 debug = False
@@ -84,7 +83,7 @@ subnational = pd.concat(subnational)
 
 # load the coeffs
 coeffs = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
-                                        '%s%s_coeffs.tif') % ('NIRv', ''))
+                                        'NIRv_coeffs.tif'))
 
 # create the regression design matrix
 # (for recreating the fitted LSP curves)
@@ -161,4 +160,4 @@ ax.set_xlabel('')
 ax.set_ylabel('')
 ax.set_xticks(())
 ax.set_yticks(())
-fig.savefig('LSP_ann_sem_seasonality.png', dpi=600)
+fig.savefig('NIRv_LSP_ann_sem_seasonality.png', dpi=600)

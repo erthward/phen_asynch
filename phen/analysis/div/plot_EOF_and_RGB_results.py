@@ -3,7 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import matplotlib.patheffects as patheffects
+from matplotlib.gridspec import GridSpec
 from copy import deepcopy
+import pandas as pd
 import geopandas as gpd
 import palettable
 from matplotlib.transforms import Affine2D
@@ -25,9 +27,7 @@ import xarray as xr
 from scipy import stats
 from scipy.signal import argrelmax
 import seaborn as sns
-import pandas as pd
 import numpy as np
-#import xycmap
 import os, sys, re
 
 # local imports
@@ -41,13 +41,9 @@ import phen_helper_fns as phf
 ########
 
 # which figure to plot?
-#what_to_plot = 'fig_1'
-what_to_plot = 'reg_figs'
-#what_to_plot = 'fig_s3'
-#what_to_plot = 'fig_s4'
-
-# plotting params
-partlabel_fontsize = 24
+what_to_plot = sys.argv[1]
+assert what_to_plot in ['main_rgb_map', 'reg_figs',
+                        'eof_summ_fig', 'raw_rgb_maps']
 
 # write the weighted-sum EOF map to a raster file?
 write_wt_sum_eofs_to_file = False
@@ -57,7 +53,6 @@ save_it = True
 
 # which dataset to use?
 dataset = 'NIRv'
-#dataset = 'SIF'
 
 # which mask mode to use?
 masking_mode = 'default'
@@ -76,30 +71,12 @@ if normts:
 else:
     normts_file_substr = ''
 
-
 # which clustering algo to use?
 clust_algo = 'kmeans'
 
 # create the plots to aid EOF interpretation?
 run_eof_interpretation = False
 
-
-
-# helpful viz fn
-def compare_wt_nowt_rasts(nowt, wt, bands=[0,1,2]):
-    assert len(bands) in [1, 3]
-    if len(bands) == 1:
-        bands = bands[0]
-    fig, axs = plt.subplots(1,2)
-    try:
-        nowt[bands,:,:].plot.imshow(ax=axs[0])
-    except AttributeError:
-        pass
-    try:
-        wt[bands,:,:].plot.imshow(ax=axs[1])
-    except AttributeError:
-        pass
-    return fig
 
 ####################
 # LOAD AND PREP DATA
@@ -129,12 +106,16 @@ coeffs = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
 
 # load the EOFs
 eofs = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
-                                      '%s_global_4_EOFs_sqrt_coswts%s%s.tif') %
+                                      '%s_4_EOFs_sqrt_coswts%s%s.tif') %
                          (dataset, normts_file_substr, mask_filename_ext))[:3]
 
+
+# load DataFrame with EOF pcts var explained and PC time series
 # EOF percentages of variance explained
-# TODO: LOAD THESE AND TIME SERIES FROM CSV!
-eofs_pcts = [np.nan]
+pc_df = pd.read_csv(os.path.join(phf.EXTERNAL_DATA_DIR,
+                                 'NIRv_EOF_PC_table.csv'))
+eofs_pcts = [float(c.split('_')[1].replace('pct', '')) for c in pc_df.columns]
+pc_df.columns = [re.search('(?<=EOF)\d', c).group() for c in pc_df.columns]
 
 # define focal region bounding bboxes
 reg_bboxes = {
@@ -265,7 +246,7 @@ if write_wt_sum_eofs_to_file:
                           dims=['band', 'y', 'x'],
                          )
     out_da.rio.to_raster(('/media/deth/SLAB/diss/3-phn/GEE_outputs/final/'
-                          'NIRv_global_4_EOF_s_sqrt_coswts_normts_FORMAP.tif'))
+                          'NIRv_4_EOF_s_sqrt_coswts_normts_FORMAP.tif'))
 
 
 # get harmonic regression design matrix
@@ -275,6 +256,7 @@ dm = phf.make_design_matrix()
 ############
 ## PLOT EOFs
 ############
+
 # plotting helper fns
 def strip_axes(ax):
     ax.set_xlabel('')
@@ -289,18 +271,19 @@ global_xlim = (0.80 * eofs_wt_sum_for_map.x.min(),
                0.95 * eofs_wt_sum_for_map.x.max())
 
 
-if what_to_plot == 'fig_s3':
+if what_to_plot == 'eof_summ_fig':
     # create EOF fig
-    fig_eof = plt.figure(figsize=(20,30))
-
+    fig_eof = plt.figure(figsize=(21,30))
+    gs = GridSpec(3, 3, figure=fig_eof)
     # make maps of EOFS 1, 2, and 3 (all raw)
     eofs_for_map = eofs.rio.write_crs(4326)
     eofs_for_map = eofs_for_map.rio.reproject(8857)
     for i in range(3):
-        ax_eof = fig_eof.add_subplot(3,1,i+1)
+        ax_map = fig_eof.add_subplot(gs[i, :2])
+        ax_pc = fig_eof.add_subplot(gs[i, 2])
         eofs_for_map[i] = eofs_for_map[i].where(
                 eofs_for_map[i] < 2*eofs[i].max(), np.nan)
-        eofs_for_map[i].plot.imshow(ax=ax_eof,
+        eofs_for_map[i].plot.imshow(ax=ax_map,
                                     cmap='coolwarm',
                                     add_colorbar=False,
                                     alpha=1,
@@ -310,26 +293,34 @@ if what_to_plot == 'fig_s3':
                          linewidth=0.3,
                          edgecolor='black',
                          alpha=0.5,
-                         ax=ax_eof,
+                         ax=ax_map,
                          zorder=1,
                         )
         countries.plot(color='none',
                        linewidth=0.5,
                        edgecolor='black',
                        alpha=0.7,
-                       ax=ax_eof,
+                       ax=ax_map,
                        zorder=2,
                       )
 
-        strip_axes(ax_eof)
-        ax_eof.set_xlim(global_xlim)
-        ax_eof.set_ylim(eofs_for_map.rio.bounds()[1::2])
-        ax_eof.text(0.92*ax_eof.get_xlim()[0], 0.92*ax_eof.get_ylim()[0],
-                    'EOF %i\n%0.1f%%' % (i+1, eofs_pcts[i]),
+        strip_axes(ax_map)
+        ax_map.set_xlim(global_xlim)
+        ax_map.set_ylim(eofs_for_map.rio.bounds()[1::2])
+        ax_map.text(0.92*ax_map.get_xlim()[0], 0.92*ax_map.get_ylim()[0],
+                    'EOF %i:\n%0.1f%%' % (i+1, eofs_pcts[i]),
                     fontdict={'fontsize': 38})
+        # plot PC time series
+        ax_pc.plot(pc_df.loc[:, str(i)], linewidth=2, color='black')
+        ax_pc.set_xlabel('day of year', fontdict={'fontsize': 20})
+        ax_pc.set_ylabel('PC', fontdict={'fontsize': 20})
+        ax_pc.tick_params(axis='both', labelsize=12)
+        # square the PC axes
+        ax_pc.set_box_aspect(1)
     del eofs_for_map
     fig_eof.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98,
                             hspace=0.05)
+    fig_eof.subplots_adjust(wspace=.3)
     if save_it:
         fig_eof.savefig('FIG_S1_%s_EOF_maps%s%s.png' % (dataset,
                     mask_filename_ext, ('_RAW'*(not fold_it))), dpi=600)
@@ -339,7 +330,7 @@ if what_to_plot == 'fig_s3':
 #############################
 # PLOT UNTRANSFORMED RGB MAPS
 #############################
-if what_to_plot == 'fig_s4':
+if what_to_plot == 'raw_rgb_maps':
     # create untransformed RGB figure
     eofs_for_map = eofs.rio.write_crs(4326)
     eofs_for_map = eofs_for_map.rio.reproject(8857)
@@ -390,7 +381,7 @@ if what_to_plot == 'fig_s4':
 ##############
 
 
-if what_to_plot == 'fig_1':
+if what_to_plot == 'main_rgb_map':
 
     # create main figure
     dims = (20, 10)

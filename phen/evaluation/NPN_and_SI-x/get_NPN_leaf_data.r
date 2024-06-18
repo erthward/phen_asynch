@@ -1,16 +1,6 @@
 library(rnpn)
 library(ggplot2)
 
-# TODO
-
-# finalize added flower and new taxa stuff
-
-# rerun
-
-# rerun py script
-
-# circle back to Ian
-
 
 # function for converting complex list of phenophase output to data.frame
 get_phenophase_df = function(phenophase_list){
@@ -113,56 +103,4 @@ pms = base::merge(pms, species[, c('species_id', 'family_id', 'family_common_nam
 
 # write to disk
 write.csv(pms, 'NPN_leaves_data_dom_tree_spp.csv', row.names=F)
-
-
-#---------------------------------------------------------------------------------------------------------------------
-
-# also get bloom data for a wider range of predominant/abundant genera
-dom_conif = species[species$genus %in% c('Pinus', 'Juniperus', 'Tsuga', 'Pseudotsuga', 'Sequioa', 'Abies', 'Picea', 'Taxodium'), ]
-dom_shrub = species[species$genus %in% c('Artemisia', 'Larrea', 'Arctostaphylos', 'Ceanothus', 'Adenostoma'), ]
-dom_other = species[species$genus %in% c('Opuntia', 'Agave', 'Yucca', 'Metrosideros'), ]
-dom_veg_ids = c(dom_tree_ids, unique(dom_conif$species_id), unique(dom_shrub$species_id), unique(dom_other$species_id))
-dom_veg_family_ids = c(dom_tree_family_ids, unique(dom_conif$family_id), unique(dom_shrub$family_id), unique(dom_other$family_id))
-
-# get phenophases
-veg_phases = npn_get_phenophases_for_taxon(family_ids=dom_veg_family_ids, return_all=1)
-vp_df = get_phenophase_df(veg_phases)
-
-# using a number of flower phenophase names, all of which capture plants with >= 1 open, fresh flower
-flower_phases_to_use = c('Flowers', 'Open flowers', 'Full flowering', 'Full Flowering')
-flower_phase_ids = unique(vp_df[vp_df$phenophase_name %in% flower_phases_to_use, 'phenophase_id'])
-# NOTE: phenophase_id <-> phenophase_name appears to be a many:many mapping, which I didn't expect!
-#       however, we don't want to use id 500 because that corresponds sometimes to just 'flowers'
-#       but sometimes to 'flowers or flower buds', but we don't want just buds
-flower_phase_ids = flower_phase_ids[flower_phase_ids != 500]
-
-# get site flower phenometrics for all veg
-fms = npn_download_site_phenometrics(request_source = 'Drew Terasaki Hart',
-                                     years = yrs,
-                                     num_days_quality_filter = '15', # max diff btwn individ's first 'yes' and prev 'no'
-                                     species_ids = dom_veg_ids,
-                                     phenophase_ids = flower_phase_ids,
-                                     six_leaf_layer = T              # combine with the SI-x spring index dataset?
-                                    )
-
-# drop missing data
-fms = fms[fms$mean_first_yes_doy >= 0, ]
-
-# drop very small samples
-fms = fms[fms$first_yes_sample_size < 5, ]
-
-# change horrible column name for the SI-x data
-colnames(fms) = c(colnames(fms)[1:length(colnames(fms))-1], 'six_leaf_val')
-
-# sort by 'mean_first_yes_doy'
-fms = fms[order(fms$mean_first_yes_doy), ]
-
-# merge on the species table for some additional info
-fms = base::merge(fms, species[, c('species_id', 'family_id', 'family_common_name', 'order_id', 'order_common_name',
-                                   'class_id', 'class_common_name', 'functional_type')], by='species_id', all.x=T, all.y=F)
-
-
-# write to disk
-write.csv(fms, 'NPN_flowers_data_dom_tree_spp.csv', row.names=F)
-
 

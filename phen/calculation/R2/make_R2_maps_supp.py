@@ -98,7 +98,11 @@ def plot_juris_bounds(ax,
                   )
 
 
-def map_r2(ax, r2_filename, axlabel, add_colorbar=False, cbar_ax=None):
+def map_r2(ax, r2_filename, axlabel,
+           add_colorbar=False,
+           cbar_ax=None,
+           cbar_kwargs=None,
+          ):
     """
     plot an R2 map from the LSP/seasonality-fitting process
     """
@@ -119,11 +123,12 @@ def map_r2(ax, r2_filename, axlabel, add_colorbar=False, cbar_ax=None):
                    vmax=1,
                    add_colorbar=add_colorbar,
                    cbar_ax=cbar_ax,
+                   cbar_kwargs=cbar_kwargs,
                    zorder=0,
                   )
     plot_juris_bounds(ax=ax)
     ax.set_title('')
-    ax.text(-165, -55, axlabel, size=7)
+    ax.text(-175, -55, axlabel, size=6)
     ax.set_xlabel('')
     ax.set_ylabel('')
     ax.set_xticks(())
@@ -169,7 +174,9 @@ if __name__ == '__main__':
                label,
                add_colorbar=add_colorbar,
                cbar_ax=cbar_ax,
+               cbar_kwargs=cbar_kwargs,
               )
+    fig.axes[-1].set_xlabel('$R^2$', fontdict={'fontsize': 10})
     fig.subplots_adjust(left=0,
                         right=1,
                         bottom=0.01,

@@ -6,9 +6,14 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import os, sys, re
 
+sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+                                                            'seasonal_asynchrony/etc/'))
+import phen_helper_fns as phf
+
+
 # data directory
-data_dir = "/media/deth/SLAB/diss/3-phn/GEE_outputs/final/"
-countries_data_dir = "/home/deth/Desktop/CAL/research/projects/seasonality/seasonal_asynchrony/data/bounds/"
+data_dir = pdf.EXTERNAL_DATA_DIR
+countries_data_dir = phf.BOUNDS_DIR
 
 # load country boundaries
 countries = gpd.read_file(os.path.join(countries_data_dir, 'NewWorldFile_2020.shp'))
@@ -102,3 +107,4 @@ fig.subplots_adjust(top=0.95,
                     hspace=0.2,
                     wspace=0)
 fig.savefig('FIG_S4_scaled_NIRv_vs_scaled_SIF.png', dpi=700)
+

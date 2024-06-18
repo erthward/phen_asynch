@@ -5,7 +5,12 @@ import scipy.stats
 import itertools
 import os, sys, re
 
-data_dir = '/media/deth/SLAB/diss/3-phn/GEE_outputs/final'
+sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+                    'seasonal_asynchrony/etc/'))
+import phen_helper_fns as phf
+
+
+data_dir = phf.EXTERNAL_DATA_DIR
 
 vars = ['NIRv_STRICT', 'SIF_STRICT', 'tmmn', 'tmmx', 'pr', 'def', 'cloud']
 neighs = [50, 100, 150]

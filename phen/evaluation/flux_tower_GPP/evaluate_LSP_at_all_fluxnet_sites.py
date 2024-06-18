@@ -69,6 +69,9 @@ rs_coeffs_tif = os.path.join(rs_datadir,
 response_vars = {'CH4': 'GPP_DT',
                  'SUBSET': 'GPP_DT_VUT_50',
                 }
+qc_cols = {'CH4': '',
+           'SUBSET': 'NEE_VUT_50_QC',
+          }
 
 # load table with all fluxent sites' coordinates and info
 sites = pd.read_csv('./FLUXNET_sites.csv')
@@ -335,6 +338,12 @@ def process_site_data(zip_filename,
 
     # read the CSV
     df = pd.read_csv(csv_filename)
+
+    # drop data with mean daily QC val <0.7
+    # (per Reviewer 3 recommendation)
+    # NOTE: THERE IS NO QC COLUMN IN THE CH4 FILES
+    if sitetype_patt == 'SUBSET':
+        df = df[df.loc[:, qc_cols[sitetype_patt]] >= 0.7]
 
     # make datestamp columns in datetime objects
     df['date'] = pd.to_datetime(df['TIMESTAMP'], format='%Y%m%d')
