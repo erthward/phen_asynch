@@ -1,6 +1,7 @@
 # CHRIS PACIOREK'S WORKAROUND TO FIX THE rgdal/sp/sf ISSUE I RAN INTO:
 Sys.setenv(GDAL_DATA = "/global/home/groups/consultsw/sl-7.x86_64/modules/gdal/2.2.3/share/gdal")
 
+library(rgdal)                # GDAL bindings
 library(sp)                   # spatial data
 library(raster)               # raster data
 library(rsample)              # function for stratified random sampling
