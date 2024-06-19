@@ -201,6 +201,38 @@ def gapfill_and_rewrite_raster(rast_filepath, fill_tol=5):
                   range(1, f.profile['count'] + 1))
 
 
+def make_xarr_bbox_poly(xarr, n_xcoords=4000, n_ycoords=2000):
+    xmin, ymin, xmax, ymax = xarr.rio.bounds()
+    coords = []
+    # draw closely spaced coordinates all along the perimeter
+    # (so that projected box, in Equal Earth proj, isn't a simple trapezoid
+    # that coarsely excises pixels in the wider equatorial regions of the
+    # projection)
+    coords.extend([(xmin, n) for n in np.linspace(ymin, ymax, n_ycoords)])
+    coords.extend([(n, ymax) for n in np.linspace(xmin, xmax, n_xcoords)])
+    coords.extend([(xmax, n) for n in np.linspace(ymax, ymin, n_ycoords)])
+    coords.extend([(n, ymin) for n in np.linspace(xmax, xmin, n_xcoords)])
+    bbox_poly = Polygon(coords)
+    return bbox_poly
+
+
+def mask_xarr_to_other_xarr_bbox(xarr,
+                                 other_xarr,
+                                 drop=False,
+                                 n_bbox_xcoords=4000,
+                                 n_bbox_ycoords=2000,
+                                ):
+    mask_bbox = make_xarr_bbox_poly(other_xarr,
+                                    n_xcoords=n_bbox_xcoords,
+                                    n_ycoords=n_bbox_ycoords,
+                                   )
+    xarr_masked = xarr.rio.clip([mask_bbox],
+                                crs=other_xarr.rio.crs,
+                                drop=drop,
+                               )
+    return xarr_masked
+
+
 def get_raster_info_points(rast_filepath, pts, return_format='vals',
                            standardize=False, fill_nans=False, fill_tol=5,
                            minmax_scale_rast=False):

@@ -88,8 +88,8 @@ Each step of the following workflow was executed in the environment indicated *i
 
 ### map masks and R2s from harmonic regressions:
 1. *On laptop*, navigate to the directory where the mask files should be stored, then run `phen/calc/masking/dl_GEE_masks.sh` to download all 6 mask GeoTIFFs output by GEE (**1 task, <5m runtime**).
-2. *On laptop*, run `phen/calc/masking/make_masking_maps_supp.py` to produce **Fig. SXXX**, showing all masks used on the LSP datasets (**1 task, <5m runtime**).
-3. *On laptop*, run `phen/calc/R2/make_R2_maps_supp.py` to produce **Fig. SXXX**, showing the $R^2$s of the harmonic regressions fitted to all LSP and climate datasets (**1 task, <5m runtime**).
+2. *On laptop*, run `phen/calc/masking/make_masking_maps_supp.py` to produce supplemental figure showing all masks used on the LSP datasets (**1 task, <5m runtime**).
+3. *On laptop*, run `phen/calc/R2/make_R2_maps_supp.py` to produce supplemental figure showing the $R^2$s of the harmonic regressions fitted to all LSP and climate datasets (**1 task, <5m runtime**).
 
 
 ### produce RGB phenology map:
@@ -99,7 +99,7 @@ Each step of the following workflow was executed in the environment indicated *i
 4. *On laptop*, download ancillary cheatgrass data from [Maestas *et. al*](https://www.sciencebase.gov/catalog/item/5ec5159482ce476925eac3b7) (to be used in a statistical test embedded in `phen/anal/div/plot_EOF_and_RGB_results.py`).
 5. *On laptop*, run `phen/anal/div/aggregate_great_basin_cheatgrass_data.sh` to aggregate that dataset to our analysis resolution of $0.05^{\circ}$.
 6. *On laptop*, work through the manual steps listed in the notes at the top of `phen/anal/div/compose_ITCZ_shapefile.py` to digitize the Dec-Jan-Feb and Jun-Jul-Aug mean ITCZ locations delineated by [Zhisheng et al. 2015](annualreviews.org/content/journals/10.1146/annurev-earth-060313-054623), save the output CSVs to the 'data/' subdirectory of the local clone of this repo, then run `phen/anal/div/compose_ITCZ_shapefile.py` to produce a Shapefile of those digitized lines.
-7. *On laptop*, run `phen/anal/div/make_EOF_and_RGB_map_figs.sh` to produce **Fig. 1**'s global EOF map, the focal-region EOF maps, the raw EOF-map figure, and the unfolded EOF maps (**1 task, <30m runtime**).
+7. *On laptop*, run `phen/anal/div/make_EOF_and_RGB_map_figs.sh` to produce main figures showing the global EOF RGB map and the focal-region EOF RGB maps, and the supplemental figures showing the raw EOF maps and the unfolded EOF RGB maps (**1 task, <30m runtime**).
 8. *On laptop*, manually assemble the focal-region map figure odg files using the outputs of the previous step.
 
 
@@ -116,8 +116,8 @@ Each step of the following workflow was executed in the environment indicated *i
 
 ### run FLUXNET evaluation:
 1. *On laptop*, manually download all subset data products (using DownThemAll!) from the FLUXNET network's [download page](https://fluxnet.org/data/download-data/) (**1 task, runs roughly overnight**).
-2. *On laptop*, run `phen/eval/flux_tower_GPP/run_flux_evaluations.sh` to run the flux-tower GPP comparison, at all usable FLUXNET2015 sites, for both the fitted NIRv and SIF LSP results (producing Fig. XXX) (**1 task, ~15m runtime**).
-4. *On laptop*, run `phen/eval/plot_phen_evaluation_results.py` to combine both LSP datasets' FLUXNET evaluations and the NIRv-SIF comparison evaluation to make Fig. XXX (**1 task, <5m runtime**).
+2. *On laptop*, run `phen/eval/flux_tower_GPP/run_flux_evaluations.sh` to run the flux-tower GPP comparison, at all usable FLUXNET2015 sites, for both the fitted NIRv and SIF LSP results (**1 task, ~15m runtime**).
+4. *On laptop*, run `phen/eval/plot_phen_evaluation_results.py` to combine both LSP datasets' FLUXNET evaluations and the NIRv-SIF comparison evaluation to make supplemental figure (**1 task, <5m runtime**).
 5. *On laptop*, run `phen/eval/flux_tower_GPP/combine_fluxnet_val_outputs_TableS1.py` to combine of flux-tower evaluation results, listed by FLUXNET site, into a single supplemental table (**1 task, <10s runtime**).
 
 
@@ -130,11 +130,11 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ### produce asynchrony supplemental figures:
-1. *On laptop*, run `asynch/viz/make_conceptual_asynch_fig.py` to create the asynchrony-calculation conceptual figure (Fig. SXXXX) (**1 task, <1m runtime**).
+1. *On laptop*, run `asynch/viz/make_conceptual_asynch_fig.py` to create the asynchrony-calculation conceptual figure (**1 task, <1m runtime**).
 2. *On laptop*, run `asynch/viz/plot_all_asynch_maps.py` to create each LSP and climate variable's supplemental figure, displaying the asynchrony maps for all three neighborhood radii (50, 100, and 150 km) (**1 task, ~XXXXm runtime**).
 
 
-### prepare remaining covariates for asynch drivers analysis:
+### obtain remaining covariates for asynch drivers analysis:
 1. *On GEE*, run `phen/calc/GEE/other_datasets/calc_veg_entropy.js` to produce the vegetation cover entropy map that will be used as a covariate in the phenological asynchrony predictive model. (**1 task, <10m runtime**)
 2. *On laptop*, manually download the GMTED-derived, 100-km median-aggregated vector ruggedness metric (VRM) dataset from [EarthEnv](http://www.earthenv.org/topography) (file 'vrm_100KMmd_GMTEDmd.tif'), then uploade to the 'LSP_ancillary_datasets' folder on Google Drive (**1 task, <10s runtime**)
 3. *On Savio*, run `asynch/anal/drivers/prep_data/dl_asynch_drivers_covariates_from_brdive.sh` to download both of these covariate maps into the correct directory (**1 task, <1m runtime**).
@@ -148,7 +148,7 @@ Each step of the following workflow was executed in the environment indicated *i
 5. *On Savio*, run `asynch/anal/drivers/summ_results/ch3_rasterize_SHAP_job.sh` to convert output CSVs of global SHAP values to GeoTIFFs.
 6. *On Savio*, run `asynch/anal/drivers/summ_results/ch3_rasterize_err_job.sh` to convert output CSVs of global RF prediction errors to GeoTIFFs.
 7. *On laptop*, run `asynch/anal/drivers/summ_results/tabulate_model_summaries.py` to combine all permuation-based and SHAP-based importance values and model $R^2$s and MSEs into a single output table, for supplmental materials.
-8. *On laptop*, run `asynch/anal/drivers/make_figs/make_asynch_viz_and_analysis_maps.py` 3 times, once each with a different command line arg ('main', 'asynch_supps', 'error_supp', 'predom_supp'), to produce the main RF-summary fig (Fig. XXX, which maps predominance for the two top-importance covariates, ppt.asy and tmp.min.asy) and the supplementary figs presenting all asynchrony maps (Figs. SXXX-SXXX), the RF error map (Fig. SXXX), and the RF summary map showing all predominant covariates (Fig. SXXX).
+8. *On laptop*, run `asynch/anal/drivers/make_figs/make_all_asynch_analysis_figs.sh` to produce the main asynch figure (global map, as well as map summarizing the predominance of the two top-importance covariates), as well as the supplemental figures showing the random forest error map and the map of SHAP-value predominance across all random forest covariates.
 
 
 ### run climate-distance analysis:

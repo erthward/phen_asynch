@@ -36,6 +36,7 @@ sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
 import phen_helper_fns as phf
 
 
+
 ########
 # PARAMS
 ########
@@ -46,7 +47,7 @@ assert what_to_plot in ['main_rgb_map', 'reg_figs',
                         'eof_summ_fig', 'raw_rgb_maps']
 
 # write the weighted-sum EOF map to a raster file?
-write_wt_sum_eofs_to_file = False
+write_wt_sum_eofs_to_file = True
 
 # save figs?
 save_it = True
@@ -61,9 +62,6 @@ mask_filename_ext_dict = {'strict': '_STRICTMASK',
                           'default': ''}
 mask_filename_ext = mask_filename_ext_dict[masking_mode]
 
-# use the 'folding' method to compare N and S hemispheres?
-fold_it = True
-
 # were ts normalized before EOF calculation?
 normts = True
 if normts:
@@ -76,6 +74,10 @@ clust_algo = 'kmeans'
 
 # create the plots to aid EOF interpretation?
 run_eof_interpretation = False
+
+# get harmonic regression design matrix
+dm = phf.make_design_matrix()
+
 
 
 ####################
@@ -108,7 +110,10 @@ coeffs = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
 eofs = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
                                       '%s_4_EOFs_sqrt_coswts%s%s.tif') %
                          (dataset, normts_file_substr, mask_filename_ext))[:3]
-
+eofs.rio.set_crs(4326)
+# rescale each EOFs layer to [0, 1]
+for i in range(eofs.shape[0]):
+    eofs[i] = (eofs[i]-eofs[i].min())/(eofs[i].max()-eofs[i].min())
 
 # load DataFrame with EOF pcts var explained and PC time series
 # EOF percentages of variance explained
@@ -148,20 +153,19 @@ reg_K_vals = {
              }
 
 
-def minmax_scale(vals, min_out=0, max_out=1):
-    assert (min_out >=0) and (max_out <=1)
-    scaled = (vals-np.min(vals))/(np.max(vals)-np.min(vals))
-    scaled = scaled * (max_out - min_out)
-    if min_out > 0:
-        scaled = min_out + scaled
-    return scaled
 
+####################################
+# CALCULATE WEIGHTED SUM ACROSS ITCZ
+####################################
 
-# rescale each layer 0-1
-for i in range(eofs.shape[0]):
-    eofs[i] = (eofs[i]-eofs[i].min())/(eofs[i].max()-eofs[i].min())
+out_da_filename = ('%s_4_EOFs_sqrt_coswts%s%s'
+                   '_SCALED_FOLDED_EPSG-8857.tif') % (dataset,
+                                                      normts_file_substr,
+                                                      mask_filename_ext,
+                                                     )
+out_da_filepath = os.path.join(phf.EXTERNAL_DATA_DIR, out_da_filename)
 
-if fold_it:
+if not os.path.isfile(out_da_filepath):
     # create array implementing weights across ITCZ:
     # 1. get DataArrays containing y vals as data, x vals as coordinates
     #    (to facilitate lookup of y corresponding to nearest x to each x in eofs)
@@ -173,7 +177,6 @@ if fold_it:
               range(len(itcz.geometry[n].coords))]
         da = xr.DataArray(data=ys, dims=['x'], coords=dict(x=(['x'], xs)))
         itcz_das.append(da)
-
     # create empty wts DataArray, and empty wts numpy array to later go into it
     wts = eofs[0]*np.nan
     wts_arr = np.ones(wts.shape) * np.nan
@@ -209,7 +212,6 @@ if fold_it:
         #wts_inflation_arr[:, j] = inflation_factors
     wts.values = wts_arr
     #wts_inflation.values = wts_inflation_arr
-
     # make the weighted-sum EOFs map
     eofs_wt_sum = deepcopy(eofs)
     # NOTE: folding all 3 EOFs, on the assumption that a hemispheric signal is
@@ -218,44 +220,49 @@ if fold_it:
     #       individual maps (unlike EOF 1)
     for n in range(3):
         eofs_wt_sum[n] = ((wts*(eofs[n])) + ((1-wts)*(1-eofs[n])))# * wts_inflation
-
     # get equal-area-projected EOFs rasters, for mapping
     eofs_wt_sum_for_map = eofs_wt_sum.rio.write_crs(4326)
+    # reproject to Equal Earth
+    eofs_wt_sum_for_map = eofs_wt_sum_for_map.rio.reproject(8857)
+    # and truncate artificially inflated values along edges
+    # (not sure what's broken that's causing them)
+    for lyr in range(eofs_wt_sum_for_map.shape[0]):
+        eofs_wt_sum_for_map[lyr] = eofs_wt_sum_for_map[lyr].where(
+            eofs_wt_sum_for_map[lyr] < 2*eofs_wt_sum[lyr].max(), np.nan)
+
+    # mask data lying outside the edges of the
+    # Equal Earth projection (to prevent NZ, Sibera, etc. from wrapping around)
+    eofs_wt_sum_for_map = phf.mask_xarr_to_other_xarr_bbox(eofs_wt_sum_for_map,
+                                                           eofs,
+                                                           drop=False,
+                                                           n_bbox_xcoords=4000,
+                                                           n_bbox_ycoords=2000,
+                                                          )
+
+    # if requested, write mapping-prepped, folded EOFS to file
+    if write_wt_sum_eofs_to_file:
+        x_vals = eofs_wt_sum_for_map['x'].values
+        y_vals = eofs_wt_sum_for_map['y'].values
+        bands = eofs_wt_sum_for_map['band'].values-1
+        out_bands = []
+        for band in bands:
+            out_bands.append(eofs_wt_sum_for_map[band].data)
+        out_da = xr.DataArray(out_bands,
+                              coords={'y':y_vals,
+                                      'x':x_vals,
+                                      'band': bands,
+                                     },
+                              dims=['band', 'y', 'x'],
+                             )
+        out_da.rio.to_raster(out_da_filepath)
 else:
-    eofs_wt_sum_for_map = eofs_wt_sum.rio.write_crs(4326)
-eofs_wt_sum_for_map = eofs_wt_sum_for_map.rio.reproject(8857)
-# and truncate artificially inflated values along edges
-# (not sure what's broken that's causing them)
-for lyr in range(eofs_wt_sum_for_map.shape[0]):
-    eofs_wt_sum_for_map[lyr] = eofs_wt_sum_for_map[lyr].where(
-        eofs_wt_sum_for_map[lyr] < 2*eofs_wt_sum[lyr].max(), np.nan)
-
-# if requested, write mapping-prepped EOFS to file
-if write_wt_sum_eofs_to_file:
-    x_vals = eofs_wt_sum_for_map['x'].values
-    y_vals = eofs_wt_sum_for_map['y'].values
-    bands = eofs_wt_sum_for_map['band'].values-1
-    out_bands = []
-    for band in bands:
-        out_bands.append(eofs_wt_sum_for_map[band].data)
-    out_da = xr.DataArray(out_bands,
-                          coords={'y':y_vals,
-                                  'x':x_vals,
-                                  'band': bands,
-                                 },
-                          dims=['band', 'y', 'x'],
-                         )
-    out_da.rio.to_raster(('/media/deth/SLAB/diss/3-phn/GEE_outputs/final/'
-                          'NIRv_4_EOF_s_sqrt_coswts_normts_FORMAP.tif'))
+    eofs_wt_sum_for_map = rxr.open_rasterio(out_da_filepath, masked=True)
 
 
-# get harmonic regression design matrix
-dm = phf.make_design_matrix()
 
-
-############
-## PLOT EOFs
-############
+#######################
+## PLOT EOF SUMMARY FIG
+#######################
 
 # plotting helper fns
 def strip_axes(ax):
@@ -266,11 +273,6 @@ def strip_axes(ax):
     ax.set_title('')
 
 
-# define xlims for global map
-global_xlim = (0.80 * eofs_wt_sum_for_map.x.min(),
-               0.95 * eofs_wt_sum_for_map.x.max())
-
-
 if what_to_plot == 'eof_summ_fig':
     # create EOF fig
     fig_eof = plt.figure(figsize=(21,30))
@@ -278,6 +280,13 @@ if what_to_plot == 'eof_summ_fig':
     # make maps of EOFS 1, 2, and 3 (all raw)
     eofs_for_map = eofs.rio.write_crs(4326)
     eofs_for_map = eofs_for_map.rio.reproject(8857)
+    # mask to Equal Earth projection bounds
+    eofs_for_map = phf.mask_xarr_to_other_xarr_bbox(eofs_for_map,
+                                                    eofs,
+                                                    drop=False,
+                                                    n_bbox_xcoords=4000,
+                                                    n_bbox_ycoords=2000,
+                                                   )
     for i in range(3):
         ax_map = fig_eof.add_subplot(gs[i, :2])
         ax_pc = fig_eof.add_subplot(gs[i, 2])
@@ -305,7 +314,6 @@ if what_to_plot == 'eof_summ_fig':
                       )
 
         strip_axes(ax_map)
-        ax_map.set_xlim(global_xlim)
         ax_map.set_ylim(eofs_for_map.rio.bounds()[1::2])
         ax_map.text(0.92*ax_map.get_xlim()[0], 0.92*ax_map.get_ylim()[0],
                     'EOF %i:\n%0.1f%%' % (i+1, eofs_pcts[i]),
@@ -322,18 +330,27 @@ if what_to_plot == 'eof_summ_fig':
                             hspace=0.05)
     fig_eof.subplots_adjust(wspace=.3)
     if save_it:
-        fig_eof.savefig('FIG_SUPP_%s_EOF_maps%s%s.png' % (dataset,
-                    mask_filename_ext, ('_RAW'*(not fold_it))), dpi=600)
+        fig_eof.savefig('FIG_SUPP_%s_EOF_maps%s.png' % (dataset,
+                    mask_filename_ext), dpi=600)
 
 
 
 #############################
 # PLOT UNTRANSFORMED RGB MAPS
 #############################
+
 if what_to_plot == 'raw_rgb_maps':
     # create untransformed RGB figure
     eofs_for_map = eofs.rio.write_crs(4326)
     eofs_for_map = eofs_for_map.rio.reproject(8857)
+    # mask to bounds of Equal Earth projection
+    # mask to Equal Earth projection bounds
+    eofs_for_map = phf.mask_xarr_to_other_xarr_bbox(eofs_for_map,
+                                                    eofs,
+                                                    drop=False,
+                                                    n_bbox_xcoords=4000,
+                                                    n_bbox_ycoords=2000,
+                                                   )
     fig_untrans = plt.figure(figsize=(20,20))
     ax_top = fig_untrans.add_subplot(2,1,1)
     ax_bot = fig_untrans.add_subplot(2,1,2)
@@ -365,7 +382,6 @@ if what_to_plot == 'raw_rgb_maps':
             eofs_trans = eofs_trans.where(np.abs(eofs_trans)<1e37)
             eofs_trans.plot.imshow(ax=ax, zorder=0)
         strip_axes(ax)
-        ax.set_xlim(global_xlim)
         ax.set_ylim(eofs_for_map.rio.bounds()[1::2])
     fig_untrans.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98,
                                 hspace=0.05)
@@ -376,10 +392,9 @@ if what_to_plot == 'raw_rgb_maps':
 
 
 
-##############
-# PLOT RGB MAP
-##############
-
+###################
+# PLOT MAIN RGB MAP
+###################
 
 if what_to_plot == 'main_rgb_map':
 
@@ -410,7 +425,6 @@ if what_to_plot == 'main_rgb_map':
                   )
 
     strip_axes(ax)
-    ax.set_xlim(global_xlim)
     ax.set_ylim(eofs_wt_sum_for_map.rio.bounds()[1::2])
     ax.spines['bottom'].set_color('black')
     ax.spines['top'].set_color('black')
@@ -423,14 +437,14 @@ if what_to_plot == 'main_rgb_map':
                           bottom=0.04,
                           top=0.98)
     if save_it:
-        fig_1.savefig('FIG_%s_RGB_EOF_map%s%s.png' % (dataset,
-                            mask_filename_ext, ('_RAW'*(not fold_it))), dpi=700)
+        fig_1.savefig('FIG_%s_RGB_EOF_map%s.png' % (dataset, mask_filename_ext),
+                      dpi=700)
 
 
-#################
-# PLOT FOCAL MAPS
-#################
 
+########################
+# PLOT REGIONAL RGB MAPS
+########################
 
 if what_to_plot == 'reg_figs':
 
@@ -831,7 +845,7 @@ if what_to_plot == 'reg_figs':
                                  top=0.97)
 
         if save_it:
-            fig_reg.savefig('SUBFIG_REG_%s_%s_RGB_EOF_reg_map%s%s.png' % (reg, dataset,
-                                mask_filename_ext, ('_RAW'*(not fold_it))), dpi=700)
-            fig_lines.savefig('SUBFIG_REG_%s_LINES_%s_RGB_EOF_reg_map%s%s.png' % (reg, dataset,
-                                mask_filename_ext, ('_RAW'*(not fold_it))), dpi=700)
+            fig_reg.savefig('SUBFIG_REG_%s_%s_RGB_EOF_reg_map%s.png' % (reg, dataset,
+                                mask_filename_ext), dpi=700)
+            fig_lines.savefig('SUBFIG_REG_%s_LINES_%s_RGB_EOF_reg_map%s.png' % (reg, dataset,
+                                mask_filename_ext), dpi=700)

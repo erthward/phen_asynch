@@ -6,8 +6,6 @@ library(spdep)                # spatial autocorrelation
 library(rsample)              # function for stratified random sampling
 library(randomForest)         # global RFs
 library(RRF)                  # fast RF var selection (w/ conservative results in Bag et al. 2022)
-#library(ranger)               # faster RFs
-#library(h2o)                  # distributed RFs (on cloud)
 library(SpatialML)            # GWRFs
 library(GWmodel)              # GW models
 library(vip)                  # var importance plots
@@ -21,7 +19,6 @@ library(tmap)                 # mapping
 library(maps)                 # countries map data
 library(RColorBrewer)         # colors
 library(cmocean)              # cmocean palettes
-#library(wesanderson)          # wes palettes
 library(dplyr)                # reshaping dfs
 library(caret)                # Recursive Feature selection
 library(rfUtilities)          # Jeff Evans R package for model selection
@@ -46,14 +43,13 @@ cat(paste0('\nVAR: ', asynch.var, '\n'))
 
 # set neighborhood radius (in km) to use for asynch analysis
 neigh.rad = args[2]
-#neigh.rad = 100
 cat(paste0('\nNEIGH RAD: ', neigh.rad, '\n'))
 
 # input and output dirs:
   # if on laptop
 if (strsplit(getwd(), '/')[[1]][2] == 'home'){
        on.laptop=T
-       data.dir = '/media/deth/SLAB/diss/3-phn/other/rf_vars'
+       data.dir = '/media/deth/SLAB/diss/3-phn/final_maps_and_results/'
   # if on Savio
 } else {
        on.laptop=F
@@ -149,13 +145,13 @@ def.asy = read.file('def', asynch.file=T,
 cld.asy = read.file('cloud', asynch.file=T,
                     align.to=phn.asy, mask.it=F)
 
-# vector ruggedness metric, ~50km agg med and sd
+# vector ruggedness metric, ~100km agg med and sd
 # NOTE: calculated as fixed pixels, not moving windows
 # NOTE: masking isn't necessary because incomplete rows of the stacked
 #       variables are dropped later on, but makes it easier to inspect
 #       the individual layers manually now because of the crazy blocky artefacts
 #       their dataset has surrounding the continents
-vrm.med = read.file('vrm_50KMmd', asynch.file=F,
+vrm.med = read.file('vrm_100KMmd', asynch.file=F,
                     align.to=phn.asy, mask.it=T)
 
 # 100 km neighborood entropy in MODIS IGBP vegetation type

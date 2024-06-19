@@ -906,19 +906,14 @@ for df in [baja_taxa, tx_taxa, andes_taxa, e_brz_taxa, saf_taxa, aus_taxa]:
 
 
 
-# load the EOFs, for the plotting function below
+# load the scaled, ITCZ-folded EOFs, for data viz of phen significant MMRR results
 dataset = 'NIRv'
 normts_file_substr = '_normts'
 mask_filename_ext = ''
 eofs = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
-            '%s_global_4_EOFs_sqrt_coswts%s%s.tif') %(dataset,
+            '%s_global_4_EOFs_sqrt_coswts%s%s_SCALED_FOLDED_EPSG-8857.tif') %(dataset,
                                                       normts_file_substr,
                                                       mask_filename_ext))[:3]
-for i in range(eofs.shape[0]):
-    eofs[i] = (eofs[i]-eofs[i].min())/(eofs[i].max()-eofs[i].min())
-eofs.rio.set_crs(4326)
-eofs = eofs.rio.reproject(crs)
-eofs = eofs.where(eofs<3e38, np.nan)
 
 
 def plot_annual_flowering_clock(obs, eofs, ax):
