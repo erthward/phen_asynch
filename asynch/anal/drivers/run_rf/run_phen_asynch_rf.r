@@ -193,7 +193,7 @@ names = c('phn.asy',
           'cld.asy',
           'vrm.med',
           'veg.ent')
-
+cat('\nReading prepped variables as a raster brick...\n')
 # load rasters of prepped variables
 vars = brick(paste0(data.dir, "/asynch_model_all_vars_",
                     asynch.var, '_',
@@ -201,6 +201,7 @@ vars = brick(paste0(data.dir, "/asynch_model_all_vars_",
 names(vars) = names
 
 # load data frame of prepped variables
+cat('\nReading CSVs of prepped, extracted raster values...\n')
 df_full_unproj = read.csv(paste0(data.dir, "/asynch_model_all_vars_prepped_",
                                  asynch.var, '_',
                                  as.character(neigh.rad), "km.csv"))
@@ -324,6 +325,7 @@ rf.sample.fraction = 0.8
 mtry = 5
 min.node.size = 3
 
+cat('\nSplitting input data into training and test subsets...\n')
 # and choose data subset based on output above
 subset.frac = 0.05
 
@@ -409,6 +411,7 @@ predictor.var.names = spatialRF::auto_cor(
 ###########################################
 # BUILD TUNED, PARSIMONIOUS GLOBAL RF MODEL
 ###########################################
+cat('\nFitting random forest...\n')
 if (coords.as.covars == 'y'){
   rf_final = ranger(phn.asy ~ .,
                     data=trn,
@@ -439,6 +442,7 @@ if (coords.as.covars == 'y'){
 print(rf_final)
 
 # var importance plots, with permutation based metric...
+cat('\nCalculating and saving variable importance values...\n')
 p_imp_permut = plot.ranger.import(rf_final)
 pfun <- function(object, newdata) {
   predict(object, data = newdata)$predictions
@@ -475,6 +479,7 @@ ggsave(varimp_grob, file=paste0(data.dir, 'var_import_plots_permut_and_SHAP_',
 
 
 # assess model externally using withheld test data
+cat('\nUsing test data to assess model...\n')
 preds = predict(rf_final, tst)$predictions
 tst$err = preds - tst[,'phn.asy']
 preds_plot = ggplot(tst) +
@@ -493,6 +498,7 @@ ggsave(preds_plot, file=paste0(data.dir, 'preds_plot_', coords.as.covars, 'COORD
 # make predictions for full dataset (to map as raster)
 # NOTE: only if interactive
 #if (F){
+  cat('\nCalculating and saving model predictions for full global raster...\n')
   full_preds = predict(rf_final, df_full)$predictions
   df.res = df_full %>% mutate(preds = full_preds, err = full_preds - df_full[,'phn.asy'])
   write.csv(df.res, paste0(data.dir, 'rf_full_preds_',
@@ -501,7 +507,7 @@ ggsave(preds_plot, file=paste0(data.dir, 'preds_plot_', coords.as.covars, 'COORD
                             as.character(neigh.rad), 'km.csv'), row.names=F)
   
 # map SHAP values
-cat('\n\n\nNOW CALCULATING FULL SHAPLEY VALUES...\n\n\n')
+cat('\nCalculating and saving SHAP values for full global dataset...')
 shap_full = fastshap::explain(rf_final, X = df_full[, 2:ncol(df_full)], pred_wrapper = pfun, nsim = 10)
 write.csv(shap_full, paste0(data.dir, 'rf_SHAP_vals_',
                             coords.as.covars, 'COORDS_',

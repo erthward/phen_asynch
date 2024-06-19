@@ -76,7 +76,6 @@ read.file = function(var.str, asynch.file=T, align.to=NA, mask.it=F){
    if (asynch.file){
       file.name = files[grep(paste0(var.str, '_asynch_', as.character(neigh.rad), 'km'), files)]
       stopifnot(length(file.name) == 1)
-      # NOTE: TAKING 3RD LYR, THE EUC DIST-BASED ASYNCHRONY VALUE
       data = brick(paste0(data.dir, '/', file.name))[[1]]
    } else {
       file.name = files[grep(var.str, files)]
@@ -101,6 +100,7 @@ read.file = function(var.str, asynch.file=T, align.to=NA, mask.it=F){
 ####################
 
 # load phenological asynch data
+cat('\nreading LSP asynchrony file...\n')
 phn.asy = read.file(paste0(asynch.var, '_STRICT'), T)
 
 
@@ -108,6 +108,7 @@ phn.asy = read.file(paste0(asynch.var, '_STRICT'), T)
 # LOAD PREDICTORS
 #################
 
+cat('\nreading climate asynchrony files...\n')
 # asynchrony in min and max temperatures
 tmp.min.asy = read.file('tmmn', asynch.file=T,
                     align.to=phn.asy, mask.it=F)
@@ -126,6 +127,7 @@ def.asy = read.file('def', asynch.file=T,
 cld.asy = read.file('cloud', asynch.file=T,
                     align.to=phn.asy, mask.it=F)
 
+cat('\nreading VRM file...\n')
 # vector ruggedness metric, ~100km agg med and sd
 # NOTE: calculated as fixed pixels, not moving windows
 # NOTE: masking isn't necessary because incomplete rows of the stacked
@@ -135,6 +137,7 @@ cld.asy = read.file('cloud', asynch.file=T,
 vrm.med = read.file('vrm_100KMmd', asynch.file=F,
                     align.to=phn.asy, mask.it=T)
 
+cat('\nreading veg entropy file...\n')
 # 100 km neighborood entropy in MODIS IGBP vegetation type
 # (reclassed to forest, shrubland, savanna, grassland, permanent wetland, or invalid)
 veg.ent = read.file('MODIS_IGBP_veg_entropy', asynch.file=F,
@@ -171,6 +174,7 @@ names = c('phn.asy',
 names(vars) = names
 
 # write stack to file
+cat('\nwriting raster stack to disk...\n')
 raster::writeRaster(vars, paste0(data.dir, "/asynch_model_all_vars_",
                                  asynch.var, '_',
                                  as.character(neigh.rad), "km.tif"), overwrite=T)
@@ -196,6 +200,7 @@ df.strat = df %>%
 df.strat = df.strat[, !colnames(df.strat) %in% c('strata')]
 
 # write data.frame to file (for reload in 'analyze' mode),
+cat('\nwriting CSVs of extracted raster values to disk...\n')
 write.csv(df, paste0(data.dir, "/asynch_model_all_vars_prepped_",
                      asynch.var, '_',
                      as.character(neigh.rad), "km.csv"), row.names=F)

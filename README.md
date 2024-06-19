@@ -177,7 +177,7 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ## working environments
-**local**:
+- **local**:
   - Linux laptop running Pop!\_OS 22.04 LTS (except Ubuntu 18 used for SIF data prep and evaluation)
   - Python 3.9 (except Python 3.7 used for SIF data prep and evaluation)
     - numpy 1.22.4
@@ -221,8 +221,8 @@ Each step of the following workflow was executed in the environment indicated *i
   - Bash 5 (except Bash 4 used for SIF data prep and evaluation)
   - GDAL 3.3.1
   - MAFFT 7.520
-
-**UC Berkeley Savio Cluster**:
+- **UC Berkeley Savio Cluster**:
+  - Scientific Linux 7.9
   - Python 3.7
     - numpy 1.21.5
     - rasterio 1.1.5
@@ -270,7 +270,5 @@ Each step of the following workflow was executed in the environment indicated *i
     - GLM 1.6.1
     - Colors 0.12.8
   - Bash 4
-
-**GEE**:
-  - browser-based Javascript IDE (GEE API ≥0.1.404)
-
+- **GEE Javascript API (browser-hosted)**:
+  - GEE API ≥0.1.404
