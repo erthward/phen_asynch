@@ -43,7 +43,6 @@ subplots_adj_wspace=0.2
 subplots_adj_hspace=0.4
 
 # min and max x and y values, to optionally subset analysis to a region
-region_name = 'global'
 min_x = None
 max_x = None
 min_y = None
@@ -193,13 +192,12 @@ ts_recon = solver.reconstructedField(neofs)
 
 # write eofs to file, if requested
 if save_res:
-    tif_filename = '%s_%s_%i_EOFs_%s%s%s.tif' % (dataset,
-                                                 region_name,
-                                                 neofs,
-                                                 lat_weights + 'wts',
-                                                 '_normts' * normalize_ts,
-                                                 mask_filename_ext,
-                                                  )
+    tif_filename = '%s_%i_EOFs_%s%s%s.tif' % (dataset,
+                                              neofs,
+                                              lat_weights + 'wts',
+                                              '_normts' * normalize_ts,
+                                              mask_filename_ext,
+                                             )
     eof_res_for_file = eofs.to_dataset('mode')
     eof_res_for_file = eof_res_for_file.rename_vars(
                                     {i: 'eof%i' % i for i in range(neofs)})
@@ -223,4 +221,4 @@ ax.set_title('pct variance explained by first 10 EOFs')
 ax.set_xlabel('EOF number')
 ax.set_ylabel('pct variance explained')
 scree_fig_filepath = os.path.join(data_dir, f'{dataset}{mask_filename_ext}_scree_fig.png')
-scree_fig.save_fig(scree_fig_filepath, dpi=500)
+scree_fig.savefig(scree_fig_filepath, dpi=500)
