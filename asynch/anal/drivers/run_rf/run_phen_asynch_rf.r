@@ -31,18 +31,18 @@ library(dplyr)                # reshaping dfs
 args = commandArgs(trailingOnly=T)
 
 # phen-asynch var to use
-#asynch.var = args[1]
-asynch.var = 'NIRv'
+asynch.var = args[1]
+#asynch.var = 'NIRv'
 cat('\nVAR: ', asynch.var, '\n')
 
 # asynchrony neighborhood radius to use (in km)
-#neigh.rad = args[2]
-neigh.rad = '100'
+neigh.rad = args[2]
+#neigh.rad = '100'
 cat('\nNEIGH RAD: ', neigh.rad, '\n')
 
 # include coordinates in RF?
-#coords.as.covars = args[3]
-coords.as.covars = 'y'
+coords.as.covars = args[3]
+#coords.as.covars = 'y'
 cat('\nCOORDS AS COVARS? ', coords.as.covars, '\n')
 
 
@@ -185,6 +185,7 @@ make.pdp = function(rf, trn, response, varn1, varn2, seed.num=NA){
 # load countries polygons (for use as a simple basemap)
 world = map_data('world')
 
+cat('\nReading prepped variables as a raster brick...\n')
 # get band names
 names = c('phn.asy',
           'tmp.min.asy',
@@ -194,9 +195,6 @@ names = c('phn.asy',
           'cld.asy',
           'vrm.med',
           'veg.ent')
-cat('\nReading prepped variables as a raster brick...\n')
-cat(paste0(data.dir, "/asynch_model_all_vars_", asynch.var, '_', as.character(neigh.rad), "km.tif"))
-
 # load rasters of prepped variables
 vars = brick(paste0(data.dir, "/asynch_model_all_vars_",
                     asynch.var, '_',
