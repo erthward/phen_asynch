@@ -205,7 +205,7 @@ for doy in range(365):
 
 # turn into movie
 print('\n\ncompiling video file...\n\n')
-avifile = os.path.join(data_dir, 'LSP_vid.avi')
+avifile = os.path.join(data_dir, 'VID_SUPP_normalized_NIRv_LSP.avi')
 frame_filename_patt = 'map_img_doy\d{1,3}\.png'
 pngs = [f for f in os.listdir(data_dir) if re.search(frame_filename_patt, f)]
 # sort in day order
@@ -222,7 +222,7 @@ cv2.destroyAllWindows()
 video.release()
 
 # compress the full-size video (otherwise it's ~32GB!)
-cmd = "ffmpeg -i LSP_vid.avi -vcodec libx265 -crf 28 LSP_vid_COMPRESSED.mp4"
+cmd = "ffmpeg -i VID_SUPP_normalized_NIRv_LSP.avi -vcodec libx265 -crf 28 VID_SUPP_normalized_NIRv_LSP_COMPRESSED.mp4"
 cwd = os.getcwd()
 os.chdir(data_dir)
 os.system(cmd)
