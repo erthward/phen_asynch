@@ -17,7 +17,10 @@
 #
 ## Command(s) to run:
 
-module load gdal/2.2.3 r/4.0.3 r-packages r-spatial/2020-11-30-r40
+module load gdal/2.2.3
+module load r/4.0.3
+module load r-packages
+module load r-spatial/2020-11-30-r40
 # run for both vars and for all neigh rads
 for var in NIRv SIF
 do

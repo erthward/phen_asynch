@@ -69,7 +69,7 @@ Each step of the following workflow was executed in the environment indicated *i
   NOTE: Results will be formatted as overlapping TFRecord tiles.
   NOTE: In order to produce all results, this script must be manually called once for each combination of NIRv or SIF and default or strict masking, as well as once per climate variable (TerraClimate min temperature, precipitation, and climatic water deficit, as well as MODIS cloud). To do this, the `datasetName`, `climateVar`, and `maskingMode` variables must be manually swapped in this script.
   NOTE: To execute the full phenology-mapping workflow, main.js will in turn call a variety of other scripts located in `phen/calc`.
-  (**9 tasks total, ranging from 10s of minutes (NIRv, SIF and TerraClimate tasks) to a handful of hours (MODIS cloud task)**)
+  (**9 tasks total, ranging from 10s of minutes for the NIRv, SIF and TerraClimate tasks to a handful of hours for the MODIS cloud task**)
 
 
 ### download seasonality results:
@@ -152,7 +152,7 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ### run climate-distance analysis:
-1. Run `asynch/anal/clim_dep/compare_phen_clim_geog_dist.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce the analysis summary in **Fig. XXX**.
+1. Run `asynch/anal/clim_dep/compare_phen_clim_geog_dist.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce the analysis summary figure.
 
 
 ### run iNaturalist flowering-phenology analysis:
@@ -177,9 +177,9 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ## working environments
-- **local**:
-  - Linux laptop running Pop!\_OS 22.04 LTS (except Ubuntu 18 used for SIF data prep and evaluation)
-  - Python 3.9 (except Python 3.7 used for SIF data prep and evaluation)
+- **laptop**:
+  - Pop!\_OS 22.04 LTS (*except Ubuntu 18 was used for SIF data prep and evaluation*)
+  - Python 3.9 (*except Python 3.7 was used for SIF data prep and evaluation*)
     - numpy 1.22.4
     - rasterio 1.2.10
     - xarray 2022.3.0
@@ -218,7 +218,7 @@ Each step of the following workflow was executed in the environment indicated *i
     - adegent 2.1.5
     - poppr 2.9.5
     - ape 5.6.2
-  - Bash 5 (except Bash 4 used for SIF data prep and evaluation)
+  - Bash 5 (*except Bash 4 was used for SIF data prep and evaluation*)
   - GDAL 3.3.1
   - MAFFT 7.520
 - **UC Berkeley Savio Cluster**:
