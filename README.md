@@ -179,6 +179,8 @@ Each step of the following workflow was executed in the environment indicated *i
 ## working environments
 - **laptop**:
   - Pop!\_OS 22.04 LTS (*except Ubuntu 18 was used for SIF data prep and evaluation*)
+  - Bash 5.1.16 (*except Bash 4 was used for SIF data prep and evaluation*)
+  - GDAL 3.3.1
   - Python 3.9 (*except Python 3.7 was used for SIF data prep and evaluation*)
     - numpy 1.22.4
     - rasterio 1.2.10
@@ -218,11 +220,11 @@ Each step of the following workflow was executed in the environment indicated *i
     - adegent 2.1.5
     - poppr 2.9.5
     - ape 5.6.2
-  - Bash 5 (*except Bash 4 was used for SIF data prep and evaluation*)
-  - GDAL 3.3.1
   - MAFFT 7.520
 - **UC Berkeley Savio Cluster**:
   - Scientific Linux 7.9
+  - Bash 4.2.26
+  - GDAL 2.2.3
   - Python 3.7
     - numpy 1.21.5
     - rasterio 1.1.5
@@ -240,6 +242,7 @@ Each step of the following workflow was executed in the environment indicated *i
     - matplotlib 3.1.1
   - R 4.0.3
     - dplyr 1.0.8
+    - rgdal 1.5.18
     - sp 1.4.6
     - sf 0.9.7
     - raster 3.4.5
@@ -269,6 +272,5 @@ Each step of the following workflow was executed in the environment indicated *i
     - StatsBase 0.33.16
     - GLM 1.6.1
     - Colors 0.12.8
-  - Bash 4
 - **GEE Javascript API (browser-hosted)**:
   - GEE API ≥0.1.404

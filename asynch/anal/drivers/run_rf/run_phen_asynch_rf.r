@@ -54,7 +54,7 @@ if (strsplit(getwd(), '/')[[1]][2] == 'home'){
   # if on Savio
 } else {
   on.laptop=F
-  data.dir = '/global/scratch/users/drewhart/seasonality/rf_data/'
+  data.dir = '/global/scratch/users/drewhart/seasonality/rf_data'
 }
 
 # verbose?
@@ -195,6 +195,9 @@ names = c('phn.asy',
           'vrm.med',
           'veg.ent')
 cat('\nReading prepped variables as a raster brick...\n')
+cat(paste0(data.dir, "/asynch_model_all_vars_", asynch.var, '_', as.character(neigh.rad), "km.tif"))
+names(vars) = names
+
 # load rasters of prepped variables
 vars = brick(paste0(data.dir, "/asynch_model_all_vars_",
                     asynch.var, '_',
@@ -519,4 +522,4 @@ write.csv(shap_full_w_coords, paste0(data.dir, 'rf_SHAP_vals_w_coords_',
                                      coords.as.covars, 'COORDS_',
                                      asynch.var, '_',
                                      as.character(neigh.rad), 'km.csv'), row.names=F)
-
+cat('\nModeling complete.\n')

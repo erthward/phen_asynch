@@ -208,4 +208,5 @@ write.csv(df, paste0(data.dir, "/asynch_model_all_vars_prepped_",
 write.csv(df.strat, paste0(data.dir, "/asynch_model_all_vars_prepped_strat_",
                            asynch.var, '_',
                            as.character(neigh.rad), "km.csv"), row.names=F)
+cat('\ndata prep complete.\n\n')
 
