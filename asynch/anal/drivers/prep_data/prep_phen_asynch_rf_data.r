@@ -1,29 +1,6 @@
 library(sp)                   # spatial data
 library(raster)               # raster data
-library(terra)                # newer raster data
-library(sf)                   # newer spatial data
-library(spdep)                # spatial autocorrelation
 library(rsample)              # function for stratified random sampling
-library(randomForest)         # global RFs
-library(RRF)                  # fast RF var selection (w/ conservative results in Bag et al. 2022)
-library(SpatialML)            # GWRFs
-library(GWmodel)              # GW models
-library(vip)                  # var importance plots
-library(pdp)                  # partial depend. plots (& ICE curves)
-library(DALEX)                # feature importance
-library(ggplot2)              # plotting
-library(ggthemes)             # plot themes
-library(grid)                 # textGrob for plot grids
-library(cowplot)              # easy plot gridding
-library(tmap)                 # mapping
-library(maps)                 # countries map data
-library(RColorBrewer)         # colors
-library(cmocean)              # cmocean palettes
-library(dplyr)                # reshaping dfs
-library(caret)                # Recursive Feature selection
-library(rfUtilities)          # Jeff Evans R package for model selection
-
-
 
 
 ##########################################################################
@@ -176,20 +153,6 @@ vars = stack(phn.asy,
              cld.asy,
              vrm.med,
              veg.ent)
-
-par(mfrow=c(3,3))
-for (lyr in c(phn.asy,
-             tmp.min.asy,
-             tmp.max.asy,
-             ppt.asy,
-             def.asy,
-             cld.asy,
-             vrm.med,
-             veg.ent)){
-   plot(lyr)#@extent@xmax)
-}
-
-par(mfrow=c(1,1))
 
 # rename all bands 
 names = c('phn.asy',
