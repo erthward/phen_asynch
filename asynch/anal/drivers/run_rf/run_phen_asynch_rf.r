@@ -3,34 +3,20 @@ Sys.setenv(GDAL_DATA = "/global/home/groups/consultsw/sl-7.x86_64/modules/gdal/2
 
 library(sp)                   # spatial data
 library(raster)               # raster data
-#library(terra)                # newer raster data
 library(sf)                   # newer spatial data
-library(spdep)                # spatial autocorrelation
+library(maps)                 # countries map data
 library(rsample)              # function for stratified random sampling
-library(RRF)                  # fast RF var selection (w/ conservative results in Bag et al. 2022)
 library(ranger)               # faster RFs
-library(randomForest)         # regular RFs
 library(spatialRF)            # toolkit for running RFs on spatial data
-#library(h2o)                  # distributed RFs (on cloud)
 library(Boruta)               # feature selection w/ boruta algo (i.e., shadow features)
 library(fastshap)             # SHAP values
-library(SpatialML)            # GWRFs
-library(GWmodel)              # GW models
 library(vip)                  # var importance plots
 library(pdp)                  # partial depend. plots (& ICE curves)
-library(DALEX)                # feature importance
 library(ggplot2)              # plotting
 library(ggthemes)             # plot themes
 library(grid)                 # textGrob for plot grids
-library(cowplot)              # easy plot gridding
-library(tmap)                 # mapping
-library(maps)                 # countries map data
 library(RColorBrewer)         # colors
-library(cmocean)              # cmocean palettes
-#library(wesanderson)          # wes palettes
 library(dplyr)                # reshaping dfs
-library(caret)                # Recursive Feature selection
-library(rfUtilities)          # Jeff Evans R package for model selection
 
 
 ##########################################################################
@@ -44,15 +30,18 @@ library(rfUtilities)          # Jeff Evans R package for model selection
 args = commandArgs(trailingOnly=T)
 
 # phen-asynch var to use
-asynch.var = args[1]
+#asynch.var = args[1]
+asynch.var = 'NIRv'
 cat('\nVAR: ', asynch.var, '\n')
 
 # asynchrony neighborhood radius to use (in km)
-neigh.rad = args[2]
+#neigh.rad = args[2]
+neigh.rad = '100'
 cat('\nNEIGH RAD: ', neigh.rad, '\n')
 
 # include coordinates in RF?
-coords.as.covars = args[3]
+#coords.as.covars = args[3]
+coords.as.covars = 'y'
 cat('\nCOORDS AS COVARS? ', coords.as.covars, '\n')
 
 
@@ -87,55 +76,6 @@ train.frac = 0.6
 ############
 # HELPER FNS
 ############
-
-# Function to buffer points in XY space:
-
-# TAKEN FROM https://davidrroberts.wordpress.com/2015/09/25/spatial-buffering-of-points-in-r-while-retaining-maximum-sample-size/
-
-# Returns the original data table with buffered points removed.
-# Runs numerous iterations, as the random point selection can result in more/fewer output points.
-# 1) Randomly select a single point
-# 2) Remove points within 50km of that point
-# 3) Randomly select of the remaining points
-# 4) ...
-# foo - a data.frame to select from with columns x, y
-# buffer - the minimum distance between output points
-# reps - the number of repetitions for the points selection
-buffer.f <- function(foo, buffer, reps){
-  # Make list of suitable vectors
-  suitable <- list()
-  for(k in 1:reps){
-    # Make the output vector
-    outvec <- as.numeric(c())
-    # Make the vector of dropped (buffered out) points
-    dropvec <- c()
-    for(i in 1:nrow(foo)){
-      # Stop running when all points exhausted
-      if(length(dropvec)<nrow(foo)){
-        # Set the rows to sample from
-        if(i>1){
-          rowsleft <- (1:nrow(foo))[-c(dropvec)]
-        } else {
-          rowsleft <- 1:nrow(foo)
-        }
-        # Randomly select point
-        outpoint <- as.numeric(sample(as.character(rowsleft),1))
-        outvec[i] <- outpoint
-        # Remove points within buffer
-        outcoord <- foo[outpoint,c("x","y")]
-        dropvec <- c(dropvec, which(sqrt((foo$x-outcoord$x)^2 + (foo$y-outcoord$y)^2)<buffer))
-        # Remove unnecessary duplicates in the buffered points
-        dropvec <- dropvec[!duplicated(dropvec)]
-      }
-    }
-    # Populate the suitable points list
-    suitable[[k]] <- outvec
-  }
-  # Go through the iterations and pick a list with the most data
-  best <- unlist(suitable[which.max(lapply(suitable,length))])
-  foo[best,]
-}
-
 
 # function to plot variable importance for a ranger RF object
 plot.ranger.import = function(ranger_rf){
@@ -326,7 +266,7 @@ if (F){
       # NOTE: DECIDED TO REPLACE THIS WITH HARD-CODED NUMBERS
       #       BECAUSE CHANGE IN COVAR NUM CAUSED THIS TO BE 0, 2, 4 INSTEAD!
       #mtry = floor(n.features * c(.1, .33, .5)),
-      mtry = c(1, 3, 5)
+      mtry = c(1, 3, 5),
       ntree = c(150, 200, 250, 300),
       min.node.size = c(1, 3, 5, 10),
       replace = c(TRUE, FALSE),
@@ -385,8 +325,8 @@ ntree = 300
 replace = F
 rf.sample.fraction = 0.8
 # NOTE: CHANGED BELOW FROM 4 TO 3 WHEN FIXING mtry ISSUE NOTED ABOVE
-mtry = 3
-min.node.size = 1
+mtry = 5
+min.node.size = 3
 
 # and choose data subset based on output above
 subset.frac = 0.05
