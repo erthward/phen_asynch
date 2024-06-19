@@ -38,10 +38,10 @@ np.random.seed(seed)
 # data directories
 rs_datadir = phf.EXTERNAL_DATA_DIR
 flux_datadir = phf.EXTERNAL_FLUX_DATA_DIR
-other_datadir = phf.DATA_DIR
+bounds_datadir = phf.BOUNDS_DIR
 
 # load countries data
-countries = gpd.read_file(os.path.join(other_datadir,
+countries = gpd.read_file(os.path.join(bounds_datadir,
                                        'bounds/NewWorldFile_2020.shp'))
 countries = countries.to_crs(4326)
 # load level-1 subnational jurisdictions (downloaded from:

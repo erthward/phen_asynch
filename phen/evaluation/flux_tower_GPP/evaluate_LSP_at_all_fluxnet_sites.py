@@ -12,8 +12,7 @@ import xarray as xr
 import rasterio as rio
 import rioxarray as rxr
 from datetime import datetime
-from sklearn import linear_model
-from sklearn.metrics import mean_squared_error, r2_score
+import statsmodels.api as sm
 import zipfile36 as zipfile
 import seaborn as sns
 import re, os, sys
@@ -105,43 +104,22 @@ def get_site_info(fn):
     return id, name, lon, lat, igbp, mat, map
 
 
-# get full-year, contiguous slices of data
-def keep_only_full_years(df):
-    yrs = np.unique([str(idx)[:4] for idx in df.index])
-    keep_yrs = []
-    # find all years that appear >= 365 times
-    for yr in yrs:
-        if sum([str(idx).startswith(yr) for idx in df.index]) >= 365:
-            keep_yrs.append(yr)
-    # subset for those
-    out = df.loc[[str(idx)[:4] in keep_yrs for idx in df.index]]
-    return out
-
-
-
 # fit the harmonic regression to each, then
 # get the detrended, predicted values for each site
 def fit_harmonic_regression(df, response):
     # gather predictors into an array, including:
-
     # day of total time series (to detrend)
-    t = [1 - (max(df.index)-idx)/(
-        max(df.index)-min(df.index)) for idx in df.index]
-
+    t = phf.minmax_rescale_array(df.index)
     # sines and cosines of annual and semiannual components
     sin_ann = [np.sin(n) for n in df['ann']]
     cos_ann = [np.cos(n) for n in df['ann']]
     sin_sem = [np.sin(n) for n in df['sem']]
     cos_sem = [np.cos(n) for n in df['sem']]
-
     X = np.stack((t, sin_ann, cos_ann, sin_sem, cos_sem)).T
-
     # and grab the y
     y = np.atleast_2d(np.array(df[response])).T
-
     # build and fit the regression
-    reg = linear_model.LinearRegression().fit(X, y)
-
+    reg = sm.OLS(y, X).fit()
     return reg
 
 
@@ -243,7 +221,7 @@ def predict_rs_detrended_vals(coeffs_rast, x, y, design_mat,
 
     # rescale it
     if rescale:
-        pred = rescale_data(pred)
+        pred = phf.minmax_rescale_array(pred)
 
     # pair it with a date range object, then make into a df
     dates = pd.date_range(start='1/1/2021', end='12/31/2021')
@@ -259,13 +237,6 @@ def calc_euc_dist(a1, a2):
     """
     dist = np.sqrt(np.sum((a1 - a2)**2))
     return dist
-
-
-def rescale_data(data, lo=0, hi=1):
-    assert hi>lo, 'hi must be > lo!'
-    norm_data = (data - np.min(data))/(np.max(data)-np.min(data))
-    norm_data = lo + (norm_data*(hi-lo))
-    return norm_data
 
 
 def make_design_matrix():
@@ -300,14 +271,11 @@ def predict_fluxnet_detrended_vals(df, mod, rescale=True):
     cos_ann = [np.cos(n) for n in df['ann']]
     sin_sem = [np.sin(n) for n in df['sem']]
     cos_sem = [np.cos(n) for n in df['sem']]
-    X = np.stack((sin_ann, cos_ann, sin_sem, cos_sem)).T
-
-    predicted = mod.intercept_ + np.sum(X * mod.coef_[0][1:], axis=1)
-
+    X = np.stack((np.ones(len(sin_ann)), sin_ann, cos_ann, sin_sem, cos_sem)).T
+    predicted = mod.predict(X)
     # rescale it
     if rescale:
-        predicted = rescale_data(predicted)
-
+        predicted = phf.minmax_rescale_array(predicted)
     df['pred'] = predicted
 
 
@@ -341,12 +309,11 @@ def process_site_data(zip_filename,
 
     # drop data with mean daily QC val <0.7
     # (per Reviewer 3 recommendation)
-    # NOTE: THERE IS NO QC COLUMN IN THE CH4 FILES
     if sitetype_patt == 'SUBSET':
         df = df[df.loc[:, qc_cols[sitetype_patt]] >= 0.7]
 
     # make datestamp columns in datetime objects
-    df['date'] = pd.to_datetime(df['TIMESTAMP'], format='%Y%m%d')
+    df['date'] = pd.to_datetime(df.loc[:, 'TIMESTAMP'], format='%Y%m%d')
 
     # subset GPP vars
     gpp = df.loc[:,[*df.columns[[col.startswith('GPP') for col in
@@ -363,8 +330,6 @@ def process_site_data(zip_filename,
         # TODO: COME UP WITH BETTER SOLUTION
         gpp = gpp.loc[filter_start_date:filter_end_date]
 
-    gpp = keep_only_full_years(gpp)
-
     # add numeric day of year columns,
     # and add annual and semi-annual circular time compononet columns (radians)
     gpp['doy'] = [idx.timetuple().tm_yday for idx in gpp.index]
@@ -372,18 +337,20 @@ def process_site_data(zip_filename,
     gpp['sem'] = 2*np.pi*np.array([*gpp['doy']])/(365/2)
 
     # save length of GPP time series being used for the regression (in years)
-    gpp_ts_len = len(gpp)/365
+    gpp_ts_len = (gpp.index[-1] - gpp.index[0]).days/365.25
 
     # fit the regression, then add the predicted, detrended vals col
     reg = fit_harmonic_regression(gpp, response_var)
-
     predict_fluxnet_detrended_vals(gpp, reg, rescale=rescale)
+
+    # get the overall model P-value
+    pval = reg.f_pvalue
 
     # delete the file, if requested
     if delete_after_finished:
         os.remove(csv_filename)
 
-    return gpp, gpp_ts_len
+    return gpp, gpp_ts_len, pval
 
 
 # get and compare flux-based and RS-based predicted GPP values for a site
@@ -410,49 +377,56 @@ def compare_rs_flux_predicted_vals(zip_filename, coeffs_rast, design_mat,
         r2 = np.nan
         flux_pred_df = rs_pred = None
         gpp_ts_len = np.nan
+        gpp_pval = np.nan
 
     else:
 
         # get df with fluxnet-predicted seasonality,
         # and length of GPP time series being used to fit the regression
-        flux_pred_df, gpp_ts_len = process_site_data(zip_filename,
-                                         rescale=rescale,
-                                         filter_start_date=filter_start_date,
-                                         filter_end_date=filter_end_date,
-                                    delete_after_finished=delete_after_finished)
+        flux_pred_df, gpp_ts_len, gpp_pval = process_site_data(zip_filename,
+                                    rescale=rescale,
+                                    filter_start_date=filter_start_date,
+                                    filter_end_date=filter_end_date,
+                                    delete_after_finished=delete_after_finished,
+                                                              )
         # 'rotate' that data to fill a 'standard' year (01/01 to 12/31, 2021),
         # or at least as much of that year as we have days of the year to fill
         dates = pd.date_range(start='1/1/2021', end='12/31/2021')
-        keep_dates = []
-        keep_dates_preds = []
+        date_preds = []
         for date in dates:
-            try:
-                doy = date.day_of_year
-                subdf = flux_pred_df[flux_pred_df['doy'] == doy]
+            doy = date.day_of_year
+            subdf = flux_pred_df[flux_pred_df['doy'] == doy]
+            if len(subdf) > 0:
                 date_pred = subdf.iloc[0,:]['pred']
-                keep_dates.append(date)
-                keep_dates_preds.append(date_pred)
-            except Exception as e:
-                print(e)
-        flux_pred = pd.DataFrame({'date': keep_dates, 'flux_pred': keep_dates_preds})
+            else:
+                date_pred = np.nan
+            date_preds.append(date_pred)
+        flux_pred = pd.DataFrame({'date': dates, 'flux_pred': date_preds})
 
         # merge both to get matched predictions for all common dates
         merged = pd.merge(rs_pred, flux_pred, how='inner', on='date')
 
+        # drop NaNs
+        merged_nonans = merged.dropna()
+
         # calculate the Euclidean distance between both time series
-        dist = calc_euc_dist(merged['rs_pred'], merged['flux_pred'])
+        dist = calc_euc_dist(merged_nonans['rs_pred'],
+                             merged_nonans['flux_pred'],
+                            )
 
         # calculate the R^2 between both time series
-        r2 = (np.corrcoef(merged['rs_pred'], merged['flux_pred'])[0,1])**2
+        r2 = np.corrcoef(merged_nonans['rs_pred'],
+                          merged_nonans['flux_pred'],
+                        )[0,1]**2
 
         # plot and save, if requested
         if plot_time_series:
             fig, ax = plt.subplots(1)
-            ax.plot(merged['rs_pred'], '-k', label='RS')
-            ax.plot(merged['flux_pred'], ':r', label='FLUX')
+            ax.plot(merged['rs_pred'], '-k', label=rs_var)
+            ax.plot(merged['flux_pred'], '-r', label='FLUX')
             ax.set_xlabel("day of year", fontdict={'fontsize':9})
             ax.set_ylabel(("rescaled metric of seasonality\n"
-                           "'RS'=%s (%s); "
+                           "'%s'=LSP (%s); "
                            #"'FLUX'=GPP ($\mu mol\ CO_2\ m^{-2}\ s{-1}$"
                            "'FLUX'=GPP ($g\ C\ m^{-2}\ d{-1}$"
                           ")") % (rs_var, rs_var_units[rs_var]),
@@ -476,6 +450,7 @@ def compare_rs_flux_predicted_vals(zip_filename, coeffs_rast, design_mat,
                    'r2': r2,
                    'cell_dist': cell_dist,
                    'gpp_ts_len': gpp_ts_len,
+                   'gpp_pval': gpp_pval,
                    'notes': np.nan,
                   }
 
@@ -501,12 +476,18 @@ results = {'id': [],
            'r2': [],
            'cell_dist': [],
            'gpp_ts_len': [],
+           'gpp_pval': [],
            'notes': [],
           }
 
 zip_filenames = [f for f in os.listdir(flux_datadir) if
                  os.path.splitext(f)[-1] == '.zip']
 zip_filenames = [os.path.join(flux_datadir, fn) for fn in zip_filenames]
+
+# NOTE: decided to skip CH4 sites altogether because a number of them I've
+#       looked at have no clear QC flags included for the GEE data
+zip_filenames = [f for f in zip_filenames if re.search('FLUXNET-CH4_', f) is None]
+
 for zip_filename in zip_filenames:
     try:
         print('\n\nNow processing: %s\n\n' % zip_filename)
@@ -532,6 +513,7 @@ for zip_filename in zip_filenames:
                   'r2': np.nan,
                   'cell_dist': np.nan,
                   'gpp_ts_len': np.nan,
+                  'gpp_pval': np.nan,
                   'notes': e
                  }
 

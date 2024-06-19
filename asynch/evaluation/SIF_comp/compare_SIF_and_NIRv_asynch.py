@@ -12,7 +12,7 @@ import phen_helper_fns as phf
 
 
 # data directory
-data_dir = pdf.EXTERNAL_DATA_DIR
+data_dir = phf.EXTERNAL_DATA_DIR
 countries_data_dir = phf.BOUNDS_DIR
 
 # load country boundaries
@@ -55,7 +55,7 @@ for neigh_rad_i, neigh_rad in enumerate(['50', '100', '150']):
                            zorder=0)
     # increase colorbar ticklabel size and label the colorbar
     fig.axes[-1].tick_params(labelsize=20)
-    fig.axes[-1].set_ylabel('$NIR_{V\ stand}-SIF_{stand}$',
+    fig.axes[-1].set_ylabel('$asynch_{NIR_{V\ stand}}-asynch_{SIF_{stand}}$',
                             fontdict={'fontsize': 30})
 
     ax.set_xlabel('')
@@ -106,5 +106,5 @@ fig.subplots_adjust(top=0.95,
                     right=0.96,
                     hspace=0.2,
                     wspace=0)
-fig.savefig('FIG_S4_scaled_NIRv_vs_scaled_SIF.png', dpi=700)
+fig.savefig('FIG_S4_scaled_NIRv_asynch_vs_scaled_SIF_asynch.png', dpi=500)
 

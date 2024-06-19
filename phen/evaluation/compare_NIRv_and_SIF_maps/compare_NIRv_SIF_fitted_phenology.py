@@ -141,5 +141,5 @@ for i in range(r2s.shape[0]):
             r2s[i, j] = r2
 
 # write results to disk
-r2s.rio.to_raster(os.path.join(coeffs_data_dir, 'NIRv_SIF_seas_R2s.tif'))
+r2s.rio.to_raster(os.path.join(coeffs_data_dir, 'NIRv_SIF_phen_R2s.tif'))
 

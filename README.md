@@ -109,24 +109,24 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ### run NIRv-SIF asynchrony comparison:
-1. *On Savio*, run `phen/evaluation/compare_NIRv_and_SIF_maps/ch3_phen_comparison_job.sh` to calculate a global map of $R^2$ values between the fitted annual NIRv-based and SIF-based LSP patterns (**1 task, ~XXXXh runtime**).
-2. **ADD UL SCRIPT**
-3. **ADD DL SCRIPT**
+1. *On Savio*, run `phen/evaluation/compare_NIRv_and_SIF_maps/ch3_phen_comparison_job.sh` to calculate a global map of $R^2$ values between the fitted annual NIRv-based and SIF-based LSP patterns (**1 task, ~12h runtime**).
+2. *On Savio*, run `phen/evaluation/compare_NIRv_and_SIF_maps/ul_NIRv_SIF_phen_comparison_results_to_bdrive.sh` to upload the resulting GeoTIFF to Google Drive (**1 task, <1m runtime**).
+3. *On laptop*, run `phen/evaluation/compare_NIRv_and_SIF_maps/dl_NIRv_SIF_phen_comparison_results_from_bdrive.sh` to download the GeoTIFF to the necessary local directory (**1 task, <1m runtime**).
 
 
 ### run FLUXNET evaluation:
 1. *On laptop*, manually download all subset data products (using DownThemAll!) from the FLUXNET network's [download page](https://fluxnet.org/data/download-data/) (**1 task, runs roughly overnight**).
-2. *On laptop*, run `phen/evaluation/flux_tower_GPP/run_flux_evaluations.sh` to run the flux-tower GPP comparison, at all usable FLUXNET sites, for both the fitted NIRv and SIF LSP results (producing Fig. XXX) (**1 task, ~XXXXh runtime**).
+2. *On laptop*, run `phen/evaluation/flux_tower_GPP/run_flux_evaluations.sh` to run the flux-tower GPP comparison, at all usable FLUXNET2015 sites, for both the fitted NIRv and SIF LSP results (producing Fig. XXX) (**1 task, ~15m runtime**).
 4. *On laptop*, run `phen/evaluation/plot_phen_evaluation_results_FIG_S5.py` to combine both LSP datasets' FLUXNET evaluations and the NIRv-SIF comparison evaluation to make Fig. XXX (**1 task, ~XXXXh runtime**).
 5. *On laptop*, run `phen/evaluation/flux_tower_GPP/combine_fluxnet_val_outputs_TableS1.py` to combine of flux-tower evaluation results, listed by FLUXNET site, into a single supplemental table (**1 task, <1m runtime**).
 
 
 ### run asynchrony neighborhood-comparison evaluation:
-1. *On laptop*, run `asynch/evaluation/calc_asynch_r2s_btwn_neighborhood_radii.py` to produce Table S2, containing R2s for all neighborhood radius comparisons and for all variables for which we produced asynchrony maps.
+1. *On laptop*, run `asynch/evaluation/calc_asynch_r2s_btwn_neighborhood_radii.py` to produce Table S2, containing R2s for all neighborhood radius comparisons and for all variables for which we produced asynchrony maps (**1 task, <1m runtime**).
 
 
 ### run asynchrony NIRv-SIF comparison:
-1. *On laptop*, run `asynch/evaluation/SIF_comp/compare_SIF_and_NIRv_asynch.py` to compare the two datasets' phenological asynchrony maps across all three neighborhood radii (50 km, 100 km, 150 km).
+1. *On laptop*, run `asynch/evaluation/SIF_comp/compare_SIF_and_NIRv_asynch.py` to compare the two datasets' phenological asynchrony maps across all three neighborhood radii (50 km, 100 km, 150 km) (**1 task, <5m runtime**).
 
 
 ### produce asynchrony conceptual figure:

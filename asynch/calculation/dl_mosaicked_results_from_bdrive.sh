@@ -2,7 +2,7 @@
 #       which serves as the main map-data directory for all locally-run follow-on analysis
 
 # copy all mosaicked GeoTIFFs back to Google Drive
-rclone copy bdrive:LSP_and_asynch_mosaicked_outputs/ .
+rclone copy bdrive:LSP_and_asynch_mosaicked_outputs/ /media/deth/SLAB/diss/3-phn/final_seas_and_asynch_maps/
 
 # ensure that the following prints out '45' (5 layers for each of 9 variables)
 ls *.tif | wc -l
