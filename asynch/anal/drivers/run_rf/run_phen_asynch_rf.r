@@ -196,7 +196,6 @@ names = c('phn.asy',
           'veg.ent')
 cat('\nReading prepped variables as a raster brick...\n')
 cat(paste0(data.dir, "/asynch_model_all_vars_", asynch.var, '_', as.character(neigh.rad), "km.tif"))
-names(vars) = names
 
 # load rasters of prepped variables
 vars = brick(paste0(data.dir, "/asynch_model_all_vars_",
