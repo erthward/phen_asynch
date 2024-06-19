@@ -1,6 +1,7 @@
 library(sp)                   # spatial data
 library(raster)               # raster data
 library(rsample)              # function for stratified random sampling
+library(dplyr)                # defines the %>% pipe function, among other things
 
 
 ##########################################################################
