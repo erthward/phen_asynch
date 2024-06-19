@@ -263,9 +263,6 @@ if (F){
     default.errs = default.preds - tst[,'phn.asy']
     default.tst.rmse = sqrt(mean(default.errs^2))
     hyper_grid <- expand.grid(
-      # NOTE: DECIDED TO REPLACE THIS WITH HARD-CODED NUMBERS
-      #       BECAUSE CHANGE IN COVAR NUM CAUSED THIS TO BE 0, 2, 4 INSTEAD!
-      #mtry = floor(n.features * c(.1, .33, .5)),
       mtry = c(1, 3, 5),
       ntree = c(150, 200, 250, 300),
       min.node.size = c(1, 3, 5, 10),
@@ -324,7 +321,6 @@ if (F){
 ntree = 300
 replace = F
 rf.sample.fraction = 0.8
-# NOTE: CHANGED BELOW FROM 4 TO 3 WHEN FIXING mtry ISSUE NOTED ABOVE
 mtry = 5
 min.node.size = 3
 
