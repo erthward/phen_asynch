@@ -134,10 +134,11 @@ Each step of the following workflow was executed in the environment indicated *i
 2. *On laptop*, run `asynch/viz/plot_all_asynch_maps.py` to create each LSP and climate variable's supplemental figure, displaying the asynchrony maps for all three neighborhood radii (50, 100, and 150 km) (**1 task, ~XXXXm runtime**).
 
 
-### obtain remaining covariates for asynch drivers analysis:
+### collect all covariates for asynch drivers analysis:
 1. *On GEE*, run `phen/calc/GEE/other_datasets/calc_veg_entropy.js` to produce the vegetation cover entropy map that will be used as a covariate in the phenological asynchrony predictive model. (**1 task, <10m runtime**)
 2. *On laptop*, manually download the GMTED-derived, 100-km median-aggregated vector ruggedness metric (VRM) dataset from [EarthEnv](http://www.earthenv.org/topography) (file 'vrm_100KMmd_GMTEDmd.tif'), then uploade to the 'LSP_ancillary_datasets' folder on Google Drive (**1 task, <10s runtime**)
 3. *On Savio*, run `asynch/anal/drivers/prep_data/dl_asynch_drivers_covariates_from_brdive.sh` to download both of these covariate maps into the correct directory (**1 task, <1m runtime**).
+4. *On Savio*, run `asynch/anal/drivers/prep_data/cp_asynch_files_to_rf_data.sh` to copy all asynch maps into the random forest-modelling data directory (**1 task, <1m runtime**).
 
 
 ### run phenological asynchrony drivers analysis:
