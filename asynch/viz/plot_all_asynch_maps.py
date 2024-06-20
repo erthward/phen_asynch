@@ -39,17 +39,6 @@ cbar_ticklab_fontsize = 24
 dpi = 600
 plot_crs = 8857
 
-# load shapefiles
-countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                    'NewWorldFile_2020.shp')).to_crs(plot_crs)
-# load level-1 subnational jurisdictions (downloaded from:
-#                                 https://gadm.org/download_country.html)
-subnational = []
-for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
-    subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                                  f)).to_crs(plot_crs))
-subnational = pd.concat(subnational)
-
 # vars to plot asynch for
 vars = ['NIRv', 'SIF', 'tmmn', 'tmmx', 'pr', 'def', 'cloud']
 
@@ -75,27 +64,27 @@ def plot_juris_bounds(ax, black_zorder=0, subnat_zorder=1, nat_zorder=2,
     plot national and subnational jurisdictional bounds
     """
     if black_zorder is not None:
-        countries.to_crs(plot_crs).plot(ax=ax,
-                                    color=polys_color,
-                                    edgecolor='black',
-                                    linewidth=0,
-                                    alpha=0.2,
-                                    zorder=black_zorder,
-                                   )
-    subnational.to_crs(plot_crs).plot(ax=ax,
-                                  color='none',
-                                  edgecolor='gray',
-                                  linewidth=0.3,
-                                  alpha=0.7,
-                                  zorder=subnat_zorder,
-                                 )
-    countries.to_crs(plot_crs).plot(ax=ax,
-                                color='none',
-                                edgecolor='gray',
-                                linewidth=0.5,
-                                alpha=0.8,
-                                zorder=nat_zorder,
-                               )
+        phf.plot_juris_bounds(ax,
+                              lev1=False,
+                              lev0_color=polys_color,
+                              lev0_linewidth=0,
+                              lev0_alpha=0.2,
+                              lev0_zorder=black_zorder,
+                              crs=plot_crs,
+                              strip_axes=False,
+                             )
+    phf.plot_juris_bounds(ax,
+                          lev0_linecolor='gray',
+                          lev0_linewidth=0.5,
+                          lev0_alpha=0.8,
+                          lev0_zorder=nat_zorder,
+                          lev1_linecolor='gray',
+                          lev1_linewidth=0.3,
+                          lev1_alpha=0.7,
+                          lev1_zorder=subnat_zorder,
+                          crs=plot_crs,
+                          strip_axes=False,
+                         )
 
 
 def map_asynch(fig, cbar_axlab,
@@ -144,7 +133,8 @@ def map_asynch(fig, cbar_axlab,
         # read in the raster data and prepare it
         rast = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
                                               file), masked=True)[0]
-        rast = rast.rio.write_crs(4326).rio.reproject(plot_crs)
+        rast_proj = rast.rio.write_crs(4326).rio.reproject(plot_crs)
+        rast = phf.mask_xarr_to_other_xarr_bbox(rast_proj, rast)
                 # NOTE: annoying AttributeError is because da.attrs['long_name']
         #       is retained as a tuple of names (rather than being subsetted
         #       by indexing) when I index a single layer out of an
@@ -168,13 +158,7 @@ def map_asynch(fig, cbar_axlab,
                 # format axes
         ax.set_xlim(rast.rio.bounds()[0::2])
         ax.set_ylim(rast.rio.bounds()[1::2])
-        # NOTE: chopping off western edge because the equal earth projection
-        #       makes NZ appear twice
-        ax.set_xlim(0.95 * ax.get_xlim()[0], ax.get_xlim()[1])
-        ax.set_xlabel('')
-        ax.set_ylabel('')
-        ax.set_xticks(())
-        ax.set_yticks(())
+        phf.strip_axes_labels_and_ticks(ax)
         ax.set_title('%i km neighborhood' % neigh_rad,
                      fontdict={'fontsize': 21})
         del rast

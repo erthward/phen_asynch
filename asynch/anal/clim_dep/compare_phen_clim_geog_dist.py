@@ -45,9 +45,9 @@ sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
 from MMRR import MMRR
 import phen_helper_fns as phf
 
+
+print(f"\n\nSETTING PARAMETERS AND LOADING DATA...\n\n")
 # BEHAVIORAL PARAMS:
-# plot Whittaker biomes?
-plot_whittaker = True
 # save CSVs of results?
 save_all_results = True
 # print everything?
@@ -68,7 +68,8 @@ min_n_clusts = 7
 # asynch neighborhood radius (in km)
 neigh_rad = 100
 
-# a number <= number of random points desired
+# a value that will wind up <= the number of random points
+# used in the MMRR models (because some will fall in masked pixels)
 n_pts = 1000
 
 # standardize the seasonal time series before calculating their distances?
@@ -77,8 +78,7 @@ standardize_ts = True
 # number of MMRR permutations
 MMRR_nperm=499
 
-
-# plot formatting params
+# plot-formatting params
 axlabel_fontdict = {'fontsize': 23}
 ticklabel_size = 16
 partlabel_size = 36
@@ -88,17 +88,6 @@ partlabel_size = 36
 #####################################
 # PART I: CLUSTER HIGH-ASYNCH REGIONS
 #####################################
-
-# load country boundaries
-countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                       'NewWorldFile_2020.shp')).to_crs(8857)
-
-# load level-1 subnational jurisdictions (downloaded from:
-#                                 https://gadm.org/download_country.html)
-subnational = []
-for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
-    subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,f)).to_crs(8857))
-subnational = pd.concat(subnational)
 
 # load asynch data (band 0 in the asynch file
 asynch = rxr.open_rasterio(phf.ASYNCH_FILES[neigh_rad])[0]
@@ -126,8 +115,8 @@ indices = [*range(len([*deepcopy(loop_vals)]))]
 np.random.shuffle(indices)
 loop_vals = [[*deepcopy(loop_vals)][i] for i in indices]
 
-# get rid of loop vals that already exist in CSV of partial output,
-# if it exists
+# get rid of loop vals that already exist in
+# Shapefile containing partial output, if it exists
 if os.path.isfile('clim_dep_all_MMRR_results_%ikmrad.shp' % neigh_rad):
     partial_results = gpd.read_file('clim_dep_all_MMRR_results_%ikmrad.shp' %
                                     neigh_rad)
@@ -181,7 +170,8 @@ loop_ct = 0
 if remaining_n_loop_vals > 0:
     for (dbscan_eps, dbscan_minsamp, alpha) in loop_vals:
         print(('#'*80+'\n')*4)
-        print(f'\n\nLOOP {loop_ct}:\n\n')
+        print((f'\n\nLOOP {loop_ct} '
+               f'({np.round(100*(loop_ct+1)/remaining_n_loop_vals, 1)}%):\n\n'))
         print('\tdbscan_eps: %0.3f\n\n' % dbscan_eps)
         print('\tdbscan_minsamp: %0.3f\n\n' % dbscan_minsamp)
         print('\talpha: %0.3f\n\n' % alpha)
@@ -194,6 +184,7 @@ if remaining_n_loop_vals > 0:
         coords = np.array([*zip(X.ravel(), Y.ravel())])
         coords = coords[np.where(pd.notnull(maxes.values.ravel()))[0]]
 
+        print(f"\n\nCLUSTERING HIGH-ASYNCHRONY REGIONS...\n\n")
         # run clustering algo
         # NOTE: DBSCAN SEEMED LIKE THE BEST FIT OFF THE BAT,
         #       BASED ON DEPICTION HERE:
@@ -253,6 +244,7 @@ if remaining_n_loop_vals > 0:
 # PART II: DRAW PTS AND RUN ANALYSIS
 ####################################
 
+        print(f"\n\nRUNNING REGIONAL ANALYSES...\n\n")
         polys_pts = [phf.generate_random_points_in_polygon(
                                                 n_pts, poly) for poly in polys]
 
@@ -346,8 +338,8 @@ if remaining_n_loop_vals > 0:
                 #       shapely geometries, for now
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore')
-                    mean_ppt = float(np.mean(ppt.rio.clip(reg_poly)).values)
-                    mean_tmp = float(np.mean(tmp.rio.clip(reg_poly)).values)
+                    mean_ppt = float(np.mean(ppt.rio.clip([reg_poly])).values)
+                    mean_tmp = float(np.mean(tmp.rio.clip([reg_poly])).values)
                 mean_clim_dist = np.mean(clim_dist_vals)
                 mean_lats.append(mean_lat)
                 mean_ppts.append(mean_ppt)
@@ -412,7 +404,7 @@ else:
 ####################
 # PART III: ANALYSIS
 ####################
-
+print(f"\n\nRUNNING OVERALL ANALYSES...\n\n")
 fig = plt.figure(figsize=(23,7))
 gs = fig.add_gridspec(nrows=100, ncols=300)
 
@@ -519,7 +511,7 @@ ax.text(-1.5,
        )
 ax.text(-1.5,
         0.78*ax.get_ylim()[1],
-        'p « %0.3f' % pval,
+        'p \ll %0.3f' % pval,
         color='black',
         size=16,
        )
@@ -584,19 +576,15 @@ h3_gdf['clim_dist_mean'] = mean_clim_dist_vals
 h3_gdf['scaled_counts'] = np.array(region_counts)/np.max(region_counts)
 
 # transform to equal-area projection and plot
-subnational.plot(color='none',
-                 edgecolor='black',
-                 zorder=0,
-                 ax=ax,
-                 alpha=0.6,
-                 linewidth=0.05,
-                )
-countries.plot(color='none',
-                            edgecolor='black',
-                            linewidth=0.1,
-                            zorder=1,
-                            ax=ax,
-                            )
+phf.plot_juris_bounds(ax,
+                      lev1_alpha=0.6,
+                      lev1_zorder=0,
+                      lev1_linewidth=0.05,
+                      lev0_alpha=1,
+                      lev0_zorder=1,
+                      lev0_linewidth=0.1,
+                      strip_axes=True,
+                     )
 hex_subplot = h3_gdf.to_crs(8857).plot('clim_dist_mean',
                                        cmap='magma',
                                        alpha=0.8,
@@ -605,11 +593,6 @@ hex_subplot = h3_gdf.to_crs(8857).plot('clim_dist_mean',
                                        edgecolor='white',
                                        linewidth=0.2,
                                       )
-ax.set_xlabel('')
-ax.set_ylabel('')
-ax.set_xticks(())
-ax.set_yticks(())
-ax.set_title('')
 
 # clip off longitudinally and latitudinally
 ax.set_xlim(0.85 * ax.get_xlim()[0], 0.87*ax.get_xlim()[1])

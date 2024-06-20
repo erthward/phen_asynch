@@ -39,18 +39,6 @@ np.random.seed(seed)
 rs_datadir = phf.EXTERNAL_DATA_DIR
 flux_datadir = phf.EXTERNAL_FLUX_DATA_DIR
 
-# load countries data
-countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                       'NewWorldFile_2020.shp'))
-countries = countries.to_crs(4326)
-# load level-1 subnational jurisdictions (downloaded from:
-#                                 https://gadm.org/download_country.html)
-subnational = []
-for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
-    subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,f)).to_crs(8857))
-subnational = pd.concat(subnational)
-
-
 # load NIRv-SIF R2s map
 r2s = rxr.open_rasterio(os.path.join(rs_datadir, 'NIRv_SIF_phen_R2s.tif'),
                         masked=True)[0]
@@ -73,23 +61,16 @@ r2s.plot.imshow(ax=ax_map,
                 cbar_ax=cax,
                 cbar_kwargs={'orientation': 'horizontal'},
                )
-countries.to_crs(r2s.rio.crs).plot(facecolor='#ede6d1', #'#9e8e67',
-               edgecolor='black',
-               linewidth=0.5,
-               alpha=0.8,
-               ax=ax_map,
-               zorder=0)
-subnational.to_crs(r2s.rio.crs).plot(facecolor='none',
-               edgecolor='black',
-               linewidth=0.25,
-               alpha=0.6,
-               ax=ax_map,
-               zorder=1)
-ax_map.set_xlabel('')
-ax_map.set_ylabel('')
-ax_map.set_title('')
-ax_map.set_xticks(())
-ax_map.set_yticks(())
+phf.plot_juris_bounds(ax_map,
+                      lev0_color='#ede6d1', #'#9e8e67',
+                      lev0_alpha=0.8,
+                      lev0_zorder=0,
+                      lev1_linewidth=0.25,
+                      lev1_alpha=0.6,
+                      lev1_zorder=1,
+                      crs = r2s.rio.crs.to_epsg(),
+                      strip_axes=True,
+                     )
 ax_map.set_xlim(r2s.rio.bounds()[::2])
 ax_map.set_ylim(r2s.rio.bounds()[1::2])
 ax_map.text(1.12 * r2s.rio.bounds()[0],

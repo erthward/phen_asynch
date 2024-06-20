@@ -36,18 +36,6 @@ coeffs = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
 # (for numpy broadcast mult against individual day's design matrix vals)
 coeffs = coeffs.transpose("y", "x", "band")
 
-# load country boundaries
-countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                       'NewWorldFile_2020.shp')).to_crs(crs)
-
-# load level-1 subnational jurisdictions (downloaded from:
-#                                 https://gadm.org/download_country.html)
-subnational = []
-for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
-    subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,f)))
-subnational = pd.concat(subnational).to_crs(crs)
-
-
 # create the harmonic regression design matrix
 # (for recreating the fitted LSP curves)
 dm = phf.make_design_matrix()
@@ -148,15 +136,17 @@ for doy in range(365):
         fit_proj = fit_proj.where(fit_proj<1e4, np.nan)
         assert np.nanmin(fit_proj) >= 0
         assert np.nanmax(fit_proj) <= 1
+        # mask values outside global Equal Area projection bounds
+        fit_proj = mask_xarr_to_other_xarr_bbox(fit_proj, fit)
         # plot it
         fig = plt.figure(figsize=(10, 5))
         ax = fig.add_subplot(1, 1, 1)
-        countries.plot(color='black',
-                       edgecolor='black',
-                       alpha=1,
-                       zorder=0,
-                       ax=ax,
-                      )
+        phf.plot_juris_bounds(lev1=False,
+                              lev0_color='black',
+                              lev0_alpha=1,
+                              lev0_zorder=0,
+                              strip_axes=False,
+                             )
         fit_proj.plot.imshow(ax=ax,
                             vmin=0,
                             vmax=1,
@@ -164,29 +154,16 @@ for doy in range(365):
                             add_colorbar=False,
                             zorder=1,
                            )
-        subnational.plot(color='none',
-                         edgecolor='gray',
-                         zorder=2,
-                         ax=ax,
-                         alpha=0.8,
-                         linewidth=0.1,
-                        )
-        countries.plot(color='none',
-                       edgecolor='gray',
-                       linewidth=0.2,
-                       alpha=0.8,
-                       zorder=3,
-                       ax=ax,
-                      )
-        ax.set_xticks(())
-        ax.set_yticks(())
-        ax.set_xlabel('')
-        ax.set_ylabel('')
-        ax.set_title('')
-        ax.set_xlim(*[*fit_proj.rio.bounds()][0::2])
-        # clip xlim a bit on left to get rid of repeated NZ in Equal Earth proj
-        ax.set_xlim(0.95*ax.get_xlim()[0], ax.get_xlim()[1])
-        ax.set_ylim(*[*fit_proj.rio.bounds()][1::2])
+        phf.plot_juris_bounds(lev1_linecolor='gray',
+                              lev1_linewidth=0.1,
+                              lev1_alpha=0.8,
+                              lev1_zorder=2,
+                              lev0_linecolor='gray',
+                              lev0_linewidth=0.2,
+                              lev0_alpha=0.8,
+                              lev0_zorder=3,
+                              strip_axes=True,
+                             )
         fig.subplots_adjust(left=0,
                             right=1,
                             bottom=0,

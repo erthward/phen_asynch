@@ -13,11 +13,6 @@ import phen_helper_fns as phf
 
 # data directory
 data_dir = phf.EXTERNAL_DATA_DIR
-countries_data_dir = phf.BOUNDS_DIR
-
-# load country boundaries
-countries = gpd.read_file(os.path.join(countries_data_dir, 'NewWorldFile_2020.shp'))
-
 
 # loop over neighborhood radii (in km)
 fig = plt.figure(figsize=(12,10))
@@ -44,10 +39,9 @@ for neigh_rad_i, neigh_rad in enumerate(['50', '100', '150']):
                               np.nanpercentile(diff_scale, 99.99))))
 
     ax = fig.add_subplot(gs[neigh_rad_i, :2])
-    countries.to_crs(diff_scale.rio.crs).plot(ax=ax,
-                                              color='none',
-                                              edgecolor='black',
-                                              zorder=1)
+    phf.plot_juris_bounds(crs=diff_scale.rio.crs.to_epsg(),
+                          strip_axes=False,
+                         )
     diff_scale.plot.imshow(ax=ax,
                            cmap='coolwarm_r',
                            vmin=-max_abs_val,

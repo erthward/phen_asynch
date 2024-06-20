@@ -30,7 +30,7 @@ Other directories include:
 
   - `/data_prep`: code used to download the SIF dataset used, convert to Geotiff, and upload to Google Earth Enginge (GEE)
   - `/data`: ancillary data (not our main datasets) that lives in this repo and is used in analysis
-  - `/etc`: includes a script of commonly used helper functions, a Python port of [MMRR] (https://onlinelibrary.wiley.com/doi/10.1111/evo.12134), and other odds and ends
+  - `/etc`: includes a script of commonly used helper functions, a Python port of [MMRR] (http://onlinelibrary.wiley.com/doi/10.1111/evo.12134), and other odds and ends
 
 
 
@@ -43,13 +43,20 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ### prep and evaluate SIF dataset:
-1. *On laptop*, download [SIF dataset](https://doi.org/10.3334/ORNLDAAC/1696)
-2. *On laptop*, `bash data_prep/sif_gee_ul/convert_SIF_OCO2_ANN_NetCDF_to_GTiff.sh` to translate SIF data from NetCDF to GeoTIFF.
-3. *On laptop*, `python data_prep/sif_gee_ul/prep_SIF_OCO2_ANN_upload_metadata.py` to create CSV of SIF metadata.
+1. *On laptop*, download [SIF dataset](http://doi.org/10.3334/ORNLDAAC/1696)
+2. *On laptop*, run `bash data_prep/sif_gee_ul/convert_SIF_OCO2_ANN_NetCDF_to_GTiff.sh` to translate SIF data from NetCDF to GeoTIFF.
+3. *On laptop*, run `python data_prep/sif_gee_ul/prep_SIF_OCO2_ANN_upload_metadata.py` to create CSV of SIF metadata.
 4. *On laptop*, python `data_prep/sif_gee_ul/upload_SIF_OCO2_ANN_data_to_GEE_collections.py` to upload SIF data to GEE as individual Images.
 5. *On laptop*, run `bash data_prep/sif_gee_ul/make_image_collection.sh` to combine GEE SIF data into an ImageCollection.
 6. *On laptop*, manually download [gridded TROPOMI data](ftp://fluo.gps.caltech.edu/data/tropomi/gridded/).
 7. *On laptop*, run `python phen/eval/orbital_gaps/evaluate_ANN-gridded_OCO2_orbital_gaps.py` to check that the seasonality of the OCO2-SIF ANN-interpolated data products within OCO2 orbital gaps compares favorably to another gridded SIF dataset, for three regions across the tropics.
+
+
+### prep jurisdictional boundaries datasets for plotting:
+1. *On laptop*, manually download and unzip into the 'data' subdirectory the global level-1 administrative boundaries Shapefile at 1:10m scale from [Natural Earth](http://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-admin-1-states-provinces/).
+2. *On laptop*, manuall download and unzip into the 'data' subdirectory the level-1 jurisdictional boundaries GeoJSON datasets for select large-area nations, mostly $>2.5\times10^6\ km^2$ land area (Canada, USA, Mexico, Brazil, Argentina, Kazakhstan, India, Russia, China, Australia) from [GADM](http://gadm.org/data.html).
+3. *On laptop*, run `python data_prep/juris_bounds/simplify_global_adm1_bounds.py` to transform those files into three files containing global level-0 bounds, global level-1 bounds, and level-1 bounds for just the large-area nations (**1 task, <1m runtime**).
+
 
 ### calculate masking and preprocessing maps for seasonality-fitting procedure:
 1. *On GEE*, establish all desired parameter values for data reading and masking, harmonic regression fitting, significance calculation, and data exports in `phen/calc/GEE/params.js`. (Note: To produce all needed outputs, this file will be resaved with altered commenting a few times during the following steps.)
@@ -96,7 +103,7 @@ Each step of the following workflow was executed in the environment indicated *i
 1. *On Savio*, run `python phen/anal/div/calc_LSP_EOFs.py` on Savio to calculate the global NIRv LSP EOF map and save results (**1 job, <1h total runtime**).
 2. *On Savio*, run `bash phen/analaysis/div/ul_LSP_EOFs.sh` to push the EOF results back to BDrive (**1 job, <5m runtime**).
 3. *On laptop*, run `bash phen/anal/div/dl_LSP_EOFs.sh` to download the EOF results to the local hard drive (**1 job, <5m runtime**).
-4. *On laptop*, download ancillary cheatgrass data from [Maestas *et. al*](https://www.sciencebase.gov/catalog/item/5ec5159482ce476925eac3b7) (to be used in a statistical test embedded in `phen/anal/div/plot_EOF_and_RGB_results.py`).
+4. *On laptop*, download ancillary cheatgrass data from [Maestas *et. al*](http://www.sciencebase.gov/catalog/item/5ec5159482ce476925eac3b7) (to be used in a statistical test embedded in `phen/anal/div/plot_EOF_and_RGB_results.py`).
 5. *On laptop*, run `bash phen/anal/div/aggregate_great_basin_cheatgrass_data.sh` to aggregate that dataset to our analysis resolution of $0.05^{\circ}$.
 6. *On laptop*, work through the manual steps listed in the notes at the top of `python phen/anal/div/compose_ITCZ_shapefile.py` to digitize the Dec-Jan-Feb and Jun-Jul-Aug mean ITCZ locations delineated by [Zhisheng et al. 2015](annualreviews.org/content/journals/10.1146/annurev-earth-060313-054623), save the output CSVs to the 'data/' subdirectory of the local clone of this repo, then run `python phen/anal/div/compose_ITCZ_shapefile.py` to produce a Shapefile of those digitized lines.
 7. *On laptop*, run `bash phen/anal/div/make_EOF_and_RGB_map_figs.sh` to produce main figures showing the global EOF RGB map and the focal-region EOF RGB maps, and the supplemental figures showing the raw EOF maps and the unfolded EOF RGB maps (**1 task, <30m runtime**).
@@ -115,7 +122,7 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ### run FLUXNET evaluation:
-1. *On laptop*, manually download all subset data products (using DownThemAll!) from the FLUXNET network's [download page](https://fluxnet.org/data/download-data/) (**1 task, runs roughly overnight**).
+1. *On laptop*, manually download all subset data products (using DownThemAll!) from the FLUXNET network's [download page](http://fluxnet.org/data/download-data/) (**1 task, runs roughly overnight**).
 2. *On laptop*, run `bash phen/eval/flux_tower_GPP/run_flux_evaluations.sh` to run the flux-tower GPP comparison, at all usable FLUXNET2015 sites, for both the fitted NIRv and SIF LSP results (**1 task, ~15m runtime**).
 4. *On laptop*, run `python phen/eval/plot_phen_evaluation_results.py` to combine both LSP datasets' FLUXNET evaluations and the NIRv-SIF comparison evaluation to make supplemental figure (**1 task, <5m runtime**).
 5. *On laptop*, run `python phen/eval/flux_tower_GPP/combine_fluxnet_val_outputs_TableS1.py` to combine of flux-tower evaluation results, listed by FLUXNET site, into a single supplemental table (**1 task, <10s runtime**).
@@ -144,15 +151,15 @@ Each step of the following workflow was executed in the environment indicated *i
 ### run phenological asynchrony drivers analysis:
 1. *On Savio*, run `bash asynch/anal/drivers/prep_data/prep_NIRv_100km_rf_data_for_model_tuning.sh` to prep data for random forest analysis using 100 km-neighborhood NIRv asynchrony dataset (**1 task, <5m runtime**).
 2. *On Savio*, in an RStudio session hosted in an Open OnDemand session, running R version 4.0.3 on a standard `savio3` node, run `asynch/anal/drivers/run_rf/run_phen_asynch_rf.r` with `var` set to 'NIRv', `neigh.rad` set to '100', and `coords.as.covars` set to 'y' (by switching the commenting on the corresponding lines at the top of the file), to execute the random forest analysis on the main phenological asynchrony dataset (NIRv-based LSP asynchrony calculated within 100 km radial neighborhoods) and save hyperparameter tuning results. (Be sure to interactively execute the code blocks captured by the `if (F){ ... }` blocks, which will save the hyperparameter-tuning results as CSVs and the Boruta feature selection results as a boxplot PNG.) Manually inspect the results, then use them to set the hyperparameters and variable inclusion to be used in all 12 random forest models (2 LSP datasets × 3 neighborhood radii × 2 options for including/excluding geographic coordinates as covariates) (set these in the code block starting at line 410 and 486) (**1 task, ~2h interactive runtime**).
-3. *On Savio*, run `asynch/anal/drivers/run_rf/ch3_rf_job.sh` to loop over vars (NIRv, SIF) and neighborhood radii, each time prepping data layers, running the random forest analysis, and generating identical results (**1 task, ~XXXXh runtime**).
+3. *On Savio*, run `asynch/anal/drivers/run_rf/ch3_rf_job.sh` to loop over vars (NIRv, SIF) and neighborhood radii, each time prepping data layers, running the random forest analysis, and generating identical results (**1 task, ~18h runtime**).
 4. *On Savio*, run `asynch/anal/drivers/summ_results/ch3_rasterize_SHAP_job.sh` to convert output CSVs of global SHAP values to GeoTIFFs (**1 task, ~XXXh runtime**).
 5. *On Savio*, run `asynch/anal/drivers/summ_results/ch3_rasterize_err_job.sh` to convert output CSVs of global RF prediction errors to GeoTIFFs (**1 task, ~XXXh runtime**).
 6. *On laptop*, run `asynch/anal/drivers/summ_results/tabulate_model_summaries.py` to combine all permuation-based and SHAP-based importance values and model $R^2$s and MSEs into a single output table, for supplmental materials (**1 task, <1m runtime**).
 7. *On laptop*, run `asynch/anal/drivers/make_figs/make_all_asynch_analysis_figs.sh` to produce the main asynch figure (global map, as well as map summarizing the predominance of the two top-importance covariates), as well as the supplemental figures showing the random forest error map and the map of SHAP-value predominance across all random forest covariates.
 
 
-### run climate-distance analysis:
-1. Run `asynch/anal/clim_dep/compare_phen_clim_geog_dist.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce the analysis summary figure.
+### run analysis of climate-dependence of phenological asynchrony:
+1. Run `asynch/anal/clim_dep/compare_phen_clim_geog_dist.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce the analysis summary figure (NOTE: Results file is resaved after each loop through the hyperparameters, so if anything happens and the script breaks before finishing then just call it again to pick up where it left off.) (**1 task, ~XXXh runtime**).
 
 
 ### run iNaturalist flowering-phenology analysis:
@@ -161,11 +168,11 @@ Each step of the following workflow was executed in the environment indicated *i
 3. Run `asynch/anal/phen/analyze_inat_flow_phen_results.py` to run an MMRR, predicting flowering observation-time distance as a function of geographic and LSP distances, for all iNat taxa with non-unimodal flowering week histograms (i.e., 0 or 2 peaks).
 
 ### run genetic analyses:
-1. Download the [supplemental data in Dryad](https://datadryad.org/stash/dataset/doi:10.5061/dryad.pc866t1p4) from [Thomé et al. 2021](https://www.nature.com/articles/s41437-021-00460-7), the only genomic test of the asynchrony of seasons hypothesis (ASH) of which we are aware.
+1. Download the [supplemental data in Dryad](http://datadryad.org/stash/dataset/doi:10.5061/dryad.pc866t1p4) from [Thomé et al. 2021](http://www.nature.com/articles/s41437-021-00460-7), the only genomic test of the asynchrony of seasons hypothesis (ASH) of which we are aware.
 2. Run `asynch/anal/gen/rhinella/convert_STRUCTURE_to_gendist_mat.r` to produce a genetic distance matrix for the _Rhinella granulosa_ genetic data (i.e., the Thomé et al. supplemental data).
 3. Run `asynch/anal/gen/rhinella/test_rhinella_granulosa.py` to run an MMRR for _Rhinella granulosa_, predicting genetic distance as a function of our NIRv-based phenological distance instead of the Thomé et al. precipitation-seasonality distance variable (and controlling for geographic and environmental distances).
-4. Manually compile the sample locations (from the [supplemental data in Zenodo](https://zenodo.org/records/5012226)) and FASTA-format sequences (from NCBI, based on sample voucher IDs in the supplemental data) for all samples of the only speciesin [Quintero et al. 2014](https://www.journals.uchicago.edu/doi/full/10.1086/677261) (a multi-species test of the ASH using archived microsatellite data) that overlaps with the eastern Brazilian Thomé et al. study region.
-5. Run `asynch/anal/gen/xiphorhynchus/align_xiphorhynchus_fuscus.sh` to use [MAFFT v7.520](https://mafft.cbrc.jp/alignment/software/) to align all raw sequence data for the Xiphorhynchus fuscus samples (i.e., to Quintero et al. species that co-occurs in the Thomé et al. study region).
+4. Manually compile the sample locations (from the [supplemental data in Zenodo](http://zenodo.org/records/5012226)) and FASTA-format sequences (from NCBI, based on sample voucher IDs in the supplemental data) for all samples of the only speciesin [Quintero et al. 2014](http://www.journals.uchicago.edu/doi/full/10.1086/677261) (a multi-species test of the ASH using archived microsatellite data) that overlaps with the eastern Brazilian Thomé et al. study region.
+5. Run `asynch/anal/gen/xiphorhynchus/align_xiphorhynchus_fuscus.sh` to use [MAFFT v7.520](http://mafft.cbrc.jp/alignment/software/) to align all raw sequence data for the Xiphorhynchus fuscus samples (i.e., to Quintero et al. species that co-occurs in the Thomé et al. study region).
 6. Run `asynch/anal/gen/xiphorhynchus/calc_gen_dist_mat_xiphorhynchus_fuscus.r` to produce a genetic distance matrix from the aligned _Xiphorhynchus fuscus_ sequences.
 7. Run `asynch/anal/gen/xiphorhynchus/test_xiphorhynchus_fuscus.py` to run an MMRR for _Xiphorhynchus fuscus_, predicting genetic distance as a function of our NIRv-based phenological distance instead of the Quintero et al. precipitation asynchrony variable (and controlling for geographic and environmental distances).
 8. **COMPILE FIGURE 5 USING WHAT SCRIPTS/TOOLS?**
@@ -274,3 +281,4 @@ Each step of the following workflow was executed in the environment indicated *i
     - Colors 0.12.8
 - **GEE Javascript API (browser-hosted)**:
   - GEE API ≥0.1.404
+

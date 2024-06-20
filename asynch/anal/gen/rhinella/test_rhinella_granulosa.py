@@ -48,17 +48,6 @@ neigh_dist_sea_fill_tol = 5
 # how many MMRR permutations to use
 MMRR_nperm = 999
 
-# load country boundaries
-countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                       'NewWorldFile_2020.shp'))
-# load level-1 subnational jurisdictions (downloaded from:
-#                                 https://gadm.org/download_country.html)
-subnational = []
-for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
-    subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,f)))
-subnational = pd.concat(subnational)
-
-
 # read genetic distance matrix
 print('\nreading genetic data...')
 # NOTE: simple Euclidean genetic distance matrix calculated using adegenet in R
@@ -217,19 +206,16 @@ blue = '#2d5098'
 colors = np.array([blue, red])
 # plot map
 ax = plt.subplot(gs[:, 0])
-subnational.plot(color='none',
-                 edgecolor='black',
-                 zorder=0,
-                 ax=ax,
-                 alpha=0.6,
-                 linewidth=0.05,
-                )
-countries.plot(color='none',
-                            edgecolor='black',
-                            linewidth=0.2,
-                            zorder=1,
-                            ax=ax,
-                            )
+phf.plot_juris_bounds(ax,
+                      lev1_zorder=0,
+                      lev1_alpha=0.6,
+                      lev1_linewidth=0.05,
+                      lev0_zorder=1,
+                      lev0_alpha=1,
+                      lev0_linewidth=0.2,
+                      strip_axes=False,
+                      crs=4326,
+                     )
 ax.scatter(pts[~missing_sea, 0],
            pts[~missing_sea, 1],
            s=11,

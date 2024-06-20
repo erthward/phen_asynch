@@ -129,17 +129,6 @@ import phen_helper_fns as phf
 # set common equal-area projection to use
 crs = 8857
 
-# load country boundaries
-countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                       'NewWorldFile_2020.shp')).to_crs(crs)
-
-# load level-1 subnational jurisdictions (downloaded from:
-#                                 https://gadm.org/download_country.html)
-subnational = []
-for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
-    subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,f)).to_crs(crs))
-subnational = pd.concat(subnational)
-
 # load asynch data (band 0 in the asynch file
 neigh_rad = 100
 asynch = rxr.open_rasterio(phf.ASYNCH_FILES[neigh_rad])[0]
@@ -304,19 +293,15 @@ if make_peak_summary_maps:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes('bottom', size='7%', pad=0.2)
         # transform to equal-area projection and plot
-        subnational.plot(color='none',
-                         edgecolor='black',
-                         zorder=0,
-                         ax=ax,
-                         alpha=0.6,
-                         linewidth=0.05,
-                        )
-        countries.plot(color='none',
-                                    edgecolor='black',
-                                    linewidth=0.1,
-                                    zorder=1,
-                                    ax=ax,
-                                    )
+        phf.plot_juris_bounds(ax,
+                              lev1_alpha=0.6,
+                              lev1_linewidth=0.05,
+                              lev1_zorder=0,
+                              lev0_linewidth=0.1,
+                              lev0_zorder=1,
+                              crs=crs,
+                              strip_axes=True,
+                             )
         h3_gdf.to_crs(crs).plot(res_col,
                                 cmap=cmap,
                                 alpha=1,
@@ -329,11 +314,6 @@ if make_peak_summary_maps:
                                 #vmax=1,
                                 vmax=np.nanpercentile(h3_gdf[res_col], 95),
                                )
-        ax.set_xlabel('')
-        ax.set_ylabel('')
-        ax.set_xticks(())
-        ax.set_yticks(())
-        ax.set_title('')
         # clip off longitudinally and latitudinally
         #ax.set_xlim(0.85 * ax.get_xlim()[0], 0.87*ax.get_xlim()[1])
         #ax.set_ylim(1.11*np.min(h3_gdf.to_crs(crs).geometry.centroid.y),
@@ -383,19 +363,15 @@ if make_peak_summary_maps:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes('bottom', size='7%', pad=0.2)
         # transform to equal-area projection and plot
-        subnational.plot(color='none',
-                         edgecolor='black',
-                         zorder=0,
-                         ax=ax,
-                         alpha=0.6,
-                         linewidth=0.05,
-                        )
-        countries.plot(color='none',
-                                    edgecolor='black',
-                                    linewidth=0.1,
-                                    zorder=1,
-                                    ax=ax,
-                                    )
+        phf.plot_juris_bounds(ax,
+                              lev1_alpha=0.6,
+                              lev1_linewidth=0.05,
+                              lev1_zorder=0,
+                              lev0_linewidth=0.1,
+                              lev0_zorder=1,
+                              crs=crs,
+                              strip_axes=True,
+                             )
         h3_gdf.to_crs(crs).plot(res_col,
                                 cmap=cmap,
                                 alpha=1,
@@ -408,11 +384,6 @@ if make_peak_summary_maps:
                                 #vmax=1,
                                 vmax=np.nanpercentile(h3_gdf[res_col], 95),
                                )
-        ax.set_xlabel('')
-        ax.set_ylabel('')
-        ax.set_xticks(())
-        ax.set_yticks(())
-        ax.set_title('')
         # clip off longitudinally and latitudinally
         #ax.set_xlim(0.85 * ax.get_xlim()[0], 0.87*ax.get_xlim()[1])
         #ax.set_ylim(1.11*np.min(h3_gdf.to_crs(crs).geometry.centroid.y),
@@ -793,19 +764,15 @@ cmap='viridis'
 divider = make_axes_locatable(ax)
 cax = divider.append_axes('bottom', size='7%', pad=0.2)
 # transform to equal-area projection and plot
-subnational.plot(color='none',
-                 edgecolor='black',
-                 zorder=0,
-                 ax=ax,
-                 alpha=0.6,
-                 linewidth=0.05,
-                )
-countries.plot(color='none',
-                            edgecolor='black',
-                            linewidth=0.1,
-                            zorder=1,
-                            ax=ax,
-                            )
+phf.plot_juris_bounds(ax,
+                      lev1_alpha=0.6,
+                      lev1_linewidth=0.05,
+                      lev1_zorder=0,
+                      lev0_linewidth=0.1,
+                      lev0_zorder=1,
+                      crs=crs,
+                      strip_axes=True,
+                     )
 h3_gdf.to_crs(crs).plot('prop_lsp_signif',
                         cmap=cmap,
                         alpha=1,
@@ -818,11 +785,6 @@ h3_gdf.to_crs(crs).plot('prop_lsp_signif',
                         vmax=1,
                         #vmax=np.nanpercentile(h3_gdf['prop_lsp_signif'], 90),
                        )
-ax.set_xlabel('')
-ax.set_ylabel('')
-ax.set_xticks(())
-ax.set_yticks(())
-ax.set_title('')
 # clip off longitudinally and latitudinally
 #ax.set_xlim(0.85 * ax.get_xlim()[0], 0.87*ax.get_xlim()[1])
 #ax.set_ylim(1.11*np.min(h3_gdf.to_crs(crs).geometry.centroid.y),
@@ -857,6 +819,9 @@ mmrr_filt = mmrr_filt.sort_values(by=['lsp_p', 'f_p', 'r2'],
                                  )
 
 # find example taxa in areas of interest:
+countries = gpd.read_file(phf.ADM0_BOUNDS)
+subnational = gpd.read_file(phf.SELECT_ADM1_BOUNDS)
+
 # Baja
 baja_n = subnational[subnational['NAME_1'] == 'BajaCalifornia']
 baja_s = subnational[subnational['NAME_1'] == 'BajaCaliforniaSur']
@@ -1053,20 +1018,14 @@ def plot_signif_taxon(tid,
     plot_annual_flowering_clock(obs, eofs, ax)
     if map:
         ax = fig.add_axes([0.5, 0.04, 0.42, 0.42])
-        #subnational.plot(color='none',
-        #                 edgecolor='black',
-        #                 zorder=1,
-        #                 ax=ax,
-        #                 alpha=0.6,
-        #                 linewidth=0.05,
-        #                )
-        countries.plot(color='none',
-                                    edgecolor='black',
-                                    linewidth=0.1,
-                                    zorder=2,
-                                    ax=ax,
-                                    )
-        obs.plot('doy',
+        phf.plot_juris_bounds(ax,
+                              lev1=False,
+                              lev0_linewidth=0.1,
+                              lev0_zorder=2,
+                              crs=obs.crs,
+                              strip_axes=True,
+                             )
+       obs.plot('doy',
                  cmap=cmc.brocO_r,
                  alpha=0.8,
                  zorder=3,
@@ -1083,12 +1042,8 @@ def plot_signif_taxon(tid,
         ax.set_xlim(bounds[0], bounds[2])
         ax.set_ylim(bounds[1], bounds[3])
         ax.set_aspect('equal')
-        ax.set_xlabel('')
-        ax.set_ylabel('')
-        ax.set_xticks(())
-        ax.set_yticks(())
-        ax.set_title('')
-    if savefig:
+        phf.strip_axes_labels_and_ticks(ax)
+    ihf savefig:
         fig.savefig(f"./MMRR_res_figs/TID_{tid}_{name.replace(' ', '_')}_top_MMRR_res.png",
                     dpi=600,
                    )

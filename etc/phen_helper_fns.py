@@ -22,6 +22,7 @@ import rasterstats as rs
 import rioxarray as rxr
 import geopandas as gpd
 import rasterio as rio
+import pandas as pd
 import numpy as np
 import glob
 import json
@@ -34,6 +35,12 @@ from shapely.ops import unary_union
 from shapely.geometry import Polygon, Point
 from scipy.spatial import ConvexHull
 from collections import Counter as C
+
+
+
+####################
+# VARS AND FILEPATHS
+####################
 
 # set the neighborhood radii (in km)
 neigh_rads = [50, 100, 150]
@@ -50,14 +57,12 @@ COEFFS_STRICT_FILE = os.path.join(EXTERNAL_DATA_DIR, 'NIRv_STRICT_coeffs.tif')
 ASYNCH_FILES = {rad: os.path.join(EXTERNAL_DATA_DIR,
                 'NIRv_STRICT_asynch_%ikm.tif' % rad) for rad in neigh_rads}
 BOUNDS_DIR = os.path.join(DATA_DIR, 'bounds')
+ADM0_BOUNDS = os.path.join(BOUNDS_DIR, 'global_adm0.shp')
+GLOBAL_ADM1_BOUNDS = os.path.join(BOUNDS_DIR, 'global_adm1.shp')
+SELECT_ADM1_BOUNDS = os.path.join(BOUNDS_DIR, 'select_adm1.shp')
 BIOCLIM_DIR = os.path.join(DATA_DIR, 'bioclim')
 BIOCLIM_INFILEPATHS = glob.glob(os.path.join(BIOCLIM_DIR,"wc2.1_2.5m_bio_*.tif"))
 BIOCLIM_INFILEPATHS = sorted(BIOCLIM_INFILEPATHS)
-
-
-#-----------
-# set params
-#-----------
 
 # pattern that occurs just before the file number in each input file's name
 PATT_B4_FILENUM = '-OUT-'
@@ -72,6 +77,11 @@ DEFAULT_VAL = -9999.0
 INBANDS = ['constant', 'sin_1', 'cos_1', 'sin_2', 'cos_2']
 OUTBANDS = ['asynch', 'asynch_R2', 'asynch_euc', 'asynch_euc_R2', 'asynch_n']
 
+
+
+###############################
+# HARMONIC REGRESSION FUNCTIONS
+###############################
 
 def make_design_matrix():
     """
@@ -120,6 +130,11 @@ def calc_time_series(design_mat, coeffs=None, i=None, j=None, patch=None):
         ts = np.sum(patch[:, i, j] * design_mat, axis=1)
     return ts
 
+
+
+#################################
+# ABSTRACT QUANTITATIVE FUNCTIONS
+#################################
 
 def calc_euc_dist(a1, a2):
     """
@@ -179,6 +194,11 @@ def get_tolerancefilled_arr(arr, tol):
     return filled
 
 
+
+######################
+# GEOSPATIAL FUNCTIONS
+######################
+
 def gapfill_and_rewrite_raster(rast_filepath, fill_tol=5):
     # read in the raster file
     f = rio.open(rast_filepath)
@@ -222,6 +242,10 @@ def mask_xarr_to_other_xarr_bbox(xarr,
                                  n_bbox_xcoords=4000,
                                  n_bbox_ycoords=2000,
                                 ):
+    '''
+    mask the first xarray object to the bounding box of the second
+    (NOTE: CRS differences will be reconciled automatically!)
+    '''
     mask_bbox = make_xarr_bbox_poly(other_xarr,
                                     n_xcoords=n_bbox_xcoords,
                                     n_ycoords=n_bbox_ycoords,
@@ -425,4 +449,84 @@ def calc_pw_clim_dist_mat(pts,
                 clim_dist[j,i] = dist
     return clim_dist
 
+
+
+####################
+# PLOTTING FUNCTIONS
+####################
+
+def strip_axes_labels_and_ticks(ax):
+    '''
+    get rid of axis labels, ticks, and title
+    '''
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_title('')
+
+
+def plot_juris_bounds(ax=None,
+                      lev0=True,
+                      lev0_color='none',
+                      lev0_linecolor='black',
+                      lev0_linewidth=0.5,
+                      lev0_alpha=0.7,
+                      lev0_zorder=2,
+                      lev1=True,
+                      lev1_which='large',
+                      lev1_color='none',
+                      lev1_linecolor='black',
+                      lev1_linewidth=0.3,
+                      lev1_alpha=0.5,
+                      lev1_zorder=1,
+                      crs=8857,
+                      strip_axes=True,
+                      reset_axlims=False
+                     ):
+    '''
+    plot jurisdictional boundaries on the given axes,
+    including administrative level 0 and/or level 1 boundaries,
+    and including either all global level 1 boundaries or
+    just select nations with large land areas (Canada, US, Mexico, Brazil,
+    Argentina, Kazakhstan, India, Russia, China, Australia)
+    '''
+    if ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        return_ax = True
+    else:
+        return_ax = False
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+    if lev0:
+        # load country boundaries
+        adm0 = gpd.read_file(ADM0_BOUNDS).to_crs(crs)
+        adm0.plot(color=lev0_color,
+                  edgecolor=lev0_linecolor,
+                  linewidth=lev0_linewidth,
+                  alpha=lev0_alpha,
+                  zorder=lev0_zorder,
+                  ax=ax,
+                 )
+    if lev1:
+        assert lev1_which in ['large', 'all']
+        lev1_file = {'large': SELECT_ADM1_BOUNDS,
+                     'all': GLOBAL_ADM1_BOUNDS}[lev1_which]
+        adm1 = gpd.read_file(lev1_file).to_crs(crs)
+        adm1.plot(color=lev1_color,
+                  edgecolor=lev1_linecolor,
+                  linewidth=lev1_linewidth,
+                  alpha=lev1_alpha,
+                  zorder=lev1_zorder,
+                  ax=ax,
+                 )
+    if strip_axes:
+        strip_axes_labels_and_ticks(ax)
+    if return_ax:
+        return ax
+    else:
+        if not reset_axlims:
+            ax.set_xlim(xlim)
+            ax.set_ylim(ylim)
 

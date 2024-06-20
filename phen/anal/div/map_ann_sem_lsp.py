@@ -69,18 +69,6 @@ def rotate_time_series_to_min(ts,
 # data load
 #------------------------------------------------------------------------------
 
-# load country boundaries
-countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                       'NewWorldFile_2020.shp')).to_crs(4326)
-
-# load level-1 subnational jurisdictions (downloaded from:
-#                                 https://gadm.org/download_country.html)
-subnational = []
-for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
-    subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                                  f)).to_crs(4326))
-subnational = pd.concat(subnational)
-
 # load the coeffs
 coeffs = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
                                         'NIRv_coeffs.tif'))
@@ -133,6 +121,8 @@ assert np.nanmin(modality) >= 0
 assert np.nanmax(modality) == 1
 fig = plt.figure(figsize=(10,6))
 ax = fig.add_subplot(1,1,1)
+modality_da.rio.set_crs(4326);
+modality_da = modality_da.rio.reproject(8857)
 try:
     modality_da.plot.imshow(robust=True,
                             cmap='coolwarm_r',
@@ -142,22 +132,11 @@ try:
                            )
 except Exception:
     pass
-subnational.plot(color='none',
-                 edgecolor='black',
-                 zorder=1,
-                 ax=ax,
-                 alpha=0.6,
-                 linewidth=0.05,
-                )
-countries.plot(color='none',
-               edgecolor='black',
-               linewidth=0.2,
-               zorder=2,
-               ax=ax,
-              )
-ax.set_title('')
-ax.set_xlabel('')
-ax.set_ylabel('')
-ax.set_xticks(())
-ax.set_yticks(())
+phf.plot_juris_bounds(lev0_linewidth=0.2,
+                      lev1_linewidth=0.05,
+                      lev0_alpha=1,
+                      lev1_alpha=0.6,
+                      strip_axes=True,
+                      crs=8857,
+                     )
 fig.savefig('NIRv_LSP_ann_sem_seasonality.png', dpi=600)

@@ -80,17 +80,6 @@ cbarticklabel_fontsize = 12
 partlabel_fontsize=40
 plot_crs = 8857
 
-# load shapefiles
-countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                    'NewWorldFile_2020.shp')).to_crs(plot_crs)
-# load level-1 subnational jurisdictions (downloaded from:
-#                                 https://gadm.org/download_country.html)
-subnational = []
-for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
-    subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                                  f)).to_crs(plot_crs))
-subnational = pd.concat(subnational)
-
 
 # asynch params for main results:
 # main variable
@@ -192,27 +181,27 @@ def plot_juris_bounds(ax, black_zorder=0, subnat_zorder=1, nat_zorder=2,
     plot national and subnational jurisdictional bounds
     """
     if black_zorder is not None:
-        countries.to_crs(plot_crs).plot(ax=ax,
-                                    color=polys_color,
-                                    edgecolor='black',
-                                    linewidth=0,
-                                    alpha=0.2,
-                                    zorder=black_zorder,
-                                   )
-    subnational.to_crs(plot_crs).plot(ax=ax,
-                                  color='none',
-                                  edgecolor='gray',
-                                  linewidth=0.3,
-                                  alpha=0.7,
-                                  zorder=subnat_zorder,
-                                 )
-    countries.to_crs(plot_crs).plot(ax=ax,
-                                color='none',
-                                edgecolor='gray',
-                                linewidth=0.5,
-                                alpha=0.8,
-                                zorder=nat_zorder,
-                               )
+        phf.plot_juris_bounds(ax,
+                              lev1=False,
+                              lev0_color=polys_color,
+                              lev0_linewidth=0,
+                              lev0_alpha=0.2,
+                              lev0_zorder=black_zorder,
+                              crs=plot_crs,
+                              strip_axes=False,
+                             )
+    phf.plot_juris_bounds(ax,
+                          lev1_linecolor='gray',
+                          lev1_linewidth=0.3,
+                          lev1_alpha=0.7,
+                          lev1_zorder=subnat_zorder,
+                          lev0_linecolor='gray',
+                          lev0_linewidth=0.5,
+                          lev0_alpha=0.8,
+                          lev0_zorder=nat_zorder,
+                          crs=plot_crs,
+                          strip_axes=False,
+                         )
 
 
 def map_asynch(fig, cbar_axlab,
@@ -266,17 +255,19 @@ def map_asynch(fig, cbar_axlab,
         # read in the raster data and prepare it
         rast = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
                                               file), masked=True)[0]
-        rast = rast.rio.write_crs(4326).rio.reproject(plot_crs)
+        rast_proj = rast.rio.write_crs(4326).rio.reproject(plot_crs)
+        # mask outside global Equal Earth bounds
+        rast_proj = phf.mask_xarr_to_other_xarr_bbox(rast_proj, rast)
                 # NOTE: annoying AttributeError is because da.attrs['long_name']
         #       is retained as a tuple of names (rather than being subsetted
         #       by indexing) when I index a single layer out of an
         #       xarray.core.dataarray.DataArray;
         #       for now, a hacky fix is just assigning a string to that attr
-        rast.attrs['long_name'] = ''
-        rast.plot.imshow(ax=ax,
+        rast_proj.attrs['long_name'] = ''
+        rast_proj.plot.imshow(ax=ax,
                          cmap=asynch_cmap,
-                         vmin=np.nanpercentile(rast, 1),
-                         vmax=np.nanpercentile(rast, 99),
+                         vmin=np.nanpercentile(rast_proj, 1),
+                         vmax=np.nanpercentile(rast_proj, 99),
                          add_colorbar=True,
                          cbar_ax=cax,
                          cbar_kwargs = {'orientation': orientation},
@@ -288,8 +279,8 @@ def map_asynch(fig, cbar_axlab,
         else:
             cax.set_ylabel(cbar_axlab, fontdict={'fontsize': cbar_axlab_fontsize})
                 # format axes
-        ax.set_xlim(rast.rio.bounds()[0::2])
-        ax.set_ylim(rast.rio.bounds()[1::2])
+        ax.set_xlim(rast_proj.rio.bounds()[0::2])
+        ax.set_ylim(rast_proj.rio.bounds()[1::2])
         # NOTE: chopping off western edge because the equal earth projection
         #       makes NZ appear twice
         ax.set_xlim(0.95 * ax.get_xlim()[0], ax.get_xlim()[1])
@@ -303,7 +294,7 @@ def map_asynch(fig, cbar_axlab,
         else:
             ax.set_title('%i km neighborhood' % neigh_rad,
                          fontdict={'fontsize': 21})
-        del rast
+        del rast_proj, rast
 
 
 def map_predom(ax, predom,
@@ -476,7 +467,8 @@ if __name__ == '__main__':
                             f'SHAP_predom_{file_suffix}.tif'), masked=True)[0]
 
             # reproject rasters
-            predom = predom.rio.write_crs(4326).rio.reproject(plot_crs, nodata=np.nan)
+            predom_proj = predom.rio.write_crs(4326).rio.reproject(plot_crs, nodata=np.nan)
+            predom = phf.mask_xarr_to_other_xarr_bbox(predom_proj, predom)
 
             # asynchrony will be used to mask out lower-asynchrony pixels
             asynch = minmax_scale(rxr.open_rasterio(os.path.join(data_dir,
@@ -484,7 +476,8 @@ if __name__ == '__main__':
             # mask out pixels less than the percentile threshold
             asynch = asynch.where(asynch >= np.nanpercentile(asynch, asynch_thresh))
             # reproject and rescale
-            asynch = asynch.rio.reproject_match(predom)
+            asynch_reproj = asynch.rio.reproject_match(predom)
+            asynch = phf.mask_xarr_to_other_xarr_bbox(asynch_reproj, asynch)
             asynch = minmax_scale(asynch, 1, 99)
             assert np.nanmin(asynch) == 0 and np.nanmax(asynch) == 1
 
@@ -597,31 +590,21 @@ if __name__ == '__main__':
         else:
             axis = 'x'
         getattr(cax, f'set_{axis}label')('standardized prediction error ($\Delta NIR_{V}/\Delta m$)', supp_axlabel_fontdict)
-        subnational.to_crs(plot_crs).plot(ax=ax,
-                                          color='none',
-                                          edgecolor='black',
-                                          linewidth=0.1,
-                                          alpha=0.5,
-                                          zorder=1,
-                                         )
-        countries.to_crs(plot_crs).plot(ax=ax,
-                                        color='none',
-                                        edgecolor='black',
-                                        linewidth=0.25,
-                                        alpha=0.6,
-                                        zorder=2,
-                                       )
+        phf.plot_juris_bounds(lev1_linewidth=0.1,
+                              lev1_alpha=0.5,
+                              lev1_zorder=1,
+                              lev0_linewidth=0.25,
+                              lev0_alpha=0.6,
+                              lev0_zorder=2,
+                              crs=plot_crs,
+                              strip_axes=True,
+                             )
         # format axes
         #ax.set_xlim(rast.rio.bounds()[0::2])
         #ax.set_ylim(rast.rio.bounds()[1::2])
         # NOTE: chopping off western edge because the equal earth projection
         #       makes NZ appear twice
         #ax.set_xlim(0.95 * ax.get_xlim()[0], ax.get_xlim()[1])
-        ax.set_title('')
-        ax.set_ylabel('')
-        ax.set_xlabel('')
-        ax.set_xticks(())
-        ax.set_yticks(())
 
         # trim to the raster's bounds
         ax.set_xlim(rast.rio.bounds()[::2])

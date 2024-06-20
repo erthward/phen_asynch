@@ -32,16 +32,19 @@ args = commandArgs(trailingOnly=T)
 
 # phen-asynch var to use
 asynch.var = args[1]
+# COMMENT PRIOR LINE AND UNCOMMENT NEXT LINE FOR INTERACTIVE HYPERPARAMETER TUNING!
 #asynch.var = 'NIRv'
 cat('\nVAR: ', asynch.var, '\n')
 
 # asynchrony neighborhood radius to use (in km)
 neigh.rad = args[2]
+# COMMENT PRIOR LINE AND UNCOMMENT NEXT LINE FOR INTERACTIVE HYPERPARAMETER TUNING!
 #neigh.rad = '100'
 cat('\nNEIGH RAD: ', neigh.rad, '\n')
 
 # include coordinates in RF?
 coords.as.covars = args[3]
+# COMMENT PRIOR LINE AND UNCOMMENT NEXT LINE FOR INTERACTIVE HYPERPARAMETER TUNING!
 #coords.as.covars = 'y'
 cat('\nCOORDS AS COVARS? ', coords.as.covars, '\n')
 
@@ -50,11 +53,11 @@ cat('\nCOORDS AS COVARS? ', coords.as.covars, '\n')
 # if on laptop
 if (strsplit(getwd(), '/')[[1]][2] == 'home'){
   on.laptop=T
-  data.dir = '/media/deth/SLAB/diss/3-phn/other/rf_vars'
+  data.dir = '/media/deth/SLAB/diss/3-phn/other/rf_vars/'
   # if on Savio
 } else {
   on.laptop=F
-  data.dir = '/global/scratch/users/drewhart/seasonality/rf_data'
+  data.dir = '/global/scratch/users/drewhart/seasonality/rf_data/'
 }
 
 # verbose?
@@ -196,14 +199,14 @@ names = c('phn.asy',
           'vrm.med',
           'veg.ent')
 # load rasters of prepped variables
-vars = brick(paste0(data.dir, "/asynch_model_all_vars_",
+vars = brick(paste0(data.dir, "asynch_model_all_vars_",
                     asynch.var, '_',
                     as.character(neigh.rad), "km.tif"))
 names(vars) = names
 
 # load data frame of prepped variables
 cat('\nReading CSVs of prepped, extracted raster values...\n')
-df_full_unproj = read.csv(paste0(data.dir, "/asynch_model_all_vars_prepped_",
+df_full_unproj = read.csv(paste0(data.dir, "asynch_model_all_vars_prepped_",
                                  asynch.var, '_',
                                  as.character(neigh.rad), "km.csv"))
 
@@ -374,7 +377,7 @@ if (F){
   print(attStats(bor_res))
   
   
-  jpeg(paste0(data.dir, '/boruta_boxplot_', asynch.var, '_', as.character(neigh.rad), 'km.jpg'),
+  jpeg(paste0(data.dir, 'boruta_boxplot_', asynch.var, '_', as.character(neigh.rad), 'km.jpg'),
        width=900,
        height=400,
        units='px',
@@ -498,15 +501,14 @@ ggsave(preds_plot, file=paste0(data.dir, 'preds_plot_', coords.as.covars, 'COORD
 
 # make predictions for full dataset (to map as raster)
 # NOTE: only if interactive
-#if (F){
-  cat('\nCalculating and saving model predictions for full global raster...\n')
-  full_preds = predict(rf_final, df_full)$predictions
-  df.res = df_full %>% mutate(preds = full_preds, err = full_preds - df_full[,'phn.asy'])
-  write.csv(df.res, paste0(data.dir, 'rf_full_preds_',
-                            coords.as.covars, 'COORDS_',
-                            asynch.var, '_',
-                            as.character(neigh.rad), 'km.csv'), row.names=F)
-  
+cat('\nCalculating and saving model predictions for full global raster...\n')
+full_preds = predict(rf_final, df_full)$predictions
+df.res = df_full %>% mutate(preds = full_preds, err = full_preds - df_full[,'phn.asy'])
+write.csv(df.res, paste0(data.dir, 'rf_full_preds_',
+                          coords.as.covars, 'COORDS_',
+                          asynch.var, '_',
+                          as.character(neigh.rad), 'km.csv'), row.names=F)
+
 # map SHAP values
 cat('\nCalculating and saving SHAP values for full global dataset...')
 shap_full = fastshap::explain(rf_final, X = df_full[, 2:ncol(df_full)], pred_wrapper = pfun, nsim = 10)

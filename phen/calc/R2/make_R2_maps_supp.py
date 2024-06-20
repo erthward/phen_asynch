@@ -59,45 +59,6 @@ partlabel_fontsize=40
 
 
 
-# load shapefiles
-# NOTE: not reprojecting the R^2 maps because we want to show as close to the
-#       original values as possible (aside from plotting fn aggregating
-#       them) rather than first warping them to a projection; thus, reproject
-#       vector files to unprojected lat-lon EPSG:4326, the CRS of the R^2 files
-countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                       'NewWorldFile_2020.shp')).to_crs(4326)
-# load level-1 subnational jurisdictions (downloaded from:
-#                                 https://gadm.org/download_country.html)
-subnational = []
-for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
-    subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR, f)))
-subnational = pd.concat(subnational).to_crs(4326)
-
-
-def plot_juris_bounds(ax,
-                      subnat_zorder=0,
-                      nat_zorder=1,
-                      polys_color='#060606',
-                     ):
-    """
-    plot national and subnational jurisdictional bounds
-    """
-    subnational.plot(ax=ax,
-                     color='none',
-                     edgecolor='gray',
-                     linewidth=0.3,
-                     alpha=0.7,
-                     zorder=subnat_zorder,
-                    )
-    countries.plot(ax=ax,
-                   color='none',
-                   edgecolor='gray',
-                   linewidth=0.5,
-                   alpha=0.8,
-                   zorder=nat_zorder,
-                  )
-
-
 def map_r2(ax, r2_filename, axlabel,
            add_colorbar=False,
            cbar_ax=None,
@@ -126,13 +87,19 @@ def map_r2(ax, r2_filename, axlabel,
                    cbar_kwargs=cbar_kwargs,
                    zorder=0,
                   )
-    plot_juris_bounds(ax=ax)
-    ax.set_title('')
+    phf.plot_juris_bounds(ax,
+                          lev0_linecolor='gray',
+                          lev0_linewidth=0.5,
+                          lev0_alpha=0.8,
+                          lev0_zorder=2,
+                          lev1_linecolor='gray',
+                          lev1_linewidth=0.3,
+                          lev1_alpha=0.7,
+                          lev1_zorder=1,
+                          crs=r2.rio.crs.to_epsg(),
+                          strip_axes=True,
+                         )
     ax.text(-175, -55, axlabel, size=6)
-    ax.set_xlabel('')
-    ax.set_ylabel('')
-    ax.set_xticks(())
-    ax.set_yticks(())
 
 
 if __name__ == '__main__':

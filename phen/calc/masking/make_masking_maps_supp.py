@@ -66,17 +66,6 @@ water_mask= water_mask_unproj.rio.write_crs(4326).rio.reproject(target_crs,
                                                   resampling=Resampling.mode,
                                                  )
 
-# load shapefiles
-countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                    'NewWorldFile_2020.shp')).to_crs(target_crs)
-# load level-1 subnational jurisdictions (downloaded from:
-#                                 https://gadm.org/download_country.html)
-subnational = []
-for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
-    subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                                  f)).to_crs(target_crs))
-subnational = pd.concat(subnational)
-
 # load world continents dataset from
 # https://github.com/Esri/arcgis-runtime-samples-data/tree/master/shapefiles
 # to use for map tabulation by continent
@@ -86,27 +75,6 @@ new_oceania = cont[cont['CONTINENT'].isin(['Australia',
                                            'Oceania'])].dissolve()['geometry']
 cont.loc[cont['CONTINENT'] == 'Oceania', 'geometry'] = new_oceania.values[0]
 cont = cont[cont['CONTINENT'] != 'Australia']
-
-def plot_juris_bounds(ax, subnat_zorder=0, nat_zorder=1,
-                      polys_color='#060606',
-                     ):
-    """
-    plot national and subnational jurisdictional bounds
-    """
-    subnational.plot(ax=ax,
-                     color='none',
-                     edgecolor='gray',
-                     linewidth=0.3,
-                     alpha=0.7,
-                     zorder=subnat_zorder,
-                    )
-    countries.plot(ax=ax,
-                   color='none',
-                   edgecolor='gray',
-                   linewidth=0.5,
-                   alpha=0.8,
-                   zorder=nat_zorder,
-                  )
 
 
 def map_mask(ax, mask_filename, axlabel, lcMask_mode=None):
@@ -147,17 +115,17 @@ def map_mask(ax, mask_filename, axlabel, lcMask_mode=None):
                                    stats=["mean"],
                                    geojson_out=True,
                                   )]
-    mask = mask.rio.write_crs(4326).rio.reproject(target_crs,
+    mask_proj = mask.rio.write_crs(4326).rio.reproject(target_crs,
                                                   resampling=Resampling.mode,
                                                  )
     # get rid of strips of large values from reprojection
-    mask = mask.where(mask<=2, np.nan)
+    mask_proj = mask_proj.where(mask_proj<=2, np.nan)
     # NOTE: annoying AttributeError is because da.attrs['long_name']
     #       is retained as a tuple of names (rather than being subsetted
     #       by indexing) when I index a single layer out of an
     #       xarray.core.dataarray.DataArray;
     #       for now, a hacky fix is just assigning a string to that attr
-    mask.attrs['long_name'] = ''
+    mask_proj.attrs['long_name'] = ''
     if 'lcMask' in mask_filename:
         colors = ['red', 'black', 'white']
         vmax = 2
@@ -166,26 +134,33 @@ def map_mask(ax, mask_filename, axlabel, lcMask_mode=None):
         vmax = 1
     cmap = ListedColormap(colors)
     # mask out oceans, seas, and other large water bodies
-    mask = mask.where((water_mask==1).values)
-    mask.plot.imshow(ax=ax,
-                     cmap=cmap,
-                     vmin=0,
-                     vmax=vmax,
-                     add_colorbar=False,
-                     zorder=0,
-                    )
-    plot_juris_bounds(ax=ax)
-    ax.set_xlim(mask.rio.bounds()[0::2])
-    ax.set_ylim(mask.rio.bounds()[1::2])
-    # NOTE: chopping off western edge because the equal earth projection
-    #       makes NZ appear twice
-    ax.set_xlim(0.95 * ax.get_xlim()[0], ax.get_xlim()[1])
-    ax.set_title('')
+    mask_proj = mask_proj.where((water_mask==1).values)
+    # mask outside bounds of Equal Area projection
+    mask_proj = phf.mask_xarr_to_other_xarr_bbox(mask_proj, mask)
+    mask_proj.plot.imshow(ax=ax,
+                          cmap=cmap,
+                          vmin=0,
+                          vmax=vmax,
+                          add_colorbar=False,
+                          zorder=0,
+                         )
+    phf.plot_juris_bounds(ax,
+                          lev0_color='#060606',
+                          lev0_linecolor='gray',
+                          lev0_linewidth=0.5,
+                          lev0_alpha=0.8,
+                          lev0_zorder=2,
+                          lev1_color='#060606',
+                          lev1_linecolor='gray',
+                          lev1_linewidth=0.3,
+                          lev1_alpha=0.7,
+                          lev1_zorder=1,
+                          strip_axes=True,
+                          crs=target_crs,
+                         )
+    ax.set_xlim(mask_proj.rio.bounds()[0::2])
+    ax.set_ylim(mask_proj.rio.bounds()[1::2])
     ax.text(-1.4e7, -6.4e6, axlabel, size=7)
-    ax.set_xlabel('')
-    ax.set_ylabel('')
-    ax.set_xticks(())
-    ax.set_yticks(())
     # process the zonal means and return them
     # NOTE: taking 1 minus the calculated mean, to express as percent masked out
     zonal_means = [{j['properties']['CONTINENT']: 1-j['properties']['mean']

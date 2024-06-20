@@ -47,7 +47,9 @@ assert what_to_plot in ['main_rgb_map', 'reg_figs',
                         'eof_summ_fig', 'raw_rgb_maps']
 
 # write the weighted-sum EOF map to a raster file?
-write_wt_sum_eofs_to_file = True
+# NOTE: only if an extra 'save_rast' flag is fed to the call to this script
+write_wt_sum_eofs_to_file = (len(sys.argv) > 2 and
+                             'save_rast' in sys.argv)
 
 # save figs?
 save_it = True
@@ -83,17 +85,6 @@ dm = phf.make_design_matrix()
 ####################
 # LOAD AND PREP DATA
 ####################
-
-# load country boundaries
-countries = gpd.read_file(os.path.join(phf.BOUNDS_DIR,
-                                       'NewWorldFile_2020.shp')).to_crs(8857)
-
-# load level-1 subnational jurisdictions (downloaded from:
-#                                 https://gadm.org/download_country.html)
-subnational = []
-for f in [f for f in os.listdir(phf.BOUNDS_DIR) if re.search('^gadm.*json$', f)]:
-    subnational.append(gpd.read_file(os.path.join(phf.BOUNDS_DIR, f)).to_crs(8857))
-subnational = pd.concat(subnational)
 
 # load ITCZ shapefile
 # NOTE: digitized from Li and Zeng 2005, as reproduced in Zhisheng et al. 2015
@@ -165,113 +156,102 @@ out_da_filename = ('%s_4_EOFs_sqrt_coswts%s%s'
                                                      )
 out_da_filepath = os.path.join(phf.EXTERNAL_DATA_DIR, out_da_filename)
 
-if not os.path.isfile(out_da_filepath):
-    # create array implementing weights across ITCZ:
-    # 1. get DataArrays containing y vals as data, x vals as coordinates
-    #    (to facilitate lookup of y corresponding to nearest x to each x in eofs)
-    itcz_das = []
-    for n in range(3):
-        xs = [itcz.geometry[n].coords[i][0] for i in
-              range(len(itcz.geometry[n].coords))]
-        ys = [itcz.geometry[n].coords[i][1] for i in
-              range(len(itcz.geometry[n].coords))]
-        da = xr.DataArray(data=ys, dims=['x'], coords=dict(x=(['x'], xs)))
-        itcz_das.append(da)
-    # create empty wts DataArray, and empty wts numpy array to later go into it
-    wts = eofs[0]*np.nan
-    wts_arr = np.ones(wts.shape) * np.nan
-    #wts_inflation = eofs[0]*np.nan
-    #wts_inflation_arr = np.ones(wts.shape) * np.nan
-    # loop across x coordinates in wts
-    use_mean_itcz = True
+print('\n\nScaling, folding, and reprojecting EOFs...\n\n')
+# create array implementing weights across ITCZ:
+# 1. get DataArrays containing y vals as data, x vals as coordinates
+#    (to facilitate lookup of y corresponding to nearest x to each x in eofs)
+itcz_das = []
+for n in range(3):
+    xs = [itcz.geometry[n].coords[i][0] for i in
+          range(len(itcz.geometry[n].coords))]
+    ys = [itcz.geometry[n].coords[i][1] for i in
+          range(len(itcz.geometry[n].coords))]
+    da = xr.DataArray(data=ys, dims=['x'], coords=dict(x=(['x'], xs)))
+    itcz_das.append(da)
+# create empty wts DataArray, and empty wts numpy array to later go into it
+wts = eofs[0]*np.nan
+wts_arr = np.ones(wts.shape) * np.nan
+#wts_inflation = eofs[0]*np.nan
+#wts_inflation_arr = np.ones(wts.shape) * np.nan
+# loop across x coordinates in wts
+use_mean_itcz = True
+if use_mean_itcz:
+    itcz_delta_lat = 5
+for j, x in enumerate(wts.x):
+    # get N and S ys bounding the ITCZ at this x
     if use_mean_itcz:
-        itcz_delta_lat = 5
-    for j, x in enumerate(wts.x):
-        # get N and S ys bounding the ITCZ at this x
-        if use_mean_itcz:
-            y_corresponding = float(itcz_das[2].sel(x=x, method='nearest'))
-            y_N = y_corresponding + itcz_delta_lat
-            y_S = y_corresponding - itcz_delta_lat
-        else:
-            y_N = float(itcz_das[0].sel(x=x, method='nearest'))
-            y_S = float(itcz_das[1].sel(x=x, method='nearest'))
-        # get number of N and S pixels outside the ITCZ at this x; set to 1 and 0
-        n_N = wts.sel(x=x, y=slice(np.max(wts.y), y_N)).size
-        n_S = wts.sel(x=x, y=slice(y_S, np.min(wts.y))).size
-        wts_arr[:n_N, j] = 1
-        wts_arr[-n_S:, j] = 0
-        # create linear interpolation between 0 and 1 across ITCZ
-        interp = np.linspace(1, 0, len(wts.y) - n_N - n_S + 2)
-        assert len(interp) == 2 + np.sum(np.isnan(wts_arr[:, j]))
-        wts_arr[n_N-1:-n_S+1, j] = interp
-        # determine maximum possible weighted-sum value at this x;
-        # add reciprocal of that to inflation array
-        #wt_sum_maxes = np.max(np.stack([n*wts_arr[:,j] +
-        #    ((1-n)*(1-wts_arr[:,j])) for n in np.linspace(0, 1, 100)]), axis=0)
-        #inflation_factors = 1/wt_sum_maxes
-        #wts_inflation_arr[:, j] = inflation_factors
-    wts.values = wts_arr
-    #wts_inflation.values = wts_inflation_arr
-    # make the weighted-sum EOFs map
-    eofs_wt_sum = deepcopy(eofs)
-    # NOTE: folding all 3 EOFs, on the assumption that a hemispheric signal is
-    #       embedded in each, because the signal in EOFs 2 and 3 is only
-    #       obvious when the RGB composite is displayed, but not in their
-    #       individual maps (unlike EOF 1)
-    for n in range(3):
-        eofs_wt_sum[n] = ((wts*(eofs[n])) + ((1-wts)*(1-eofs[n])))# * wts_inflation
-    # get equal-area-projected EOFs rasters, for mapping
-    eofs_wt_sum_for_map = eofs_wt_sum.rio.write_crs(4326)
-    # reproject to Equal Earth
-    eofs_wt_sum_for_map = eofs_wt_sum_for_map.rio.reproject(8857)
-    # and truncate artificially inflated values along edges
-    # (not sure what's broken that's causing them)
-    for lyr in range(eofs_wt_sum_for_map.shape[0]):
-        eofs_wt_sum_for_map[lyr] = eofs_wt_sum_for_map[lyr].where(
-            eofs_wt_sum_for_map[lyr] < 2*eofs_wt_sum[lyr].max(), np.nan)
+        y_corresponding = float(itcz_das[2].sel(x=x, method='nearest'))
+        y_N = y_corresponding + itcz_delta_lat
+        y_S = y_corresponding - itcz_delta_lat
+    else:
+        y_N = float(itcz_das[0].sel(x=x, method='nearest'))
+        y_S = float(itcz_das[1].sel(x=x, method='nearest'))
+    # get number of N and S pixels outside the ITCZ at this x; set to 1 and 0
+    n_N = wts.sel(x=x, y=slice(np.max(wts.y), y_N)).size
+    n_S = wts.sel(x=x, y=slice(y_S, np.min(wts.y))).size
+    wts_arr[:n_N, j] = 1
+    wts_arr[-n_S:, j] = 0
+    # create linear interpolation between 0 and 1 across ITCZ
+    interp = np.linspace(1, 0, len(wts.y) - n_N - n_S + 2)
+    assert len(interp) == 2 + np.sum(np.isnan(wts_arr[:, j]))
+    wts_arr[n_N-1:-n_S+1, j] = interp
+    # determine maximum possible weighted-sum value at this x;
+    # add reciprocal of that to inflation array
+    #wt_sum_maxes = np.max(np.stack([n*wts_arr[:,j] +
+    #    ((1-n)*(1-wts_arr[:,j])) for n in np.linspace(0, 1, 100)]), axis=0)
+    #inflation_factors = 1/wt_sum_maxes
+    #wts_inflation_arr[:, j] = inflation_factors
+wts.values = wts_arr
+#wts_inflation.values = wts_inflation_arr
+# make the weighted-sum EOFs map
+eofs_wt_sum = deepcopy(eofs)
+# NOTE: folding all 3 EOFs, on the assumption that a hemispheric signal is
+#       embedded in each, because the signal in EOFs 2 and 3 is only
+#       obvious when the RGB composite is displayed, but not in their
+#       individual maps (unlike EOF 1)
+for n in range(3):
+    eofs_wt_sum[n] = ((wts*(eofs[n])) + ((1-wts)*(1-eofs[n])))# * wts_inflation
+# get equal-area-projected EOFs rasters, for mapping
+eofs_wt_sum_for_map = eofs_wt_sum.rio.write_crs(4326)
+# reproject to Equal Earth
+eofs_wt_sum_for_map = eofs_wt_sum_for_map.rio.reproject(8857)
+# and truncate artificially inflated values along edges
+# (not sure what's broken that's causing them)
+for lyr in range(eofs_wt_sum_for_map.shape[0]):
+    eofs_wt_sum_for_map[lyr] = eofs_wt_sum_for_map[lyr].where(
+        eofs_wt_sum_for_map[lyr] < 2*eofs_wt_sum[lyr].max(), np.nan)
 
-    # mask data lying outside the edges of the
-    # Equal Earth projection (to prevent NZ, Sibera, etc. from wrapping around)
-    eofs_wt_sum_for_map = phf.mask_xarr_to_other_xarr_bbox(eofs_wt_sum_for_map,
-                                                           eofs,
-                                                           drop=False,
-                                                           n_bbox_xcoords=4000,
-                                                           n_bbox_ycoords=2000,
-                                                          )
+# mask data lying outside the edges of the
+# Equal Earth projection (to prevent NZ, Sibera, etc. from wrapping around)
+eofs_wt_sum_for_map = phf.mask_xarr_to_other_xarr_bbox(eofs_wt_sum_for_map,
+                                                       eofs,
+                                                       drop=False,
+                                                       n_bbox_xcoords=4000,
+                                                       n_bbox_ycoords=2000,
+                                                      )
 
-    # if requested, write mapping-prepped, folded EOFS to file
-    if write_wt_sum_eofs_to_file:
-        x_vals = eofs_wt_sum_for_map['x'].values
-        y_vals = eofs_wt_sum_for_map['y'].values
-        bands = eofs_wt_sum_for_map['band'].values-1
-        out_bands = []
-        for band in bands:
-            out_bands.append(eofs_wt_sum_for_map[band].data)
-        out_da = xr.DataArray(out_bands,
-                              coords={'y':y_vals,
-                                      'x':x_vals,
-                                      'band': bands,
-                                     },
-                              dims=['band', 'y', 'x'],
-                             )
-        out_da.rio.to_raster(out_da_filepath)
-else:
-    eofs_wt_sum_for_map = rxr.open_rasterio(out_da_filepath, masked=True)
-
+# if requested, write mapping-prepped, folded EOFS to file
+if write_wt_sum_eofs_to_file:
+    print('\n\nWriting scaled, folded, reprojected EOFs to file...\n\n')
+    x_vals = eofs_wt_sum_for_map['x'].values
+    y_vals = eofs_wt_sum_for_map['y'].values
+    bands = eofs_wt_sum_for_map['band'].values-1
+    out_bands = []
+    for band in bands:
+        out_bands.append(eofs_wt_sum_for_map[band].data)
+    out_da = xr.DataArray(out_bands,
+                          coords={'y':y_vals,
+                                  'x':x_vals,
+                                  'band': bands,
+                                 },
+                          dims=['band', 'y', 'x'],
+                         )
+    out_da.rio.to_raster(out_da_filepath)
 
 
 #######################
 ## PLOT EOF SUMMARY FIG
 #######################
-
-# plotting helper fns
-def strip_axes(ax):
-    ax.set_xlabel('')
-    ax.set_ylabel('')
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_title('')
-
 
 if what_to_plot == 'eof_summ_fig':
     # create EOF fig
@@ -298,22 +278,13 @@ if what_to_plot == 'eof_summ_fig':
                                     alpha=1,
                                     zorder=0,
                                    )
-        subnational.plot(color='none',
-                         linewidth=0.3,
-                         edgecolor='black',
-                         alpha=0.5,
-                         ax=ax_map,
-                         zorder=1,
-                        )
-        countries.plot(color='none',
-                       linewidth=0.5,
-                       edgecolor='black',
-                       alpha=0.7,
-                       ax=ax_map,
-                       zorder=2,
-                      )
-
-        strip_axes(ax_map)
+        phf.plot_juris_bounds(ax_map,
+                              lev0_linewidth=0.5,
+                              lev0_alpha=0.7,
+                              lev1_linewidth=0.3,
+                              lev1_alpha=0.5,
+                              strip_axes=True,
+                             )
         ax_map.set_ylim(eofs_for_map.rio.bounds()[1::2])
         ax_map.text(0.92*ax_map.get_xlim()[0], 0.92*ax_map.get_ylim()[0],
                     'EOF %i:\n%0.1f%%' % (i+1, eofs_pcts[i]),
@@ -357,20 +328,13 @@ if what_to_plot == 'raw_rgb_maps':
     axs = {0: ax_top, 1: ax_bot}
     for row in range(2):
         ax = axs[row]
-        subnational.plot(color='none',
-                         linewidth=0.3,
-                         edgecolor='black',
-                         alpha=0.5,
-                         ax=ax,
-                         zorder=1,
-                        )
-        countries.plot(color='none',
-                       linewidth=0.5,
-                       edgecolor='black',
-                       alpha=0.7,
-                       ax=ax,
-                       zorder=2,
-                      )
+        phf.plot_juris_bounds(ax,
+                              lev0_linewidth=0.5,
+                              lev0_alpha=0.7,
+                              lev1_linewidth=0.3,
+                              lev1_alpha=0.5,
+                              strip_axes=True,
+                             )
         if row == 0:
             eofs_for_map.plot.imshow(ax=ax, zorder=0)
         elif row == 1:
@@ -381,7 +345,6 @@ if what_to_plot == 'raw_rgb_maps':
                 eofs_trans[i,:,:] = 1 - eofs_trans[i,:,:]
             eofs_trans = eofs_trans.where(np.abs(eofs_trans)<1e37)
             eofs_trans.plot.imshow(ax=ax, zorder=0)
-        strip_axes(ax)
         ax.set_ylim(eofs_for_map.rio.bounds()[1::2])
     fig_untrans.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98,
                                 hspace=0.05)
@@ -409,22 +372,13 @@ if what_to_plot == 'main_rgb_map':
                                         alpha=1,
                                         zorder=0,
                                        )
-    subnational.plot(color='none',
-                     linewidth=0.3,
-                     edgecolor='black',
-                     alpha=0.5,
-                     ax=ax,
-                     zorder=1,
-                    )
-    countries.plot(color='none',
-                   linewidth=0.5,
-                   edgecolor='black',
-                   alpha=0.7,
-                   ax=ax,
-                   zorder=2,
-                  )
-
-    strip_axes(ax)
+    phf.plot_juris_bounds(ax,
+                          lev0_linewidth=0.5,
+                          lev0_alpha=0.7,
+                          lev1_linewidth=0.3,
+                          lev1_alpha=0.5,
+                          strip_axes=True,
+                         )
     ax.set_ylim(eofs_wt_sum_for_map.rio.bounds()[1::2])
     ax.spines['bottom'].set_color('black')
     ax.spines['top'].set_color('black')
@@ -598,20 +552,9 @@ if what_to_plot == 'reg_figs':
             if map_clusters:
                 fig_clust_map, ax_clust_map = plt.subplots(1,1)
                 cmap = mpl.colors.ListedColormap(center_colors)
-                subnational.plot(color='none',
-                     linewidth=0.3,
-                     edgecolor='black',
-                     alpha=0.5,
-                     ax=ax_clust_map,
-                     zorder=1,
-                    )
-                countries.to_crs(4326).plot(color='none',
-                                            linewidth=0.5,
-                                            edgecolor='black',
-                                            alpha=0.7,
-                                            ax=ax_clust_map,
-                                            zorder=2,
-                                           )
+                phf.plot_juris_bounds(ax=ax_clust_map,
+                                      crs=4326,
+                                     )
                 try:
                     clusters_rxr.plot.imshow(ax=ax_clust_map,
                                              cmap=cmap, alpha=1, zorder=0)
@@ -782,33 +725,21 @@ if what_to_plot == 'reg_figs':
                                                                        zorder=0,
                                                                 add_colorbar=False,
                                                                       )
-        subnational.plot(color='none',
-                         linewidth=0.3,
-                         edgecolor='black',
-                         alpha=0.5,
-                         ax=ax_reg,
-                         zorder=1,
-                        )
-        countries.plot(ax=ax_reg,
-                       color='none',
-                       edgecolor='black',
-                       linewidth=0.5,
-                       alpha=0.8,
-                       zorder=2,
-                      )
-        strip_axes(ax_reg)
+        phf.plot_juris_bounds(ax_reg, lev0_alpha=0.8, strip_axes=True)
         ax_reg.set_xlim(bbox[0], bbox[2])
         ax_reg.set_ylim(bbox[3], bbox[1])
 
         # subset the focal region's data and run clustering
         eofs_wt_sum_foc = eofs_wt_sum_for_map.sel(x=slice(bbox[0], bbox[2]),
                                                   y=slice(bbox[1], bbox[3]),
-                                                 ).rio.reproject(4326)
+                                                 ).rio.write_crs(8857)
+        eofs_wt_sum_foc = eofs_wt_sum_foc.rio.reproject(4326)
         eofs_wt_sum_foc = eofs_wt_sum_foc.where(eofs_wt_sum_foc !=
                                                 eofs_wt_sum_foc._FillValue, np.nan)
         coeffs_foc = coeffs.rio.reproject(8857).sel(x=slice(bbox[0], bbox[2]),
                                                     y=slice(bbox[1], bbox[3]),
-                                                 ).rio.reproject(4326)
+                                                 ).rio.write_crs(8857)
+        coeffs_foc = coeffs_foc.rio.reproject(4326)
         coeffs_foc = coeffs_foc.where(coeffs_foc != coeffs_foc._FillValue, np.nan)
 
         # run K-means clustering
@@ -824,7 +755,7 @@ if what_to_plot == 'reg_figs':
         # add lineplot labels
         add_phen_labs(ax_lines, reg)
         # adjust focal-region plotting and add bounding boxes
-        strip_axes(ax_lines)
+        phf.strip_axes_labels_and_ticks(ax_lines)
         ax_lines.set_xticks(np.linspace(0, 365, 5))
         ax_lines.set_xticklabels(['Jan', 'Apr', 'Jul', 'Oct', 'Jan'])
         for month in np.linspace(0, 365, 13):
