@@ -164,14 +164,19 @@ if partial_results is not None:
     # NOTE: MAKE LOOP NUM -1 FOR ALL PREV RESULTS, EVEN IF MULTIPLE LOOPS'
     #       RESULTS, SINCE THE LOOP NUM IS NOT REALLY USEFUL POST HOC ANYHOW
     all_loop_MMRR_res[-1] = partial_results
+else:
+    prev_param_combos = 0
 
 # loop analysis over param vals
 loop_ct = 0
 if remaining_n_loop_vals > 0:
     for (dbscan_eps, dbscan_minsamp, alpha) in loop_vals:
         print(('#'*80+'\n')*4)
+        pct_done = 100 * (loop_ct+n_prev_param_combos+1)/(len(dbscan_eps_vals) *
+                                                        len(dbscan_minsamp_vals) *
+                                                        len(alpha_vals))
         print((f'\n\nLOOP {loop_ct} '
-               f'({np.round(100*(loop_ct+1)/remaining_n_loop_vals, 1)}%):\n\n'))
+               f'({np.round(pct_done, 1)}%):\n\n'))
         print('\tdbscan_eps: %0.3f\n\n' % dbscan_eps)
         print('\tdbscan_minsamp: %0.3f\n\n' % dbscan_minsamp)
         print('\talpha: %0.3f\n\n' % alpha)
@@ -225,7 +230,7 @@ if remaining_n_loop_vals > 0:
                                                        alpha=alpha+(0.25*ct))
                     ct+=1
                 if ct > 1:
-                    print('\n\n\tNOTE: ADDED 0.25 * %i TO ALPHA!\n\n' % ct)
+                    print('\n\n\tNOTE: ADDED 0.25 * %i TO ALPHA!\n\n' % (ct-1))
                 # coerce to MultiPolygon, if necessary
                 if isinstance(alpha_hull, MultiPolygon):
                     pass
@@ -383,7 +388,7 @@ if remaining_n_loop_vals > 0:
         # concatenate all MMRR results' dataframes
         # (do this each loop so that if the script breaks partway then I can
         # pick up where I left off)
-        all_loop_MMRR_res_gdf = pd.concat([*all_loop_MMRR_res.values()])
+        all_loop_MMRR_res_gdf = pd.concat([df.to_crs(4326) for df in all_loop_MMRR_res.values()])
         # check columns all got lined up correctly
         assert np.all(all_loop_MMRR_res_gdf.columns == MMRR_res_gdf.columns)
         if save_all_results:
