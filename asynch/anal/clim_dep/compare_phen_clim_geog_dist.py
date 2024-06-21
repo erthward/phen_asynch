@@ -51,7 +51,7 @@ print(f"\n\nSETTING PARAMETERS AND LOADING DATA...\n\n")
 # save CSVs of results?
 save_all_results = True
 # print everything?
-verbose = False
+verbose = True
 
 # CLUSTER PARAMS:
 # dbscan params
@@ -250,7 +250,8 @@ if remaining_n_loop_vals > 0:
 ####################################
 
         print(f"\n\nRUNNING REGIONAL ANALYSES...\n\n")
-        polys_pts = [phf.generate_random_points_in_polygon(
+        print(f"\n\n drawing random points...\n\n")
+        polys_pts = [phf.draw_random_points_within_polygon(
                                                 n_pts, poly) for poly in polys]
 
         # list of region names
@@ -279,7 +280,7 @@ if remaining_n_loop_vals > 0:
                 print('\ngetting distance matrices for region: %s\n' % reg_name)
 
             # get points as nx2 numpy array
-            pts = np.concatenate([np.array(pt.coords) for pt in reg_pts], axis=0)
+            pts = reg_pts['pts'].get_coordinates().values
             # get points' pairwise clim dists
             clim_dist = phf.calc_pw_clim_dist_mat(pts, nodata_val=nodata_val)
 
@@ -299,11 +300,11 @@ if remaining_n_loop_vals > 0:
             clim_dist = clim_dist[:, still_not_missing][still_not_missing,:]
             pts = pts[still_not_missing, :]
             if verbose:
-                print(('\n%i points remain after dropping locations '
+                print(('\n\t%i points remain after dropping locations '
                        'without seasonality data\n') % seas_dist.shape[0])
+                print(f"\n\n\trunning MMRR...\n\n")
             if seas_dist.shape[0]>=2:
 
-                # run MMRR
                 g = pyproj.Geod(ellps='WGS84')
                 # get pw geo dist matrix of points
                 geo_dist= np.ones([pts.shape[0]]*2) * np.nan
@@ -328,9 +329,11 @@ if remaining_n_loop_vals > 0:
                           )
 
                 # store results
+                if verbose:
+                    print(f"\n\n\tstoring results...\n\n")
                 MMRR_res[reg_name] = res
 
-                # extract the lower triangular values and scatter them
+                # extract the lower triangular values
                 indices = np.tril_indices(seas_dist.shape[0])
 
                 seas_dist_vals = seas_dist[indices]

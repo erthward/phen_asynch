@@ -12,7 +12,6 @@ rclone copy --include rf_full_preds_* /global/scratch/users/drewhart/seasonality
 rclone copy --include rf_permut_importance* /global/scratch/users/drewhart/seasonality/rf_data/ bdrive:LSP_asynch_drivers_rf_results
 rclone copy --include tuning_results_* /global/scratch/users/drewhart/seasonality/rf_data/ bdrive:LSP_asynch_drivers_rf_results
 rclone copy --include ch3_rf_*Rout /global/scratch/users/drewhart/seasonality/rf_data/ bdrive:LSP_asynch_drivers_rf_results
-rclone copy --include ch3_rf_data_prep*Rout /global/scratch/users/drewhart/seasonality/rf_data/ bdrive:LSP_asynch_drivers_rf_results
 rclone copy --include slurm*out /global/scratch/users/drewhart/seasonality/rf_data/ bdrive:LSP_asynch_drivers_rf_results
 
 rclone copy /global/scratch/users/drewhart/seasonality/rf_data/boruta_boxplot_NIRv_100km.jpg bdrive:LSP_asynch_drivers_rf_results

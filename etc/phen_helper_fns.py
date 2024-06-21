@@ -389,16 +389,28 @@ def get_cell_coords_for_pt(lon, lat, cell_max_lons, cell_max_lats):
     return i,j
 
 
-# generate n random points within a given polygon
-def generate_random_points_in_polygon(n, polygon):
-    points = []
+def draw_random_points_within_polygon(n, polygon):
+    '''
+    faster implementation of drawing random points within polygon,
+    borrowed from https://www.matecdev.com/posts/random-points-in-polygon.html
+    '''
     minx, miny, maxx, maxy = polygon.bounds
-    while len(points) < n:
-        pnt = Point(np.random.uniform(minx, maxx),
-                    np.random.uniform(miny, maxy))
-        if polygon.contains(pnt):
-            points.append(pnt)
-    return points
+    out_gdfs = []
+    total_n_out = 0
+    while total_n_out < n:
+        x = np.random.uniform(minx, maxx, 2*n)
+        y = np.random.uniform(miny, maxy, 2*n)
+        df = pd.DataFrame()
+        df['pts'] = list(zip(x,y))
+        df['pts'] = df['pts'].apply(Point)
+        gdf_pts = gpd.GeoDataFrame(df, geometry='pts')
+        gdf_poly = gpd.GeoDataFrame(index=['target_poly'], geometry=[polygon])
+        sjoin = gpd.tools.sjoin(gdf_pts, gdf_poly, predicate='within', how='left')
+        pts_in_poly = gdf_pts[sjoin.index_right=='target_poly']
+        out_gdfs.append(pts_in_poly.iloc[:n, :])
+        total_n_out += len(pts_in_poly.iloc[:n, :])
+    out_pts = pd.concat(out_gdfs).iloc[:n, :]
+    return out_pts
 
 
 def calc_pw_clim_dist_mat(pts,
@@ -529,4 +541,5 @@ def plot_juris_bounds(ax=None,
         if not reset_axlims:
             ax.set_xlim(xlim)
             ax.set_ylim(ylim)
+
 
