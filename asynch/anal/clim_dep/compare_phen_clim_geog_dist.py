@@ -146,6 +146,10 @@ if os.path.isfile('clim_dep_all_MMRR_results_%ikmrad.shp' % neigh_rad):
 else:
     partial_results = None
     remaining_n_loop_vals = len([*deepcopy(loop_vals)])
+    # start a new file to track all alpha-param adjustments for alpha hulls
+    # that fail to form at the default alpha value tried
+    with open('alpha_vals_adjusted.csv', 'w') as f:
+        f.write('eps,minsamp,alpha,clust_i,clust_mean_x,clust_mean_y,alpha_adustment')
     print('\n\nNO EXISTING RESULTS DETECTED\n\n')
 
 # create data strucutres to save all results for final analysis
@@ -217,7 +221,7 @@ if remaining_n_loop_vals > 0:
                 # coords of this cluster's samples
                 clust_coords = coords[inds,:]
                 # get alpha-hull coords
-                # NOTE: looping the alphashape function and adding 0.25 to alpha each
+                # NOTE: looping the alphashape function and adding 0.05 to alpha each
                 # time because I ran into some weird issues with the function where for
                 # certain point sets (e.g., South African cape one specific time) it
                 # returned an empty GeometryCollection rather than a Poly or
@@ -227,10 +231,15 @@ if remaining_n_loop_vals > 0:
                 while not (isinstance(alpha_hull, Polygon) or isinstance(alpha_hull,
                                                                          MultiPolygon)):
                     alpha_hull = alphashape.alphashape(clust_coords,
-                                                       alpha=alpha+(0.25*ct))
+                                                       alpha=alpha+(0.05*ct))
                     ct+=1
                 if ct > 1:
-                    print('\n\n\tNOTE: ADDED 0.25 * %i TO ALPHA!\n\n' % (ct-1))
+                    print('\n\n\tNOTE: ADDED 0.05 * %i TO ALPHA!\n\n' % (ct-1))
+                    with open('alpha_vals_adjusted.csv', 'a') as f:
+                        f.write((f"\n{dbscan_eps},{dbscan_minsamp},{alpha},{clust_i},"
+                                 f"{np.mean(clust_coords[:,0])},{np.mean(clust_coords[:,1])},"
+                                 f"{(ct-1)*0.05}")
+                               )
                 # coerce to MultiPolygon, if necessary
                 if isinstance(alpha_hull, MultiPolygon):
                     pass

@@ -561,7 +561,7 @@ if __name__ == '__main__':
 
     if what_to_plot == 'error_supp':
         fig_err = plt.figure(figsize=(16,8))
-        err_filename = 'err_map_yCOORDS_NIRv_100km.tif'
+        err_filename = f'err_map_{include_coords}COORDS_[cdptv].*_{var}_{neigh_rad}km.tif', f)]
         rast = rxr.open_rasterio(os.path.join(data_dir,
                                               err_filename), masked=True)[0]
         # NOTE: multiply raster by -1 because I accidentally subtracted real value from
