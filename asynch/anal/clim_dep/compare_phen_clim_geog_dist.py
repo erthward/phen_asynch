@@ -209,7 +209,7 @@ if remaining_n_loop_vals > 0:
             # ignore the 'noisy' samples (i.e., those labeled 0)
             if clust_i > 0:
                 if verbose:
-                    print('\n\nGETTING POLYGON AND MAPPING FOR CLUSTER %i...\n\n' % clust_i)
+                    print('\n\n\tgetting polygon and mapping for cluster %i...\n\n' % clust_i)
                 # indices of this cluster's samples
                 inds = np.where(db.labels_==clust_i)[0]
                 # inds = [*set([*np.where(db.labels_==clust_i)[0]]).intersection(
@@ -251,8 +251,11 @@ if remaining_n_loop_vals > 0:
 
         print(f"\n\nRUNNING REGIONAL ANALYSES...\n\n")
         print(f"\n\n drawing random points...\n\n")
+        # NOTE: drawing considerably more than desired, 
+        #       so that we get closer to the target
+        #       even after attrition because of masked LSP pixels
         polys_pts = [phf.draw_random_points_within_polygon(
-                                                n_pts, poly) for poly in polys]
+                                                3*n_pts, poly) for poly in polys]
 
         # list of region names
         reg_names = [str(i+1) for i in range(len(polys))]
@@ -299,6 +302,13 @@ if remaining_n_loop_vals > 0:
             seas_dist = seas_dist[:, still_not_missing][still_not_missing,:]
             clim_dist = clim_dist[:, still_not_missing][still_not_missing,:]
             pts = pts[still_not_missing, :]
+            # only keep n_pts number of points (in case more remain)
+            assert (seas_dist.shape[0] == seas_dist.shape[1] ==
+                    clim_dist.shape[0] == clim_dist.shape[1] == pts.shape[0])
+            if pts.shape[0] > n_pts:
+                seas_dist = seas_dist[:n_pts, :n_pts]
+                clim_dist = clim_dist[:n_pts, :n_pts]
+                pts = pts[:n_pts, :]
             if verbose:
                 print(('\n\t%i points remain after dropping locations '
                        'without seasonality data\n') % seas_dist.shape[0])

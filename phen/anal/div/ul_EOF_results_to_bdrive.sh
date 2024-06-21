@@ -1,3 +1,5 @@
+module load rclone
+
 # NOTE: to be run from Savio, within the 'GEE_outputs/NIRv' directory
 
 # copy all EOF results to Google Drive

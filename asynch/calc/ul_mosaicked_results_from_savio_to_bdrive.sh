@@ -1,3 +1,5 @@
+module load rclone
+
 # NOTE: to be run from Savio, within the 'GEE_outputs' directory, within the subdirs of which
 #       all the mosaicked results files are found
 #       (the subdirs being NIRv, NIRv_STRICT, SIF, SIF_STRICT, tmmn, tmmx, pr, def, cloud)
