@@ -15,7 +15,12 @@ import datetime
 import random
 import string
 import time
+import sys
 import os
+
+sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+                    'seasonal_asynchrony/etc'))
+import phen_helper_fns as phf
 
 # silence the unhelpful shapely deprecation warnings
 import warnings
@@ -474,7 +479,10 @@ for i, row in taxa.iterrows():
                        f"hist_plots/TID_{tid}_{tax_name.replace(' ', '_')}.png")
             if save_hist_fig:
                 print("\tsaving histogram plot...\n")
-                fig.savefig(fig_filename, dpi=400)
+                fig.savefig(os.path.join(phf.FIGS_DIR,
+                                         'inat_phen_hists',
+                                         fig_filename),
+                            dpi=400)
             plt.close('all')
 
             # store results
@@ -546,6 +554,6 @@ else:
             world = world[world['continent'] != 'Antarctica']
             world.to_crs(3857).plot(color='none', edgecolor='black', linewidth=0.5,
                                     alpha=0.5, ax=ax, zorder=0)
-        fig.savefig("inat_flower_phen_obs_locs.png", dpi=600)
+        fig.savefig(os.path.join(phf.FIGS_DIR, "inat_flower_phen_obs_locs.png"), dpi=600)
     else:
         print("\n\nNo taxa remaining to be processed!\n")

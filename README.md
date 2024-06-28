@@ -107,7 +107,7 @@ Each step of the following workflow was executed in the environment indicated *i
 5. *On laptop*, run `bash phen/anal/div/aggregate_great_basin_cheatgrass_data.sh` to aggregate that dataset to our analysis resolution of $0.05^{\circ}$.
 6. *On laptop*, work through the manual steps listed in the notes at the top of `python phen/anal/div/compose_ITCZ_shapefile.py` to digitize the Dec-Jan-Feb and Jun-Jul-Aug mean ITCZ locations delineated by [Zhisheng et al. 2015](annualreviews.org/content/journals/10.1146/annurev-earth-060313-054623), save the output CSVs to the 'data/' subdirectory of the local clone of this repo, then run `python phen/anal/div/compose_ITCZ_shapefile.py` to produce a Shapefile of those digitized lines.
 7. *On laptop*, run `bash phen/anal/div/make_EOF_and_RGB_map_figs.sh` to produce main figures showing the global EOF RGB map and the focal-region EOF RGB maps, and the supplemental figures showing the raw EOF maps and the unfolded EOF RGB maps (**1 task, <30m runtime**).
-8. *On laptop*, manually assemble the focal-region map figure .odg files in LibreOffice using the outputs of the previous step.
+8. *On laptop*, manually assemble each focal-region map figure's .odg file in LibreOffice Draw using the outputs of the previous step, then save a static image (by selecting all, clicking "File" > "Export...", checking the 'Selection' checkbox in the bottom left corner, selecting .png as the file type, clicking "Save", clicking the "Modify resolution" radio-button on the pop-up and setting the resolution to 500 pixels/inch, then clicking the "Modify dimensions" radio button, setting the width to 7 inches and letting the height auto-adjust, then clicking "OK").
 
 
 ### run NPN and SI-x evaluation:
@@ -138,7 +138,7 @@ Each step of the following workflow was executed in the environment indicated *i
 
 ### produce asynchrony supplemental figures:
 1. *On laptop*, run `python asynch/viz/make_conceptual_asynch_fig.py` to create the asynchrony-calculation conceptual figure (**1 task, <1m runtime**).
-2. *On laptop*, run `python asynch/viz/plot_all_asynch_maps.py` to create each LSP and climate variable's supplemental figure, displaying the asynchrony maps for all three neighborhood radii (50, 100, and 150 km) (**1 task, ~XXXXm runtime**).
+2. *On laptop*, run `python asynch/viz/plot_all_asynch_maps.py` to create each LSP and climate variable's supplemental figure, displaying the asynchrony maps for all three neighborhood radii (50, 100, and 150 km) (**1 task, <30m runtime**).
 
 
 ### collect all covariates for asynch drivers analysis:
@@ -154,20 +154,21 @@ Each step of the following workflow was executed in the environment indicated *i
 3. *On Savio*, run `sbatch asynch/anal/drivers/run_rf/ch3_rf_job.sh` to loop over vars (NIRv, SIF) and neighborhood radii, each time prepping data layers, running the random forest analysis, and generating identical results (**1 task, ~18h runtime**).
 4. *On Savio*, run `sbatch asynch/anal/drivers/summ_results/ch3_rasterize_SHAP_job.sh` to convert output CSVs of global SHAP values to GeoTIFFs (**1 task, ~7.5h runtime**).
 5. *On Savio*, run `sbatch asynch/anal/drivers/summ_results/ch3_rasterize_err_job.sh` to convert output CSVs of global RF prediction errors to GeoTIFFs (**1 task, ~1h runtime**).
-6. *On Savio*, run `bash asynch/anal/drivers/summ_results/ul_asynch_drivers_results_to_bdrive.sh` to upload all drivers-modeling results to Google Drive (**1 task, ~1 h runtime**).
-7. *On laptop*, run `bash asynch/anal/drivers/summ_results/dl_asynch_drivers_results_from_bdrive.sh` to download all drivers-modeling results into the appropriate directory on the external hard drive (**1 task, ~1h runtime**).
+6. *On Savio*, run `bash asynch/anal/drivers/summ_results/ul_asynch_drivers_results_to_bdrive.sh` to upload all drivers-modeling results to Google Drive (**1 task, <1 h runtime**).
+7. *On laptop*, run `bash asynch/anal/drivers/summ_results/dl_asynch_drivers_results_from_bdrive.sh` to download all drivers-modeling results into the appropriate directory on the external hard drive (**1 task, <1h runtime**).
 8. *On laptop*, run `python asynch/anal/drivers/summ_results/tabulate_model_summaries.py` to combine all permuation-based and SHAP-based importance values and model $R^2$s and MSEs into a single output table, for supplmental materials (**1 task, <1m runtime**).
-9. *On laptop*, run `bash asynch/anal/drivers/make_figs/make_all_asynch_analysis_figs.sh` to produce the main asynch figure (global map, as well as map summarizing the predominance of the two top-importance covariates), as well as the supplemental figures showing the random forest error map and the map of SHAP-value predominance across all random forest covariates.
+9. *On laptop*, manually copy the contents of each of the three sheets in both of the .xlsx files created by the last step into their corresponding sections in `asynch/anal/drivers/summ_results/model_summary_table_full.xlsx` using LibreOffice Calc, save the file, then save a static image of the table (by manually selecting the entire gray boxed area, clicking "File" > "Export...", checking the 'Selection' checkbox in the bottom left corner, selecting .png as the file type, clicking "Save", clicking the "Modify resolution" radio-button on the pop-up and setting the resolution to 500 pixels/inch, then clicking the "Modify dimensions" radio button, setting the width to 10 inches and letting the height auto-adjust, then clicking "OK").
+10. *On laptop*, run `bash asynch/anal/drivers/make_figs/make_all_asynch_analysis_figs.sh` to produce the main asynch figure (global map, as well as map summarizing the predominance of the two top-importance covariates), as well as the supplemental figures showing the random forest error map and the map of SHAP-value predominance across all random forest covariates (**1 task, <10m runtime**).
 
 
-### run analysis of climate-dependence of phenological asynchrony:
-1. Run `python asynch/anal/clim_dep/compare_phen_clim_geog_dist.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce the analysis summary figure (NOTE: Results file is resaved after each loop through the hyperparameters, so if anything happens and the script breaks before finishing then just call it again to pick up where it left off.) (**1 task, ~XXXh runtime**).
+### run analysis of the climate-dependence of phenological asynchrony:
+1. Run `python asynch/anal/clim_dep/compare_phen_clim_geog_dist.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce the analysis summary figure (NOTE: analysis saves results for each paramater-combination as it runs, so can be stopped and restarted if necessary and will pick up where it left off.) (**1 task, ~26h runtime**).
 
 
 ### run iNaturalist flowering-phenology analysis:
 1. Run `python asynch/anal/phen/get_all_inat_plant_phen_taxa.py` to save a table of the counts of all phenology-annotated and valid (i.e., native, non-captive, research-grade, with positional accuracy ≤ 1000 m) observations for all iNaturalist taxa with at least one observation. (**~5 min runtime; last run 2024-06-05T11:24:00UTC**)
-2. Run `python asynch/anal/phen/get_all_inat_phen_obs_and_fit_npeaks.py` to download phenology observation histograms and raw observations for all iNat taxa with at least 50 phenology-annotated and otherwise valid observations, fit alpha hulls to the first ≤ 5000 observations (α = 0.75, the mid-value from the climate-dependence analysis above), and estimate the number of peaks (0, 1, or 2) in their flowering-week histograms (using a KDE with bandwidth = 5, a peak detection algorithm detecting all peaks ≥ 60% of the max histogram height, and significance of the number of peaks being estimated using a 100-permutation test). (**~4 day runtime; last run started about 2024-06-05T23:00:00UTC and ran until about 2024-06-09T00:00:00UTC, with a couple overnight stops to avoid excessive obstacles because of API rate-limiting; script has try/except blocks that seem to handle API rate limiting in an unsophisticated but technically passable way, but it still works best if it is stopped for some hours when 429 errors become too common, which is fine becuase it stashes results along the way and picks up wherever it left off**)
-3. Run `python asynch/anal/phen/analyze_inat_flow_phen_results.py` to run an MMRR, predicting flowering observation-time distance as a function of geographic and LSP distances, for all iNat taxa with non-unimodal flowering week histograms (i.e., 0 or 2 peaks).
+2. Run `python asynch/anal/phen/get_all_inat_phen_obs_and_fit_npeaks.py` to download phenology observation histograms and raw observations for all iNat taxa with at least 50 phenology-annotated and otherwise valid observations, fit alpha hulls to the first ≤ 5000 observations (α = 0.75, the mid-value from the climate-dependence analysis above), and estimate the number of peaks (0, 1, or 2) in their flowering-week histograms (using a KDE with bandwidth = 5, a peak detection algorithm detecting all peaks ≥ 60% of the max histogram height, and significance of the number of peaks being estimated using a 100-permutation test). (**~4 day runtime; run started about 2024-06-05T23:00:00UTC and ran until about 2024-06-09T00:00:00UTC, with a couple overnight stops to avoid excessive obstacles because of API rate-limiting; script has try/except blocks that seem to handle API rate limiting in an unsophisticated but technically passable way, but it still works best if it is stopped for some hours when 429 errors become too common, which is fine becuase it stashes results along the way and picks up wherever it left off**)
+3. Run `python asynch/anal/phen/analyze_inat_flow_phen_results.py` to run an MMRR, predicting flowering observation-time distance as a function of geographic and LSP distances, for all iNat taxa with non-unimodal flowering-week histograms (i.e., 0 or 2 peaks) (**1 task, ~XXXh runtime**).
 
 ### run genetic analyses:
 1. Download the [supplemental data in Dryad](http://datadryad.org/stash/dataset/doi:10.5061/dryad.pc866t1p4) from [Thomé et al. 2021](http://www.nature.com/articles/s41437-021-00460-7), the only genomic test of the asynchrony of seasons hypothesis (ASH) of which we are aware.
@@ -230,6 +231,7 @@ Each step of the following workflow was executed in the environment indicated *i
     - poppr 2.9.5
     - ape 5.6.2
   - MAFFT 7.520
+  - LibreOffice 7.3.7.2 30(Build:2)
 - **UC Berkeley Savio Cluster**:
   - Scientific Linux 7.9
   - Bash 4.2.26

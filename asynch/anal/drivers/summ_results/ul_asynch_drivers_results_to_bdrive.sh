@@ -6,6 +6,7 @@ rclone copy --include rf_SHAP_importance_* /global/scratch/users/drewhart/season
 rclone copy --include rf_permut_importance* /global/scratch/users/drewhart/seasonality/rf_data/ bdrive:LSP_asynch_drivers_rf_results
 rclone copy --include SHAP_map_yCOORDS_*NIRv_100km.tif /global/scratch/users/drewhart/seasonality/rf_data/ bdrive:LSP_asynch_drivers_rf_results
 rclone copy /global/scratch/users/drewhart/seasonality/rf_data/err_map_yCOORDS_NIRv_100km.tif bdrive:LSP_asynch_drivers_rf_results
+rclone copy --include ch3_rf_*Rout /global/scratch/users/drewhart/seasonality/rf_data/ bdrive:LSP_asynch_drivers_rf_results
 
 # OPTIONAL: copy other stuff (SHAP and error maps from all models, tuning results, summary plots, intermediate datasets, and slurm *.out files)
 #rclone copy --include SHAP_map_* /global/scratch/users/drewhart/seasonality/rf_data/ bdrive:LSP_asynch_drivers_rf_results
@@ -16,7 +17,6 @@ rclone copy /global/scratch/users/drewhart/seasonality/rf_data/err_map_yCOORDS_N
 #rclone copy --include rf_SHAP_vals_* /global/scratch/users/drewhart/seasonality/rf_data/ bdrive:LSP_asynch_drivers_rf_results
 #rclone copy --include rf_full_preds_* /global/scratch/users/drewhart/seasonality/rf_data/ bdrive:LSP_asynch_drivers_rf_results
 #rclone copy --include tuning_results_* /global/scratch/users/drewhart/seasonality/rf_data/ bdrive:LSP_asynch_drivers_rf_results
-#rclone copy --include ch3_rf_*Rout /global/scratch/users/drewhart/seasonality/rf_data/ bdrive:LSP_asynch_drivers_rf_results
 #rclone copy --include slurm*out /global/scratch/users/drewhart/seasonality/rf_data/ bdrive:LSP_asynch_drivers_rf_results
 
 #rclone copy /global/scratch/users/drewhart/seasonality/rf_data/boruta_boxplot_NIRv_100km.jpg bdrive:LSP_asynch_drivers_rf_results

@@ -1,2 +1,4 @@
-inat_flower_phen_results.json
 __pycache__
+*.json
+*.csv
+*log.txt

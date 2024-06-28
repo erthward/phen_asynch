@@ -101,5 +101,6 @@ fig.subplots_adjust(top=0.95,
                     hspace=0.2,
                     wspace=0.2,
                    )
-fig.savefig('FIG_SUPP_scaled_NIRv_asynch_vs_scaled_SIF_asynch.png', dpi=500)
+fig.savefig(os.path.join(phf.FIGS_DIR,
+                         'FIG_SUPP_scaled_NIRv_asynch_vs_scaled_SIF_asynch.png'), dpi=500)
 

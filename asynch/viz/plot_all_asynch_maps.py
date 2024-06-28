@@ -57,19 +57,19 @@ cbar_axlab_dict = {'NIRv main': 'LSP asynchrony',
                   }
 
 
-def plot_juris_bounds(ax, black_zorder=0, subnat_zorder=1, nat_zorder=2,
+def plot_juris_bounds(ax, bg_zorder=0, subnat_zorder=1, nat_zorder=2,
                       polys_color='#060606',
                      ):
     """
     plot national and subnational jurisdictional bounds
     """
-    if black_zorder is not None:
+    if bg_zorder is not None:
         phf.plot_juris_bounds(ax,
                               lev1=False,
                               lev0_color=polys_color,
                               lev0_linewidth=0,
                               lev0_alpha=0.2,
-                              lev0_zorder=black_zorder,
+                              lev0_zorder=bg_zorder,
                               crs=plot_crs,
                               strip_axes=False,
                              )
@@ -112,22 +112,13 @@ def map_asynch(fig, cbar_axlab,
         # get the neighborhood radius
         neigh_rad = int(re.search('(?<=asynch_)\d{2,3}(?=km\.tif)',
                                   file).group())
-        # either grab the upper half of the main fig
-        if main_fig:
-            ax = fig.add_subplot(gs[:130, :])
-        # or grab the next row of the supp fig
-        else:
-            ax = fig.add_subplot(3,1,ax_ct+1)
+        # grab the next row of the supp fig
+        ax = fig.add_subplot(3,1,ax_ct+1)
         # partition off a separate axis for the colormap
         divider = make_axes_locatable(ax)
-        if main_fig:
-            where = 'bottom'
-            orientation = 'horizontal'
-            size = '7%'
-        else:
-            where = 'right'
-            orientation = 'vertical'
-            size = '4%'
+        where = 'right'
+        orientation = 'vertical'
+        size = '4%'
         cax = divider.append_axes(where, size=size, pad=0.2)
         plot_juris_bounds(ax, 0, 2, 3)
         # read in the raster data and prepare it
@@ -151,11 +142,8 @@ def map_asynch(fig, cbar_axlab,
                          zorder=1,
                         )
         cax.tick_params(labelsize=cbar_ticklab_fontsize)
-        if main_fig:
-            cax.set_xlabel(cbar_axlab, fontdict={'fontsize': cbar_axlab_fontsize})
-        else:
-            cax.set_ylabel(cbar_axlab, fontdict={'fontsize': cbar_axlab_fontsize})
-                # format axes
+        cax.set_ylabel(cbar_axlab, fontdict={'fontsize': cbar_axlab_fontsize})
+        # format axes
         ax.set_xlim(rast.rio.bounds()[0::2])
         ax.set_ylim(rast.rio.bounds()[1::2])
         phf.strip_axes_labels_and_ticks(ax)
@@ -170,10 +158,11 @@ for n, var in enumerate(vars):
     print('\n\nNOW PRODUCING SUPPLEMENTAL FIG FOR %s..\n\n' % var)
     fig_supp = plt.figure(figsize=(9,12))
     map_asynch(fig_supp, cbar_axlab_dict[var],
-               gs=None, main_fig=False, var=var,
+               gs=None, var=var,
                cbar_axlab_fontsize=13, cbar_ticklab_fontsize=10)
     fig_supp.subplots_adjust(bottom=0.02, top=0.95, left=0.02, right=0.88)
-    fig_supp.savefig('FIG_SUPP_%s_asynch_maps.png' % (var), dpi=600)
+    fig_supp.savefig(os.path.join(phf.FIGS_DIR, 'FIG_SUPP_%s_asynch_maps.png' %
+                                  (var)), dpi=600)
     del fig_supp
 
 

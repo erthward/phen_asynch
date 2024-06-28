@@ -67,9 +67,16 @@ var addHarmonics = function(freqs, sinNames, cosNames) {
 // with the name 'fitted' and a band of original dependent-variable values with
 // the name being whatever value the argument `dependent` holds)
 var calcR2 = function(imgColl, dependent){
-  return imgColl.select('fitted').reduce(ee.Reducer.variance())
-          .divide(imgColl.select(dependent).reduce(ee.Reducer.variance()))
-          .rename('R2');
+  return imgColl
+    // mask out fitted values on dates with missing input values
+    // (so that R2 values should not exceed 1)
+    .map(function(img){return img.updateMask(img.select(dependent).mask())})
+    .select('fitted')
+    .reduce(ee.Reducer.variance())
+    .divide(imgColl
+      .select(dependent)
+      .reduce(ee.Reducer.variance()))
+    .rename('R2');
 };
 
 
@@ -167,7 +174,6 @@ exports.calcHarmonicRegression = function(imgColl, dependent, harmonics, bandsFo
          .reduce('sum')
          .rename('fitted'));
   });
-  //print('fittedHarmonic', fittedHarmonic);
   
   // Fix the time (in radians) of the maximum fitted value
   var tmax = fittedHarmonic.select(['fitted', 't'])
@@ -178,7 +184,6 @@ exports.calcHarmonicRegression = function(imgColl, dependent, harmonics, bandsFo
     
   // Calculate the R2s
   var R2 = calcR2(fittedHarmonic, dependent);
-  //print('R2', R2);
   
   // compose final output ImageCollection for the model
   var summary = seasonality.addBands(phase)
@@ -195,8 +200,6 @@ exports.calcHarmonicRegression = function(imgColl, dependent, harmonics, bandsFo
   
   // merge the summary image and the rest of the ImageCollection
   var harmonicReg = ee.ImageCollection(summary)
-    .merge(fittedHarmonic)
-    // reproject to the input dataset's CRS
-    //.map(function(img){return img.reproject(imgColl.first().projection())});
+    .merge(fittedHarmonic);
   return harmonicReg;
 };

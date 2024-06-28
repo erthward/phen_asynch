@@ -4,10 +4,15 @@ import xarray as xr
 import rioxarray as rxr
 from affine import Affine
 from collections import Counter as C
-import os, re
+import os, re, sys
+
+# local imports
+sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+                    'seasonal_asynchrony/etc/'))
+import phen_helper_fns as phf
 
 # set working directory
-data_dir = '/media/deth/SLAB/diss/3-phn/final_maps_and_results/rf/'
+data_dir = phf.EXTERNAL_RF_DATA_DIR
 
 for coords_as_covars in ['y', 'n']:
     out_dfs = {}
@@ -90,4 +95,5 @@ for coords_as_covars in ['y', 'n']:
                                           'max_color': '#f77307',
                                          })
         out_model_df.to_excel(w, sheet_name='model_summary')
+
 

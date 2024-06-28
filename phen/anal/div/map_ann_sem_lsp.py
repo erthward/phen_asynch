@@ -139,4 +139,4 @@ phf.plot_juris_bounds(lev0_linewidth=0.2,
                       strip_axes=True,
                       crs=8857,
                      )
-fig.savefig('NIRv_LSP_ann_sem_seasonality.png', dpi=600)
+fig.savefig(os.path.join(phf.FIGS_DIR, 'NIRv_LSP_ann_sem_seasonality.png'), dpi=600)

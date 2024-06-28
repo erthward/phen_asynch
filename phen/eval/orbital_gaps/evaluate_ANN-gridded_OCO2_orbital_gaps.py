@@ -4,6 +4,7 @@
 
 import os
 import re
+import sys
 import datetime
 import numpy as np
 from netCDF4 import Dataset
@@ -16,6 +17,10 @@ from matplotlib.colors import LinearSegmentedColormap
 from mpl_toolkits.basemap import Basemap
 from shapely.geometry import Polygon, MultiPolygon, Point
 import statsmodels.api as sm
+
+sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+                    'seasonal_asynchrony/etc/'))
+import phen_helper_fns as phf
 
 
 ######
@@ -526,7 +531,8 @@ def make_scatter_and_tsgrid():
                  color='black', fontdict={'fontsize':20})
     scat_ax.tick_params(labelsize=15)
     fig_scat.subplots_adjust(left=0.07, right=0.98, bottom=0.1, top=0.97)
-    fig_scat.savefig('FIG_SUPP_orbital_gap_validation_scatter.png', dpi=500)
+    fig_scat.savefig(os.path.join(phf.FIGS_DIR,
+                                  'FIG_SUPP_orbital_gap_validation_scatter.png'), dpi=500)
     fig_scat.show()
     fig_tsgrid.show()
 
@@ -548,7 +554,8 @@ def make_sample_point_map():
     map_ax.set_yticks([])
     fig_map.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98)
     fig_map.show()
-    fig_map.savefig('FIG_SUPP_orbital_gap_validation_map.png', dpi=500)
+    fig_map.savefig(os.path.join(phf.FIGS_DIR,
+                                 'FIG_SUPP_orbital_gap_validation_map.png'), dpi=500)
 
 
 #call that function

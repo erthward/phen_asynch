@@ -28,24 +28,15 @@ var reformatTimeStart = function(img){
 // mask water
 //-----------
 
-// NOTE: could be worth assessing for sensitivity to max occurrence of water
-exports.maskWaterMODIS = function(imgColl, minWaterOccurr){
-  // grab the JRC global surface water dataset; covers inland surface and coastal waters
-  var waterMask1 = ee.Image("JRC/GSW1_0/GlobalSurfaceWater")
-    .select('occurrence')
-    .gt(ee.Image(minWaterOccurr))
-    .unmask(0)
-    .not();
+exports.maskWaterMODIS = function(imgColl){
   // grab a second MODIS water mask, which will cover more of the offshore waters
-  var waterMask2 = ee.ImageCollection("MODIS/006/MOD44W")
+  var waterMask = ee.ImageCollection("MODIS/006/MOD44W")
   .select('water_mask')
   .reduce(ee.Reducer.sum())
   .gt(0)
   .not();
-  // combine the two water masks
-  var waterMask = waterMask1.and(waterMask2);
   // mask out water in all images in the collection
-  var masked = imgColl.map(function(img){return img.updateMask(waterMask)});
+  var masked = ee.ImageCollection(imgColl).map(function(img){return img.updateMask(waterMask)});
   return masked;
 };
 
@@ -58,53 +49,123 @@ exports.maskWaterMODIS = function(imgColl, minWaterOccurr){
 // NIRv data
 //----------
 
-exports.getNIRvData = function(minWaterOccur, nYears){
-  // Load MODIS reflectance (Band 2 should contain NIR, 841-876 nm)
-  // NOTE: USING THESE DATES WILL ALWAYS END ON 12/31/18, THE LAST DATE OF THE SIF
-  //       DATASET, BUT WILL EXTEND nYears BEFORE THAT
-  var end_yr = ee.Number(2019);
+exports.getNIRvData = function(maskLowBRDFAlbQual,
+                               maxBRDFAlbQualVal,
+                               maskWater,
+                               nYears,
+                               endYear,
+                               dayStep,
+                               clampToMinPos,
+                               unmaskToMinPos,
+                               maskLteZero
+                              ){
+  // get target projection CRS from SIF dataset
+  var SIF = ee.ImageCollection('users/drewhart/seasonality_data/OCO2_SIF_ANN').first();
+  var SIF_proj = SIF.projection();
+  var SIF_scale = SIF_proj.nominalScale();
+  // set dates for temporal filtering
+  var end_yr = ee.Number(endYear);
   var start_yr = end_yr.subtract(nYears);
   var date_ending = ee.String('-01-01T00:00');
-  var start_datestr = ee.String(start_yr).cat(date_ending);
   var end_datestr = ee.String(end_yr).cat(date_ending);
-  var MODISReflectance = ee.ImageCollection("MODIS/006/MCD43A4")
-    // first filter for a shorter date range, to hopefully help get around memory-usage issues
-    // NOTE: for now taking a 10-year time slice to see how that does...
-    .filterDate(start_datestr, end_datestr)
-    // then reproject to the SIF resolution, using the mean reducer to aggregate,
-    // to try to get around memory issues
-    .map(function(img){return img.reduceResolution(ee.Reducer.mean(),false, 250)
-    .reproject(ee.ImageCollection('users/drewhart/seasonality_data/OCO2_SIF_ANN')
-                    .first().projection())});
-  // And add NDVI and NIRv to it
-  var NIRv = MODISReflectance.map(function(img){
-     var bands = ['Nadir_Reflectance_Band1', 'Nadir_Reflectance_Band2',
-                   'nd', 'nd_1'];
-      var new_bands = ['R', 'IR', 'NDVI', 'NIRv'];
-      // add NDVI band to each image
-      // NOTE: subtract 0.08 from NDVI, to attempt to partially account for NDVI of bare soil
-      // (per Badgley et al. 2017)
-      var NDVIAdded =  img
-        .addBands(img.normalizedDifference(
-        ['Nadir_Reflectance_Band2', 'Nadir_Reflectance_Band1']).subtract(0.08));
-      // calculate NIRv (and mask out all values <=0, per Badgley et al. 2017
-      var NIRvUnmasked = NDVIAdded.select('nd')
-        .multiply(NDVIAdded.select('Nadir_Reflectance_Band2'));
-      var ltezeroMask = NIRvUnmasked.gt(0);
-      var NIRvAdded = NDVIAdded.addBands(NIRvUnmasked.mask(ltezeroMask));
-      // select and rename the desired bands
-      var NIRvImg = NIRvAdded
-        .select(bands)
-        .rename(new_bands);
+  var start_datestr = ee.String(start_yr).cat(date_ending);
+  var end_date = ee.Date(end_datestr);
+  var start_date = ee.Date(start_datestr);
+  // create list of target date strings, for slice-filtering by dayStep
+  var total_day_span = end_date.difference(start_date,'day').round();
+  var target_dates = ee.List.sequence(0, total_day_span, dayStep);
+  var makeTargDateList = function(n) {
+    // NOTE: format to match string format of system:index property
+    return start_date.advance(n,'day').format('yyyy_MM_dd');
+  };
+  var targDateList = target_dates.map(makeTargDateList);
+  // load full-quality-info product and devise QA mask
+  if (maskLowBRDFAlbQual){
+    var QABands = ['BRDF_Albedo_Band_Quality_Band2', 'BRDF_Albedo_Band_Quality_Band1'];
+    var nBands = QABands.length;
+    var MCD43A2 = ee.ImageCollection("MODIS/061/MCD43A2")
+      // get the bands needed for the QA mask
+      .select(QABands)
+      // immediately filter to only every dayStep-th image
+      .filter(ee.Filter.inList('system:index', targDateList));
+    // flag low quality pixels
+    var QAMask = MCD43A2
+      .map(function(img){return img.lte(maxBRDFAlbQualVal)
+                                   .reduce(ee.Reducer.sum())
+                                   .eq(nBands)});
+  }
+  // Load MODIS reflectance
+  // NOTE: Band 2 contains NIR, 841-876 nm
+  // NOTE: updated to MODIS v. 6.1, a la Reviewer 1's suggestion
+  var NBARBands = ['Nadir_Reflectance_Band1', 'Nadir_Reflectance_Band2'];
+  var MODISNBAR = ee.ImageCollection("MODIS/061/MCD43A4")
+    // pull bands to be used for calculating NIRv
+    .select(NBARBands)
+    // immediately filter to only every dayStep-th image
+    .filter(ee.Filter.inList('system:index', targDateList));
+  if (maskLowBRDFAlbQual){
+    var MODISNBARMasked = MODISNBAR
+      // and mask with corresponding date from the QAMask ImageCollection
+      // NOTE: the QAMask band is called 'sum' because of the output of the sum method
+      .map(function(img){return img
+        .updateMask(QAMask.filter(ee.Filter.eq('system:index', img.get('system:index'))).first().select('sum'))
+      // and reproject to our target resolution
+        .reduceResolution({reducer: ee.Reducer.mean(),
+                           bestEffort: false,
+                           maxPixels: 250})
+        .reproject({crs: SIF_proj, scale: SIF_scale});
+      });
+  } else {
+    var MODISNBARMasked = MODISNBAR
+      .map(function(img){return img
+        // and reproject to our target resolution
+        .reduceResolution({reducer: ee.Reducer.mean(),
+                           bestEffort: false,
+                           maxPixels: 250})
+        .reproject({crs: SIF_proj, scale: SIF_scale});
+      });
+  }
+  // add NDVI and NIRv to that ImageCollection
+  var NIRv = MODISNBARMasked.map(function(img){
+      // calculate NDVI for each image
+      // (NOTE: subtract 0.08 from NDVI, to attempt to
+      // partially account for NDVI of bare soil per Badgley et al. 2017)
+      // then calculate NIRv
+      var NIRvImg = img.normalizedDifference(
+        ['Nadir_Reflectance_Band2', 'Nadir_Reflectance_Band1'])
+        .subtract(0.08)
+        .multiply(img.select('Nadir_Reflectance_Band2'))
+        .rename('NIRv')
+        .copyProperties(img, ee.List(['system:time_start']));
       return NIRvImg;
     })
-    // and reformat the start times
+    // and reformat the start times by dividing by 10^5 and turning into a simpler 't' property
     .map(reformatTimeStart);
-  // mask out pixels with water on greater than minWaterOccur pct of the time
-  // in JRC surface-water dataset
-  var NIRvmasked = exports.maskWaterMODIS(NIRv, minWaterOccur);
- 
-  return NIRvmasked;
+  // clamp zeros and negative values to their min observed NIRv values, if requested.
+  // occurs predominantly over snowy regions and open water and barren areas;
+  // snow, mostly in boreal winter, leads to pixel dropout when it persists long enough,
+  // so this provides a reasonable backfill value that can retain those pixels and fit good LSP curves;
+  // barren and open water get dropped during LC masking, so not a concern
+  if (clampToMinPos | unmaskToMinPos){
+    var minPosNIRv = ee.Image('users/drewhart/NIRv_min_pos');
+  }
+  if (clampToMinPos){
+    var NIRv = NIRv.map(function(img){return img.where(img.lte(0), minPosNIRv)});
+  } else if (maskLteZero) {
+  // otherwise just drop all values <= 0
+  // (unless maskLteZero if false, which is only the case for calculating monthly data-availability masks)
+    var NIRv = NIRv.map(function(img){return img.updateMask(img.gt(0))});
+  }
+  // unmask all missing values to the min observed positive NIRv value, if requested
+  // (just for exploring regression-fitting artefacts in places with long gaps)
+  if (unmaskToMinPos){
+    var NIRv = NIRv.unmask(minPosNIRv);
+  }
+  if (maskWater){
+    // mask out water, if requested
+    var NIRv = exports.maskWaterMODIS(NIRv);
+  }
+  return NIRv;
 };
 
 
@@ -113,13 +174,30 @@ exports.getNIRvData = function(minWaterOccur, nYears){
 //---------
 
 // read in SIF data and reformat its time data
-exports.getSIFData = function(minWaterOccur){
+exports.getSIFData = function(maskWater, clampToMinPos, unmaskToMinPos){
   var SIF = ee.ImageCollection('users/drewhart/seasonality_data/OCO2_SIF_ANN')
     .map(reformatTimeStart);
-  // mask out pixels with water on greater than minWaterOccur pct of the time
-  // in JRC surface-water dataset
-  var SIFmasked = exports.maskWaterMODIS(SIF, minWaterOccur);
-  return SIFmasked;
+  // clamp zeros and negative values to their min observed SIF values, if requested,
+  // to match procedure applied to NIRv data (for straightforward comparison/assessment downstream)
+  if (clampToMinPos | unmaskToMinPos){
+    var minPosSIF = SIF.map(function(img){return img.updateMask(img.gt(0))}).reduce(ee.Reducer.min());
+  }
+  if (clampToMinPos){
+    var SIF = SIF.map(function(img){return img.where(img.lte(0), minPosSIF)});
+  }
+  // otherwise don't worry about dropping all values <= 0, 
+  // since we're not using SIF data except as a comparison to/assessment of NIRv results anyhow
+  
+  // unmask all missing values to the min observed positive SIF value, if requested,
+  // to match procedure applied to NIRv data
+  if (unmaskToMinPos){
+    var SIF = SIF.unmask(minPosSIF);
+  }
+  // mask out water, if requested
+  if (maskWater){
+    var SIF = exports.maskWaterMODIS(SIF);
+  }
+  return SIF;
 };
 
 
@@ -130,19 +208,19 @@ exports.getSIFData = function(minWaterOccur){
 
 // load TerraClimate dataset (has multiple monthly climatological vars)
 // and reformat its time data
-exports.getTerraClimateData = function(minWaterOccur){
+exports.getTerraClimateData = function(maskWater){
   
   // change "system:time_start" to the mean data for the monthly image
   // NOTE: NOT GREAT TO CREATE MIS-NAMED VARIABLE, BUT EASY WAY TO RECYCLE FUNCTION
   //       ABOVE AND QUICKLY PRODUCE A PROPERLY-NAMED VARIABLE
-  var change_timestart_to_timemean = function(terraclim_img){
-    var start = ee.Date(terraclim_img.get('system:time_start'));
-    var end = ee.Date(terraclim_img.get('system:time_end'));
-    var mean = ee.Date(terraclim_img.get('system:time_start'))
+  var change_timestart_to_timemean = function(TerraClim_img){
+    var start = ee.Date(TerraClim_img.get('system:time_start'));
+    var end = ee.Date(TerraClim_img.get('system:time_end'));
+    var mean = ee.Date(TerraClim_img.get('system:time_start'))
       .advance(end.difference(start, 'second').divide(2), 'second')
       // NOTE: convert back from Date to number, because 'system:time_start' must be a number
       .millis();
-    return terraclim_img.set({'system:time_start': mean});
+    return TerraClim_img.set({'system:time_start': mean});
   };
   
   // load TerraClimate dataset (has multiple monthly climatological vars)
@@ -150,7 +228,7 @@ exports.getTerraClimateData = function(minWaterOccur){
   var SIF = ee.ImageCollection('users/drewhart/seasonality_data/OCO2_SIF_ANN').first();
   var SIF_proj = SIF.projection();
   var SIF_scale = SIF_proj.nominalScale();      
-  var terraclim = ee.ImageCollection("IDAHO_EPSCOR/TERRACLIMATE")
+  var TerraClim = ee.ImageCollection("IDAHO_EPSCOR/TERRACLIMATE")
     .map(function(img){return img.reduceResolution({reducer: ee.Reducer.mean(),
                            bestEffort: false,
                            maxPixels: 250})
@@ -158,16 +236,17 @@ exports.getTerraClimateData = function(minWaterOccur){
     .map(change_timestart_to_timemean)
     .map(reformatTimeStart)
     // and calculate tmmean as mean(tmmn, tmmx)
-    .map(function(terraclim_img){return terraclim_img
-      .addBands(terraclim_img.select('tmmx')
-                  .add(terraclim_img.select('tmmn').rename('tmmx'))
+    .map(function(TerraClim_img){return TerraClim_img
+      .addBands(TerraClim_img.select('tmmx')
+                  .add(TerraClim_img.select('tmmn').rename('tmmx'))
                   .divide(2).rename('tmmean'), 
                 ['tmmean']);
     });
-  // mask out pixels with water on greater than minWaterOccur pct of the time
-  // in JRC surface-water dataset
-  var terraclim_masked = exports.maskWaterMODIS(terraclim, minWaterOccur);
-  return terraclim_masked;
+  // mask out water, if requested
+  if (maskWater){
+    var TerraClim = exports.maskWaterMODIS(TerraClim);
+  }
+  return TerraClim;
 };
     
  
@@ -178,7 +257,7 @@ exports.getTerraClimateData = function(minWaterOccur){
 
 // load MODIS cloud data,
 // and reformat its time data
-exports.getMODISCloudData = function(minWaterOccur){
+exports.getMODISCloudData = function(){
      
   // get start and end dates
   var start_date = ee.Date('2010-01-01');
@@ -231,11 +310,11 @@ exports.getMODISCloudData = function(minWaterOccur){
       return modis_cloud;
   };
   // load terra and aqua data
-  var terra = load_modis_cloud("MODIS/006/MOD09GA");
-  var terra = terra
+  var terra_imc = load_modis_cloud("MODIS/061/MOD09GA");
+  var terra = terra_imc
     .map(function(img){return reformatTimeFromSystemIndex(img)});
-  var aqua = load_modis_cloud("MODIS/006/MYD09GA");
-  var aqua = aqua
+  var aqua_imc = load_modis_cloud("MODIS/061/MYD09GA");
+  var aqua = aqua_imc
     .map(function(img){return reformatTimeFromSystemIndex(img)});
   var filter = ee.Filter.equals({
   leftField: 't',

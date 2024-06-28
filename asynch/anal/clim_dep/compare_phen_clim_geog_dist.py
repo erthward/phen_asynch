@@ -53,6 +53,9 @@ save_all_results = True
 # print everything?
 verbose = True
 
+# percentile above which to keep asynchrony pixels for clustering
+top_asynch_pctile = 95
+
 # CLUSTER PARAMS:
 # dbscan params
 dbscan_eps_vals = [2, 3.5, 5]
@@ -148,13 +151,15 @@ else:
     remaining_n_loop_vals = len([*deepcopy(loop_vals)])
     # start a new file to track all alpha-param adjustments for alpha hulls
     # that fail to form at the default alpha value tried
-    with open('alpha_vals_adjusted.csv', 'w') as f:
-        f.write('eps,minsamp,alpha,clust_i,clust_mean_x,clust_mean_y,alpha_adustment')
+    # NOTE: this appears to happen when the dbscan algo throws the following
+    # error: "WARNING:root:Singular matrix. Likely caused by all points lying
+    # in an N-1 space."
+    with open('clim_dep_alpha_adjust_log.csv', 'w') as f:
+        f.write('loop_num,eps,minsamp,alpha,clust_i,clust_mean_x,clust_mean_y,alpha_adustment')
     print('\n\nNO EXISTING RESULTS DETECTED\n\n')
 
 # create data strucutres to save all results for final analysis
 all_loop_coords = {}
-all_loop_labels = {}
 all_loop_polys = {}
 all_loop_rand_pts = {}
 all_loop_MMRR_res = {}
@@ -169,29 +174,33 @@ if partial_results is not None:
     #       RESULTS, SINCE THE LOOP NUM IS NOT REALLY USEFUL POST HOC ANYHOW
     all_loop_MMRR_res[-1] = partial_results
 else:
-    prev_param_combos = 0
+    n_prev_param_combos = 0
+
+# mask everything below Nth percentile
+pctile = np.nanpercentile(asynch, top_asynch_pctile)
+maxes = asynch.where(asynch>=pctile, np.nan).clip(min=1, max=1)
+# extract as points
+X, Y = np.meshgrid(maxes.x.values, maxes.y.values)
+coords = np.array([*zip(X.ravel(), Y.ravel())])
+coords = coords[np.where(pd.notnull(maxes.values.ravel()))[0]]
 
 # loop analysis over param vals
 loop_ct = 0
 if remaining_n_loop_vals > 0:
     for (dbscan_eps, dbscan_minsamp, alpha) in loop_vals:
-        print(('#'*80+'\n')*4)
+        start_time = time.time()
+        n_polys_dropped = 0
+        n_polys_alpha_adjusted = 0
+        print((('#'*80+'\n')*4).rstrip())
         pct_done = 100 * (loop_ct+n_prev_param_combos+1)/(len(dbscan_eps_vals) *
                                                         len(dbscan_minsamp_vals) *
                                                         len(alpha_vals))
-        print((f'\n\nLOOP {loop_ct} '
-               f'({np.round(pct_done, 1)}%):\n\n'))
+        print((f'LOOP {loop_ct} '
+               f'({np.round(pct_done, 1)}%):'))
+        print('#'*16 + '\n\n')
         print('\tdbscan_eps: %0.3f\n\n' % dbscan_eps)
         print('\tdbscan_minsamp: %0.3f\n\n' % dbscan_minsamp)
         print('\talpha: %0.3f\n\n' % alpha)
-
-        # mask everything below Nth percentile
-        pctile = np.nanpercentile(asynch, 95)
-        maxes = asynch.where(asynch>=pctile, np.nan).clip(min=1, max=1)
-        # extract as points
-        X, Y = np.meshgrid(maxes.x.values, maxes.y.values)
-        coords = np.array([*zip(X.ravel(), Y.ravel())])
-        coords = coords[np.where(pd.notnull(maxes.values.ravel()))[0]]
 
         print(f"\n\nCLUSTERING HIGH-ASYNCHRONY REGIONS...\n\n")
         # run clustering algo
@@ -234,9 +243,10 @@ if remaining_n_loop_vals > 0:
                                                        alpha=alpha+(0.05*ct))
                     ct+=1
                 if ct > 1:
+                    n_polys_alpha_adjusted += 1
                     print('\n\n\tNOTE: ADDED 0.05 * %i TO ALPHA!\n\n' % (ct-1))
-                    with open('alpha_vals_adjusted.csv', 'a') as f:
-                        f.write((f"\n{dbscan_eps},{dbscan_minsamp},{alpha},{clust_i},"
+                    with open('clim_dep_alpha_adjust_log.csv', 'a') as f:
+                        f.write((f"\n{loop_ct},{dbscan_eps},{dbscan_minsamp},{alpha},{clust_i},"
                                  f"{np.mean(clust_coords[:,0])},{np.mean(clust_coords[:,1])},"
                                  f"{(ct-1)*0.05}")
                                )
@@ -252,6 +262,25 @@ if remaining_n_loop_vals > 0:
         polys = [poly if isinstance(poly,
                     MultiPolygon) else MultiPolygon([poly]) for poly in polys]
 
+        # drop all sliver polygons
+        # (i.e., polygons with projected areas < equivalent of ~5x5 pixels in
+        # our raster, or < (5500m *5)**2 m^2 area),
+        # as these are the ones that cause the draw_random_points fn's
+        # while loop to run forever, since points never fall inside,
+        # and because they'd also be meaningless to analyze anyhow
+        len_b4 = len(polys)
+        min_area = (5500*5)**2
+        areas = gpd.GeoDataFrame(pd.DataFrame({'a':[*range(len(polys))],
+                                               'polys': polys}),
+                                 geometry='polys',
+                                 crs=4326,
+                                ).to_crs(8857).area
+        polys = [p for p, a in zip(polys, areas) if a >= min_area]
+        len_af = len(polys)
+        n_polys_dropped += len_b4-len_af
+        if verbose and len_af != len_b4:
+            print((f"\n\tNOTE: dropped {n_polys_dropped} tiny polygon"
+                   f"{'s' * ((len_b4-len_af)>1)} from analysis\n"))
 
 
 ####################################
@@ -264,7 +293,7 @@ if remaining_n_loop_vals > 0:
         #       so that we get closer to the target
         #       even after attrition because of masked LSP pixels
         polys_pts = [phf.draw_random_points_within_polygon(
-                                                3*n_pts, poly) for poly in polys]
+                            3*n_pts, poly, verbose) for poly in polys]
 
         # list of region names
         reg_names = [str(i+1) for i in range(len(polys))]
@@ -392,6 +421,13 @@ if remaining_n_loop_vals > 0:
         # add the polygons as a column
         MMRR_res_df['geometry'] = polys
 
+        # add some performance metrics
+        MMRR_res_df['n_polys_dropped'] = n_polys_dropped
+        MMRR_res_df['n_polys_alpha_adjusted'] = n_polys_alpha_adjusted
+        end_time = time.time()
+        runtime = end_time-start_time
+        MMRR_res_df['runtime'] = runtime
+
         # convert to a GeoDataFrame
         MMRR_res_gdf = gpd.GeoDataFrame(MMRR_res_df, geometry='geometry', crs=4326)
 
@@ -402,7 +438,6 @@ if remaining_n_loop_vals > 0:
 
         # store all other results for this loop
         all_loop_coords[loop_ct] = coords
-        all_loop_labels[loop_ct] = db.labels_
         all_loop_polys[loop_ct] = polys
         all_loop_rand_pts[loop_ct] = polys_pts
         all_loop_MMRR_res[loop_ct] = MMRR_res_gdf
@@ -485,13 +520,12 @@ ax.tick_params(labelsize=ticklabel_size)
 #        color='red',
 #        size=16,
 #       )
-ax.text(0.55*ax.get_xlim()[1],
+ax.text(0.35*ax.get_xlim()[1],
         0.75*ax.get_ylim()[1],
-        f'$p \ll {np.round(emp_pval, 3)}$',
+        '$P_{permut} \ll %s' % f'{np.round(emp_pval, 3)}$',
         color='black',
         size=16,
        )
-
 
 # add label for part C
 ax.text(ax.get_xlim()[0] - (0.2*(ax.get_xlim()[1]-ax.get_xlim()[0])),
@@ -538,11 +572,10 @@ ax.text(-1.5,
        )
 ax.text(-1.5,
         0.78*ax.get_ylim()[1],
-        'p \ll %0.3f' % pval,
+        f'$P \ll {np.round(pval, 3)}$',
         color='black',
         size=16,
        )
-
 
 
 
@@ -566,7 +599,7 @@ h3_df = pd.DataFrame([], columns=['row_id', 'h3_id',
 for i, row in all_loop_MMRR_res_gdf.iterrows():
     p = row['geometry']
     if isinstance(p, MultiPolygon):
-        ps = list(p)
+        ps = [*p.geoms]
     else:
         ps = [p]
     for poly in ps:
@@ -593,9 +626,11 @@ mean_clim_dist_vals = []
 region_counts = []
 for i, row in h3_gdf.iterrows():
     mean_clim_dist_val = float(all_loop_MMRR_res_gdf[
-        all_loop_MMRR_res_gdf.intersects(row['geometry'])].mean()['clim_dist'])
+        all_loop_MMRR_res_gdf.intersects(row['geometry'])].loc[:,
+                                                               'clim_dist'].mean())
     region_count = float(all_loop_MMRR_res_gdf[
-        all_loop_MMRR_res_gdf.intersects(row['geometry'])].count()['clim_dist'])
+        all_loop_MMRR_res_gdf.intersects(row['geometry'])].loc[:,
+                                                               'clim_dist'].count())
     mean_clim_dist_vals.append(mean_clim_dist_val)
     region_counts.append(region_count)
 assert len(mean_clim_dist_vals) == len(h3_gdf)
@@ -603,15 +638,6 @@ h3_gdf['clim_dist_mean'] = mean_clim_dist_vals
 h3_gdf['scaled_counts'] = np.array(region_counts)/np.max(region_counts)
 
 # transform to equal-area projection and plot
-phf.plot_juris_bounds(ax,
-                      lev1_alpha=0.6,
-                      lev1_zorder=0,
-                      lev1_linewidth=0.05,
-                      lev0_alpha=1,
-                      lev0_zorder=1,
-                      lev0_linewidth=0.1,
-                      strip_axes=True,
-                     )
 hex_subplot = h3_gdf.to_crs(8857).plot('clim_dist_mean',
                                        cmap='magma',
                                        alpha=0.8,
@@ -620,12 +646,15 @@ hex_subplot = h3_gdf.to_crs(8857).plot('clim_dist_mean',
                                        edgecolor='white',
                                        linewidth=0.2,
                                       )
-
-# clip off longitudinally and latitudinally
-ax.set_xlim(0.85 * ax.get_xlim()[0], 0.87*ax.get_xlim()[1])
-
-ax.set_ylim(1.11*np.min(h3_gdf.to_crs(8857).geometry.centroid.y),
-            1.175*np.max(h3_gdf.to_crs(8857).geometry.centroid.y))
+phf.plot_juris_bounds(ax,
+                      lev1_alpha=0.7,
+                      lev1_zorder=3,
+                      lev1_linewidth=0.05,
+                      lev0_alpha=1,
+                      lev0_zorder=4,
+                      lev0_linewidth=0.15,
+                      strip_axes=True,
+                     )
 
 # add label for part A
 ax.text(1.1*ax.get_xlim()[0],
@@ -659,5 +688,5 @@ fig.subplots_adjust(top=0.92,
                     hspace=0.3,
                    )
 
-fig.savefig('FIG_seas_dist_vs_clim_dist.png', dpi=700)
+fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_seas_dist_vs_clim_dist.png'), dpi=700)
 

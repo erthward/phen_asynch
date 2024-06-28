@@ -125,5 +125,6 @@ fig.subplots_adjust(left=0.06,
                     top=0.96,
                     wspace=0.25,
                    )
-fig.savefig('FIG_SUPP_NIRv_NPN_SI-x_SOS_comparison.png', dpi=600)
+fig.savefig(os.path.join(phf.FIGS_DIR,
+                         'FIG_SUPP_NIRv_NPN_SI-x_SOS_comparison.png'), dpi=600)
 

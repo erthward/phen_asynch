@@ -210,7 +210,7 @@ if __name__ == '__main__':
                         hspace=0,
                         wspace=0,
                        )
-    fig.savefig('FIG_SUPP_mask_maps.png', dpi=500)
+    fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_SUPP_mask_maps.png'), dpi=500)
 
     # save the mask-fraction table
     frac_tab = pd.DataFrame.from_dict(fracs)

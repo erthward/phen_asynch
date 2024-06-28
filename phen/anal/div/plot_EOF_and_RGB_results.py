@@ -301,8 +301,8 @@ if what_to_plot == 'eof_summ_fig':
                             hspace=0.05)
     fig_eof.subplots_adjust(wspace=.3)
     if save_it:
-        fig_eof.savefig('FIG_SUPP_%s_EOF_maps%s.png' % (dataset,
-                    mask_filename_ext), dpi=600)
+        fig_eof.savefig(os.path.join(phf.FIGS_DIR, 'FIG_SUPP_%s_EOF_maps%s.png' % (dataset,
+                    mask_filename_ext)), dpi=600)
 
 
 
@@ -349,7 +349,8 @@ if what_to_plot == 'raw_rgb_maps':
     fig_untrans.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98,
                                 hspace=0.05)
     if save_it:
-        fig_untrans.savefig('FIG_SUPP_untransformed_EOF_maps.png', dpi=600)
+        fig_untrans.savefig(os.path.join(phf.FIGS_DIR,
+                                         'FIG_SUPP_untransformed_EOF_maps.png'), dpi=600)
 
     del eofs_for_map
 
@@ -391,7 +392,8 @@ if what_to_plot == 'main_rgb_map':
                           bottom=0.04,
                           top=0.98)
     if save_it:
-        fig_1.savefig('FIG_%s_RGB_EOF_map%s.png' % (dataset, mask_filename_ext),
+        fig_1.savefig(os.path.join(phf.FIGS_DIR, 'FIG_%s_RGB_EOF_map%s.png' %
+                                   (dataset, mask_filename_ext)),
                       dpi=700)
 
 
@@ -776,7 +778,7 @@ if what_to_plot == 'reg_figs':
                                  top=0.97)
 
         if save_it:
-            fig_reg.savefig('SUBFIG_REG_%s_%s_RGB_EOF_reg_map%s.png' % (reg, dataset,
-                                mask_filename_ext), dpi=700)
-            fig_lines.savefig('SUBFIG_REG_%s_LINES_%s_RGB_EOF_reg_map%s.png' % (reg, dataset,
-                                mask_filename_ext), dpi=700)
+            fig_reg.savefig(os.path.join(phf.FIGS_DIR, 'SUBFIG_REG_%s_%s_RGB_EOF_reg_map%s.png' % (reg, dataset,
+                                mask_filename_ext)), dpi=700)
+            fig_lines.savefig(os.path.join(phf.FIGS_DIR, 'SUBFIG_REG_%s_LINES_%s_RGB_EOF_reg_map%s.png' % (reg, dataset,
+                                mask_filename_ext)), dpi=700)

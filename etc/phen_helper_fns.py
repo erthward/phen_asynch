@@ -48,9 +48,12 @@ neigh_rads = [50, 100, 150]
 # get the variables' filepaths
 DATA_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
             'seasonal_asynchrony/data')
+FIGS_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+            'seasonal_asynchrony/figs')
 EXTERNAL_DATA_DIR = '/media/deth/SLAB/diss/3-phn/final_maps_and_results/'
 EXTERNAL_MASK_DATA_DIR = '/media/deth/SLAB/diss/3-phn/GEE_outputs/LSP_masks/'
 EXTERNAL_RF_DATA_DIR = '/media/deth/SLAB/diss/3-phn/final_maps_and_results/rf/'
+EXTERNAL_INAT_DATA_DIR = '/media/deth/SLAB/diss/3-phn/inat/'
 EXTERNAL_FLUX_DATA_DIR = '/media/deth/SLAB/diss/3-phn/flux/'
 COEFFS_FILE = os.path.join(EXTERNAL_DATA_DIR, 'NIRv_coeffs.tif')
 COEFFS_STRICT_FILE = os.path.join(EXTERNAL_DATA_DIR, 'NIRv_STRICT_coeffs.tif')
@@ -389,7 +392,7 @@ def get_cell_coords_for_pt(lon, lat, cell_max_lons, cell_max_lats):
     return i,j
 
 
-def draw_random_points_within_polygon(n, polygon):
+def draw_random_points_within_polygon(n, polygon, verbose=False):
     '''
     faster implementation of drawing random points within polygon,
     borrowed from https://www.matecdev.com/posts/random-points-in-polygon.html
@@ -397,6 +400,7 @@ def draw_random_points_within_polygon(n, polygon):
     minx, miny, maxx, maxy = polygon.bounds
     out_gdfs = []
     total_n_out = 0
+    i=0
     while total_n_out < n:
         x = np.random.uniform(minx, maxx, 2*n)
         y = np.random.uniform(miny, maxy, 2*n)
@@ -409,6 +413,9 @@ def draw_random_points_within_polygon(n, polygon):
         pts_in_poly = gdf_pts[sjoin.index_right=='target_poly']
         out_gdfs.append(pts_in_poly.iloc[:n, :])
         total_n_out += len(pts_in_poly.iloc[:n, :])
+        i += 1
+    if verbose:
+        print(f"\tdraw_random_points_within_polygon ran {i} iterations of the loop")
     out_pts = pd.concat(out_gdfs).iloc[:n, :]
     return out_pts
 

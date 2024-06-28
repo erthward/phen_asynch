@@ -42,42 +42,11 @@ else:
 # set data-directory path
 data_dir = phf.EXTERNAL_RF_DATA_DIR
 
-# general plotting params:
-title_fontsize = 12
-rowlab_fontsize = 18
-axislab_fontsize = 13
-ticklab_fontsize = 12
-cbarlab_fontsize = 12
+# some general plotting params:
 cbar_axlab_fontsize = 35
 cbar_ticklab_fontsize = 24
-annot_fontsize = 14
-scat_label_fontsize = 10
-scat_label_fontcolor = 'black'
-scat_label_linewidth = 3
-fig_width = 10.5
-fig_height = 12
-dpi = 400
-n_ticklabels = 5
-subplots_adj_left=0.06
-subplots_adj_bottom=0.05
-subplots_adj_right=0.96
-subplots_adj_top=0.95
-subplots_adj_wspace=0.14
-subplots_adj_hspace=0.30
-central_curve_color = '#220000'
-central_linewidth = 2
-central_alpha = 1
-neighbor_linewidth = 0.1
-neighbor_alpha = 0.5
-rad_linestyle = ':'
-rad_color = 'white'
-rad_linewidth = 2
-rad_alpha = 0.75
-rad_mask_alpha = 0.175
 supp_axlabel_fontdict = {'fontsize': 18}
-cbarlabel_fontdict = {'fontsize': 14}
 cbarticklabel_fontsize = 12
-partlabel_fontsize=40
 plot_crs = 8857
 
 
@@ -106,7 +75,6 @@ asynch_cmap = palettable.scientific.sequential.LaJolla_20_r.mpl_colormap
 
 # and predominance colormap
 if only_top_covars:
-    #predom_cmap = palettable.scientific.diverging.Lisbon_20.get_mpl_colormap()
     predom_cmap = palettable.scientific.diverging.Berlin_20.get_mpl_colormap()
 else:
     # NOTE: adapted from 'light' colormap at https://personal.sron.nl/~pault/#sec:qualitative
@@ -114,17 +82,52 @@ else:
               '#77AADD', # light blue -> ppt.asy
               '#FFAABB', # pink -> tmp.min.asy
               '#BBCC33', # pear -> veg.ent
-              '#EE8866', # orange -> tmp.max.asy
-              '#EEDD88', # light yellow -> cld.asy
-              '#99DDFF', # light cyan -> def.asy
               '#44BB99', # mint -> vrm.med
+              '#99DDFF', # light cyan -> cld.asy
+              '#EE8866', # orange -> tmp.max.asy
+              '#EEDD88', # light yellow -> def.asy
               #'#AAAA00', # olive
               #'#ADADAD', # light grey
              ]
     predom_cmap = ListedColormap(colors)
 
+# top covariates (in case only mapping those)
+top_covars = ['ppt.asy', 'tmp.min.asy']
 
-# set up SHAP data:
+# NOTE: THIS DICT AND THE FOLLOWING ONE ARE ORDERED ACCORDING TO DECREASING
+#       SHAP-BASED COVAR IMPORTANCE IN OUR MAIN RF MODEL
+covar_cbar_labels = {
+    'ppt.asy': '$\Delta dist_{seas_{P}}/\Delta  dist_{geo}$',
+    'tmp.min.asy': '$\Delta dist_{seas_{T_{min}}}/\Delta  dist_{geo}$',
+    'veg.ent': '$entropy$',
+    'vrm.med': '$med_{VRM}$',
+    'cld.asy': '$\Delta dist_{seas_{cld}}/\Delta  dist_{geo}$',
+    'tmp.max.asy': '$\Delta dist_{seas_{T_{max}}}/\Delta  dist_{geo}$',
+    'def.asy': '$\Delta dist_{seas_{def}}/\Delta  dist_{geo}$',
+}
+
+covar_longnames = {
+    'ppt.asy': 'precipitation\nasynchrony',
+    'tmp.min.asy': 'min. temperature\nasynchrony',
+    'veg.ent': 'vegetation\nentropy',
+    'vrm.med': 'median vector\nruggedness metric',
+    'cld.asy': 'cloud\nasynchrony',
+    'tmp.max.asy': 'max. temperature\nasynchrony',
+    'def.asy': 'CWD\nasynchrony',
+    'codom':   'codominance',
+}
+
+cbar_axlab_dict = {'NIRv main': 'LSP asynchrony',
+                   'NIRv': '$NIR_{V}\ asynch\ (\Delta NIR_{V}/\Delta m)$',
+                   'SIF': '$SIF\  asynch\ (\Delta (mW m^{-2} sr^{-1} nm^{-1})/\Delta m)$',
+                   'tmmn': '$tmp_{min}\ asynch\ (\Delta ^{\circ} C/\Delta m)$',
+                   'tmmx': '$tmp_{max}\ asynch\ (\Delta ^{\circ} C/\Delta m)$',
+                   'pr': '$ppt\ asynch\ (\Delta mm/\Delta m)$',
+                   'def': '$cwd\ asynch\ (\Delta mm/\Delta m)$',
+                   'cloud': '$cloud\ asynch\ (\Delta \%\ cover/\Delta m)$',
+                  }
+
+
 def minmax_scale(vals, bot_pctile, top_pctile):
     """
     min-max scaler
@@ -137,56 +140,19 @@ def minmax_scale(vals, bot_pctile, top_pctile):
     return scaled
 
 
-# top covariates (in case only mapping those)
-top_covars = ['ppt.asy', 'tmp.min.asy']
-
-# NOTE: THIS DICT AND THE FOLLOWING ARE ORDERED ACCORDING TO DECREASING
-#       SHAP-BASED COVAR IMPORTANCE IN OUR MAIN RF MODEL
-covar_cbar_labels = {
-    'ppt.asy': '$\Delta dist_{seas_{P}}/\Delta  dist_{geo}$',
-    'tmp.min.asy': '$\Delta dist_{seas_{T_{min}}}/\Delta  dist_{geo}$',
-    'veg.ent': '$entropy$',
-    'tmp.max.asy': '$\Delta dist_{seas_{T_{max}}}/\Delta  dist_{geo}$',
-    'cld.asy': '$\Delta dist_{seas_{cld}}/\Delta  dist_{geo}$',
-    'def.asy': '$\Delta dist_{seas_{def}}/\Delta  dist_{geo}$',
-    'vrm.med': '$med_{VRM}$',
-}
-
-covar_longnames = {
-    'ppt.asy': 'precipitation\nasynchrony',
-    'tmp.min.asy': 'min. temperature\nasynchrony',
-    'veg.ent': 'vegetation\nentropy',
-    'tmp.max.asy': 'max. temperature\nasynchrony',
-    'cld.asy': 'cloud\nasynchrony',
-    'def.asy': 'CWD\nasynchrony',
-    'vrm.med': 'median vector\nruggedness metric',
-    'codom':   'codominance',
-}
-
-cbar_axlab_dict = {'NIRv main': 'LSP asynchrony',
-                   'NIRv': '$NIR_{V}\ asynch\ (\Delta NIR_{V}/\Delta m)$',
-                   'SIF': '$SIF\  asynch\ (\Delta (mW m^{-2} sr^{-1} nm^{-1})/\Delta m)$',
-                   'tmmn': '$tmp_{min}\ asynch\ (\Delta ^{\circ} C/\Delta m)$',
-                   'tmmx': '$tmp_{max}\ asynch\ (\Delta ^{\circ} C/\Delta m)$',
-                   'pr': '$ppt\ asynch\ (\Delta mm/\Delta m)$',
-                   'def': '$cwd\ asynch\ (\Delta mm/\Delta m)$',
-                   'cloud': '$cloud\ asynch\ (\Delta \%\ cover/\Delta m)$',
-
-                  }
-
-def plot_juris_bounds(ax, black_zorder=0, subnat_zorder=1, nat_zorder=2,
+def plot_juris_bounds(ax, bg_zorder=0, subnat_zorder=1, nat_zorder=2,
                       polys_color='#060606',
                      ):
     """
     plot national and subnational jurisdictional bounds
     """
-    if black_zorder is not None:
+    if bg_zorder is not None:
         phf.plot_juris_bounds(ax,
                               lev1=False,
                               lev0_color=polys_color,
                               lev0_linewidth=0,
                               lev0_alpha=0.2,
-                              lev0_zorder=black_zorder,
+                              lev0_zorder=bg_zorder,
                               crs=plot_crs,
                               strip_axes=False,
                              )
@@ -205,7 +171,7 @@ def plot_juris_bounds(ax, black_zorder=0, subnat_zorder=1, nat_zorder=2,
 
 
 def map_asynch(fig, cbar_axlab,
-               gs=None, main_fig=True, var='NIRv',
+               gs=None, var='NIRv',
                cbar_axlab_fontsize=cbar_axlab_fontsize,
                cbar_ticklab_fontsize=cbar_ticklab_fontsize):
     """
@@ -219,82 +185,55 @@ def map_asynch(fig, cbar_axlab,
         files = [f for f in os.listdir(phf.EXTERNAL_DATA_DIR) if
                                         re.search('%s_asynch' % var, f)]
     # cut down to just one file, if this is for the main fig
-    if main_fig:
-        files = [f for f in files if re.search('asynch_100km', f)]
-    # otherwise arrange in top-down order of increasing neighborhood radius
-    else:
-        reordered_files = []
-        for neigh_rad in [50, 100, 150]:
-            neigh_rad_file = [f for f in files if re.search('asynch_%ikm' %
-                                                            neigh_rad, f)]
-            assert len(neigh_rad_file) == 1
-            reordered_files.append(neigh_rad_file[0])
-        files = reordered_files
-    for ax_ct, file in enumerate(files):
-        # get the neighborhood radius
-        neigh_rad = int(re.search('(?<=asynch_)\d{2,3}(?=km\.tif)',
-                                  file).group())
-        # either grab the upper half of the main fig
-        if main_fig:
-            ax = fig.add_subplot(gs[:130, :])
-        # or grab the next row of the supp fig
-        else:
-            ax = fig.add_subplot(3,1,ax_ct+1)
-        # partition off a separate axis for the colormap
-        divider = make_axes_locatable(ax)
-        if main_fig:
-            where = 'bottom'
-            orientation = 'horizontal'
-            size = '7%'
-        else:
-            where = 'right'
-            orientation = 'vertical'
-            size = '4%'
-        cax = divider.append_axes(where, size=size, pad=0.2)
-        plot_juris_bounds(ax, 0, 2, 3)
-        # read in the raster data and prepare it
-        rast = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
-                                              file), masked=True)[0]
-        rast_proj = rast.rio.write_crs(4326).rio.reproject(plot_crs)
-        # mask outside global Equal Earth bounds
-        rast_proj = phf.mask_xarr_to_other_xarr_bbox(rast_proj, rast)
-                # NOTE: annoying AttributeError is because da.attrs['long_name']
-        #       is retained as a tuple of names (rather than being subsetted
-        #       by indexing) when I index a single layer out of an
-        #       xarray.core.dataarray.DataArray;
-        #       for now, a hacky fix is just assigning a string to that attr
-        rast_proj.attrs['long_name'] = ''
-        rast_proj.plot.imshow(ax=ax,
-                         cmap=asynch_cmap,
-                         vmin=np.nanpercentile(rast_proj, 1),
-                         vmax=np.nanpercentile(rast_proj, 99),
-                         add_colorbar=True,
-                         cbar_ax=cax,
-                         cbar_kwargs = {'orientation': orientation},
-                         zorder=1,
-                        )
-        cax.tick_params(labelsize=cbar_ticklab_fontsize)
-        if main_fig:
-            cax.set_xlabel(cbar_axlab, fontdict={'fontsize': cbar_axlab_fontsize})
-        else:
-            cax.set_ylabel(cbar_axlab, fontdict={'fontsize': cbar_axlab_fontsize})
-                # format axes
-        ax.set_xlim(rast_proj.rio.bounds()[0::2])
-        ax.set_ylim(rast_proj.rio.bounds()[1::2])
-        # NOTE: chopping off western edge because the equal earth projection
-        #       makes NZ appear twice
-        ax.set_xlim(0.95 * ax.get_xlim()[0], ax.get_xlim()[1])
-        ax.set_xlabel('')
-        ax.set_ylabel('')
-        ax.set_xticks(())
-        ax.set_yticks(())
-        # add axis title, if not main figure
-        if main_fig:
-            ax.set_title('')
-        else:
-            ax.set_title('%i km neighborhood' % neigh_rad,
-                         fontdict={'fontsize': 21})
-        del rast_proj, rast
+    files = [f for f in files if re.search('asynch_100km', f)]
+    assert len(files) == 1
+    file = files[0]
+    # get the neighborhood radius
+    neigh_rad = int(re.search('(?<=asynch_)\d{2,3}(?=km\.tif)',
+                              file).group())
+    ax = fig.add_subplot(gs[:130, :])
+    # partition off a separate axis for the colormap
+    divider = make_axes_locatable(ax)
+    where = 'bottom'
+    orientation = 'horizontal'
+    size = '7%'
+    cax = divider.append_axes(where, size=size, pad=0.2)
+    plot_juris_bounds(ax, 0, 2, 3)
+    # read in the raster data and prepare it
+    rast = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
+                                          file), masked=True)[0]
+    rast_proj = rast.rio.write_crs(4326).rio.reproject(plot_crs)
+    # mask outside global Equal Earth bounds
+    rast_proj = phf.mask_xarr_to_other_xarr_bbox(rast_proj, rast)
+            # NOTE: annoying AttributeError is because da.attrs['long_name']
+    #       is retained as a tuple of names (rather than being subsetted
+    #       by indexing) when I index a single layer out of an
+    #       xarray.core.dataarray.DataArray;
+    #       for now, a hacky fix is just assigning a string to that attr
+    rast_proj.attrs['long_name'] = ''
+    rast_proj.plot.imshow(ax=ax,
+                     cmap=asynch_cmap,
+                     vmin=np.nanpercentile(rast_proj, 1),
+                     vmax=np.nanpercentile(rast_proj, 99),
+                     add_colorbar=True,
+                     cbar_ax=cax,
+                     cbar_kwargs = {'orientation': orientation},
+                     zorder=1,
+                    )
+    cax.tick_params(labelsize=cbar_ticklab_fontsize)
+    cax.set_xlabel(cbar_axlab, fontdict={'fontsize': cbar_axlab_fontsize})
+    # format axes
+    ax.set_xlim(rast_proj.rio.bounds()[0::2])
+    ax.set_ylim(rast_proj.rio.bounds()[1::2])
+    # NOTE: chopping off western edge because the equal earth projection
+    #       makes NZ appear twice
+    ax.set_xlim(0.95 * ax.get_xlim()[0], ax.get_xlim()[1])
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.set_xticks(())
+    ax.set_yticks(())
+    ax.set_title('')
+    del rast_proj, rast
 
 
 def map_predom(ax, predom,
@@ -327,7 +266,7 @@ def map_predom(ax, predom,
                       )
     ax.set_xticks(())
     ax.set_yticks(())
-    plot_juris_bounds(ax, 0, 5, 6, polys_color=polys_color)
+    plot_juris_bounds(ax, 0, 2, 3, polys_color=polys_color)
     ax.set_title('')
     ax.set_xlabel('')
     ax.set_ylabel('')
@@ -384,10 +323,9 @@ if __name__ == '__main__':
     ###################
     # CREATE PREDOM FIG
     ###################
-
         # stack all covars' SHAP maps
-        files = [f for f in os.listdir(data_dir) if re.search(
-            f'SHAP_map_{include_coords}COORDS_[cdptv].*_{var}_{neigh_rad}km.tif', f)]
+        file_patt = f'SHAP_map_{include_coords}COORDS_[cdptv].*_{var}_{neigh_rad}km.tif'
+        files = [f for f in os.listdir(data_dir) if re.search(file_patt, f)]
         # reorder per decreasing SHAP covar importance in our main RF model
         # (i.e., the order of the covar_cbar_labels dict)
         reordered_files = []
@@ -451,6 +389,8 @@ if __name__ == '__main__':
                 # hue: predominant var
                 predom = deepcopy(shap_maps[0])
                 predom.values = np.argmax(np.abs(da), axis=0).compute()
+                # re-mask
+                predom = predom.where(pd.notnull(shap_maps[0]), np.nan)
                 file_suffix = 'all'
 
             # save to disk
@@ -458,33 +398,35 @@ if __name__ == '__main__':
                                               f'SHAP_predom_{file_suffix}.tif'))
 
 
+        if only_top_covars:
+            file_suffix = 'top'
         else:
-            if only_top_covars:
-                file_suffix = 'top'
-            else:
-                file_suffix = 'all'
-            predom = rxr.open_rasterio(os.path.join(data_dir,
-                            f'SHAP_predom_{file_suffix}.tif'), masked=True)[0]
+            file_suffix = 'all'
+        predom = rxr.open_rasterio(os.path.join(data_dir,
+                        f'SHAP_predom_{file_suffix}.tif'), masked=True)[0]
 
-            # reproject rasters
-            predom_proj = predom.rio.write_crs(4326).rio.reproject(plot_crs, nodata=np.nan)
-            predom = phf.mask_xarr_to_other_xarr_bbox(predom_proj, predom)
+        # reproject rasters
+        # NOTE: crop the raster 179 longitude for now because for some odd
+        #       reason I'm now getting the last couple columns hugging
+        #       -/+180 and causing crazy projection issues;
+        #       does nothing to influence the results, but I should debug
+        #       this and clean this up
+        predom_proj = predom.sel(x=slice(-180, 179)).rio.write_crs(
+                                4326).rio.reproject(plot_crs, nodata=np.nan)
+        predom = phf.mask_xarr_to_other_xarr_bbox(predom_proj,
+                                            predom.sel(x=slice(-180, 179)))
 
-            # asynchrony will be used to mask out lower-asynchrony pixels
-            asynch = minmax_scale(rxr.open_rasterio(os.path.join(data_dir,
-                    f'{var}_STRICT_asynch_{neigh_rad}km.tif'), masked=True)[0], 0, 99)
-            # mask out pixels less than the percentile threshold
-            asynch = asynch.where(asynch >= np.nanpercentile(asynch, asynch_thresh))
-            # reproject and rescale
-            asynch_reproj = asynch.rio.reproject_match(predom)
-            asynch = phf.mask_xarr_to_other_xarr_bbox(asynch_reproj, asynch)
-            asynch = minmax_scale(asynch, 1, 99)
-            assert np.nanmin(asynch) == 0 and np.nanmax(asynch) == 1
+        # asynchrony will be used to mask out lower-asynchrony pixels
+        asynch = minmax_scale(rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
+                f'{var}_STRICT_asynch_{neigh_rad}km.tif'), masked=True)[0], 0, 99)
+        # mask out pixels less than the percentile threshold
+        asynch = asynch.where(asynch >= np.nanpercentile(asynch,
+                                                    asynch_thresh), np.nan)
+        # reproject
+        asynch_reproj = asynch.rio.reproject_match(predom)
 
-            # mask other two layers to the thresholded asynch map
-            predom = predom.where(pd.notnull(asynch))
-
-
+        # mask other two layers to the thresholded asynch map
+        predom = predom.where(pd.notnull(asynch_reproj))
 
         if what_to_plot == 'main':
             # set up main figure
@@ -493,7 +435,7 @@ if __name__ == '__main__':
 
 
             # plot the main asynch map
-            map_asynch(fig_main, cbar_axlab_dict['NIRv main'], gs=gs, main_fig=True, var='NIRv')
+            map_asynch(fig_main, cbar_axlab_dict['NIRv main'], gs=gs, var='NIRv')
 
             # plot the RF summary map
             ax = fig_main.add_subplot(gs[140:,:])
@@ -523,7 +465,8 @@ if __name__ == '__main__':
                                       weight='bold',
                                      )
 
-            fig_main.savefig('FIG_asynch_and_rf_results.png', dpi=500)
+            fig_main.savefig(os.path.join(phf.FIGS_DIR,
+                                          'FIG_asynch_and_rf_results.png'), dpi=500)
 
             del fig_main
 
@@ -548,7 +491,8 @@ if __name__ == '__main__':
                                             hspace=0.8,
                                             wspace=0.0
                                            )
-            fig_predom_supp.savefig('FIG_SUPP_predom_all_covars.png', dpi=500)
+            fig_predom_supp.savefig(os.path.join(phf.FIGS_DIR,
+                                                 'FIG_SUPP_predom_all_covars.png'), dpi=500)
 
 
 
@@ -561,7 +505,7 @@ if __name__ == '__main__':
 
     if what_to_plot == 'error_supp':
         fig_err = plt.figure(figsize=(16,8))
-        err_filename = f'err_map_{include_coords}COORDS_[cdptv].*_{var}_{neigh_rad}km.tif', f)]
+        err_filename = f'OLD_REPLACE_ME_err_map_{include_coords}COORDS_{var}_{neigh_rad}km.tif'
         rast = rxr.open_rasterio(os.path.join(data_dir,
                                               err_filename), masked=True)[0]
         # NOTE: multiply raster by -1 because I accidentally subtracted real value from
@@ -618,5 +562,5 @@ if __name__ == '__main__':
                                 wspace=0,
                                 hspace=0,
                                )
-        fig_err.savefig(f'FIG_SUPP_rf_error.png', dpi=600)
+        fig_err.savefig(os.path.join(phf.FIGS_DIR, f'FIG_SUPP_rf_error.png'), dpi=600)
 

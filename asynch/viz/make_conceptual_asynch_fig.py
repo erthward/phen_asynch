@@ -20,6 +20,10 @@ import sys
 import re
 import os
 
+sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+                    'seasonal_asynchrony/etc/'))
+import phen_helper_fns as phf
+
 
 # plot params
 title_fontsize = 11
@@ -84,7 +88,6 @@ central_cell = [int((n-1)/2) for n in dims]
 seed = 7031287
 mpd_h = 1.4
 orientation='landscape'
-savefig=True
 
 
 # define functions
@@ -302,7 +305,9 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
                             f'\nasynchrony{" "*0*(asynch=="low")}'),
                            labelpad=70,
                            rotation=0,
-                           fontdict={'fontsize': rowlab_fontsize})
+                           fontdict={'fontsize': rowlab_fontsize,
+                                     'weight': 'bold'},
+                          )
 
             ax2.set_xticks(())
             ax2.set_xticklabels(())
@@ -375,5 +380,5 @@ if __name__ == '__main__':
 
     # adjust subplots and save
     fig.subplots_adjust(bottom=0.06, top=0.92, left=0.04, right=0.98)
-    fig.savefig('FIG_SUPP_asynch_concept.png', dpi=600)
+    fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_SUPP_asynch_concept.png'), dpi=600)
 

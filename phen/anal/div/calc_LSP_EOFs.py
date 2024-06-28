@@ -10,7 +10,6 @@ import xarray as xr
 import rioxarray as rxr
 import os
 import sys
-from sklearn.preprocessing import normalize
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from eofs.xarray import Eof
@@ -64,14 +63,19 @@ if set_seed:
     seed = 1
     np.random.seed(seed)
 
-# normalize each ts to itself?
+# standardize each ts to itself?
 # NOTE: it makes sense to do this, since I'm only interested in timing,
 #       and otherwise (especially based on Alex Turner's results in CA) I
 #       expect the first EOF will largely reflect global (i.e.,
 #       cross-study-area) variation in magnitude of fitted values;
 #       nonetheless, setting a flag for this so that I can check that
 #       expectation and check sensitivity to this decision
-normalize_ts = True
+standardize_ts = True
+
+# define the standardization function
+def standardize(arr):
+    return (arr-np.mean(arr))/np.std(arr)
+
 
 # latitude weights to use?
 #lat_weights = None
@@ -122,12 +126,12 @@ if not os.path.isfile(ts_arr_filepath):
         j = J[n]
         coeffs_vec = coeffs[:, i, j].values
         ts = np.sum(coeffs_vec * dm, axis=1)
-        # normalize time series [0,1], if desired
+        # standardize time series [0,1], if desired
         # NOTE: if not, pretty certain that first EOF will largely capture
         #       global (i.e., across full subsetted extent) variation
         #       in fitted magnitude
-        if normalize_ts and not np.any(np.isnan(ts)):
-            ts = normalize([ts]).flatten()
+        if standardize_ts and not np.any(np.isnan(ts)):
+            ts = standardize(ts).flatten()
         assert ts.shape == (365,)
         ts_arr[:, i, j] = ts
         if n%10000 == 0:
@@ -143,7 +147,7 @@ else:
     ts_arr = np.load(ts_arr_filepath)
     assert np.all(ts_arr.shape == (365, coeffs.shape[1], coeffs.shape[2]))
 
-    
+
 #########
 # RUN EOF
 #########
@@ -195,7 +199,7 @@ if save_res:
     tif_filename = '%s_%i_EOFs_%s%s%s.tif' % (dataset,
                                               neofs,
                                               lat_weights + 'wts',
-                                              '_normts' * normalize_ts,
+                                              '_standts' * standardize_ts,
                                               mask_filename_ext,
                                              )
     eof_res_for_file = eofs.to_dataset('mode')

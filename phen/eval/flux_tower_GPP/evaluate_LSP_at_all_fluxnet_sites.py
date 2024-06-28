@@ -434,7 +434,8 @@ def compare_rs_flux_predicted_vals(zip_filename, coeffs_rast, design_mat,
             ax.legend()
             fig.suptitle('%s: %s: DIST=%0.3f; $R^2$=%0.3f' % (id, name,
                                                               dist, r2))
-            fig.savefig('./plots/%s_%s.png' % (id, rs_var))
+            fig.savefig(os.path.join(phf.FIGS_DIR, './flux_plots/%s_%s.png' % (id,
+                                                                          rs_var)))
             plt.close('all')
 
 

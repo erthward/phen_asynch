@@ -155,7 +155,8 @@ ax.scatter(x=geo['lon'], y=geo['lat'], c=geo['missing_sea'], s=25, alpha=0.5)
 ax.set_title('red points missing seasonality data in our LSP dataset')
 ax.set_xlim(-57.5, -34)
 ax.set_ylim(-30, 0)
-fig.savefig('rhinella_granulosa_sites_missing_LSP_data.png', dpi=300)
+fig.savefig(os.path.join(phf.FIGS_DIR,
+                         'rhinella_granulosa_sites_missing_LSP_data.png'), dpi=300)
 
 gen_dist = gen_dist.values
 gen_dist = gen_dist[~missing_sea].T[~missing_sea]
@@ -345,5 +346,5 @@ fig.subplots_adjust(hspace=0.5,
                     bottom=0.1,
                     top=0.9,
                    )
-fig.savefig('rhinella_granulosa_results.png', dpi=600)
+fig.savefig(os.path.join(phf.FIGS_DIR, 'SUBFIG_rhinella_granulosa_results.png'), dpi=600)
 
