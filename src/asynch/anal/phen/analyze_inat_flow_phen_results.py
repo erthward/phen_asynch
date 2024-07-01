@@ -42,14 +42,14 @@ run_MMRRs = True
 # whether to interpolate missing LSP coefficients, 
 # and if so, how far away can rasterio look for neighbor to interpolate from?
 # coefficient raster?
-interp_sea_data = False
-neigh_dist_sea_fill_tol = 2
+interp_lsp_data = False
+neigh_dist_lsp_fill_tol = 2
 
 # how many MMRR permutations to use
 # NOTE: using this many permutations makes 0.001 the smallest possible
 #       P-value, which is smaller than 0.05/number of taxa after filtering out
 #       broadly distributed taxa, and thus allows for Bonferroni correction
-MMRR_nperm = 999
+MMRR_nperm = 14999
 
 # common equal-area projection to use
 crs = 8857
@@ -260,14 +260,6 @@ if make_peak_summary_maps:
 # regress flowering observation doy distance on NIRv LSP data
 #------------------------------------------------------------------------------
 if not os.path.isfile('inat_flow_obs_LSP_MMRR_res.csv'):
-    # analyze flow_dist ~ seas_dist for all taxa with non-unimodal flowering hists
-    # NOTE: flowering date observations are emphatically NOT flowering period
-    #       observations and are inherently noisy, especially for
-    #       opportunistically/perennially flowering taxa; if anything, this should
-    #       lead us to overlook taxa for which IBT could actually operating on the
-    #       ground, and thus should make our overall analysis quite conservative,
-    #       such that taxa with significant relationships would be especially good
-    #       candidates for potential IBT
 
     def calc_doy_diff(doy1, doy2):
         '''
@@ -279,6 +271,114 @@ if not os.path.isfile('inat_flow_obs_LSP_MMRR_res.csv'):
         dist = np.min((d[1]-d[0], d[0] + 365 - d[1]))
         return dist
 
+
+    def fit_LSP_MMRR(obs,
+                     strict_coeffs=strict_coeffs,
+                     bioclim_nodata_val=bioclim_nodata_val,
+                     standardize_lsp_ts=True,
+                     interp_lsp_data=interp_lsp_data,
+                     neigh_dist_lsp_fill_tol=neigh_dist_lsp_fill_tol,
+                     standardize_MMRR_data=True,
+                     fit_MMRR_intercept=True,
+                     MMRR_nperm=MMRR_nperm,
+                    ):
+        '''
+        fit an MMRR model of the form:
+            doy_flower ~ geo_dist + env_dist + LSP_dist
+        for the given observation DataFrame
+        '''
+        # get their LSP time series distances
+        print('\n\tcalculating LSP distances...')
+        pts = np.vstack([obs.geometry.x, obs.geometry.y]).T
+        assert pts.shape == (len(obs), 2)
+        if strict_coeffs:
+            coeffs_file = phf.COEFFS_STRICT_FILE
+        else:
+            coeffs_file = phf.COEFFS_FILE
+        lsp_dist = phf.get_raster_info_points(coeffs_file,
+                                              pts,
+                                              'ts_pdm',
+                                              standardize=standardize_lsp_ts,
+                                              fill_nans=interp_lsp_data,
+                                              fill_tol=neigh_dist_lsp_fill_tol,
+                                             )
+        pct_miss = np.mean(pd.isnull(lsp_dist))
+        pct_lsp_miss_msg = (f"{np.round(100*pct_miss, 2)} % "
+                            "of lsp_dist consists of missing values")
+        print(f"\n\t\t({pct_lsp_miss_msg})")
+        keep_idxs = np.where(np.sum(pd.notnull(lsp_dist), axis=1) > 1)[0]
+        assert np.all(keep_idxs ==
+                      np.where(np.sum(pd.notnull(lsp_dist), axis=0) > 1)[0])
+        lsp_dist = lsp_dist[keep_idxs, :][:, keep_idxs]
+        assert np.all(lsp_dist.shape == (np.ones(2)*keep_idxs.size))
+        assert np.all(lsp_dist == lsp_dist.T)
+        # calculate flowering-date distances
+        # (i.e., numbers of days between observed flowering dates)
+        print('\n\tcalculating flowering-date distances...')
+        flw_dist = np.ones(lsp_dist.shape)*np.nan
+        keep_obs = obs.iloc[keep_idxs, :]
+        for i in range(len(keep_obs)):
+            doy_i = keep_obs.iloc[i, :]['doy']
+            for j in range(len(keep_obs)):
+                if i==j:
+                    flw_dist[i, j] = 0
+                else:
+                    doy_j = keep_obs.iloc[j, :]['doy']
+                    dist = calc_doy_diff(doy_i, doy_j)
+                    flw_dist[i, j] = flw_dist[j, i] = dist
+        assert np.sum(pd.isnull(flw_dist)) == 0
+        assert np.all(flw_dist == flw_dist.T)
+        # calculate environmental distances
+        print('\n\tcalculating environmental distances...')
+        keep_pts = pts[keep_idxs, :]
+        env_dist = phf.calc_pw_clim_dist_mat(keep_pts,
+                                             nodata_val=bioclim_nodata_val,
+                                            )
+        assert np.sum(pd.isnull(env_dist)) == 0
+        assert np.all(env_dist == env_dist.T)
+        assert np.all(env_dist.shape == lsp_dist.shape), (('Environmental'
+                'distance matrix shape does not match LSP distance matrix'
+                                                           'shape!'))
+        # calculate geographic distances
+        geo_dist = np.ones(flw_dist.shape) * np.nan
+        print('\n\tcalculating geographic distances...')
+        g = pyproj.Geod(ellps='WGS84')
+        keep_pts = pts[keep_idxs, :]
+        for i in range(geo_dist.shape[0]):
+            lon_i, lat_i = keep_pts[i, :]
+            for j in range(geo_dist.shape[1]):
+                # calculate geographic distance
+                if i == j:
+                    dist_ij = 0
+                else:
+                    lon_j, lat_j = keep_pts[j, :]
+                    (az_ij, az_ji, dist_ij) = g.inv(lon_i, lat_i, lon_j, lat_j)
+                geo_dist[i, j] = geo_dist[j, i] = dist_ij
+        assert np.sum(pd.isnull(geo_dist)) == 0
+        assert np.all(geo_dist == geo_dist.T)
+        # run MMRR and store results
+        # run the MMRR model and print results
+        print('\n\trunning MMRR model...')
+        res = MMRR(Y=flw_dist,
+                   X=[geo_dist, env_dist, lsp_dist],
+                   Xnames=['geo_dist', 'env_dist', 'lsp_dist'],
+                   # NOTE: MMRR will standardize lower-triangular distance values, and thus
+                   #       returns coefficient values as beta-coefficients
+                   standardize=standardize_MMRR_data,
+                   intercept=fit_MMRR_intercept,
+                   nperm=MMRR_nperm,
+                  )
+        return res
+
+
+    # analyze flow_dist ~ seas_dist for all taxa with non-unimodal flowering hists
+    # NOTE: flowering date observations are emphatically NOT flowering period
+    #       observations and thus are inherently noisy, especially for
+    #       opportunistically/perennially flowering taxa; if anything, this should
+    #       lead us to overlook taxa for which IBT could actually operating on the
+    #       ground, and thus should make our overall analysis quite conservative,
+    #       such that taxa with significant relationships would be especially good
+    #       candidates for potential IBT
 
     # set the numpy.random seed
     np.random.seed(1)
@@ -335,92 +435,16 @@ if not os.path.isfile('inat_flow_obs_LSP_MMRR_res.csv'):
             # load observation points
             obs_fn = f"TID_{tid}_{name.replace(' ', '_')}.json"
             obs = gpd.read_file(os.path.join(obs_data_dir, obs_fn))
-
-            # get their LSP time series distances
-            print('\n\tcalculating LSP distances...')
-            pts = np.vstack([obs.geometry.x, obs.geometry.y]).T
-            assert pts.shape == (len(obs), 2)
-            if strict_coeffs:
-                coeffs_file = phf.COEFFS_STRICT_FILE
-            else:
-                coeffs_file = phf.COEFFS_FILE
-            lsp_dist = phf.get_raster_info_points(coeffs_file,
-                                                  pts,
-                                                  'ts_pdm',
-                                                  standardize=True,
-                                                  fill_nans=interp_sea_data,
-                                                  fill_tol=neigh_dist_sea_fill_tol,
-                                                 )
-            pct_miss = np.mean(pd.isnull(lsp_dist))
-            pct_lsp_miss_msg = (f"{np.round(100*pct_miss, 2)} % "
-                                "of lsp_dist consists of missing values")
-            print(f"\n\t\t({pct_lsp_miss_msg})")
-            keep_idxs = np.where(np.sum(pd.notnull(lsp_dist), axis=1) > 1)[0]
-            assert np.all(keep_idxs ==
-                          np.where(np.sum(pd.notnull(lsp_dist), axis=0) > 1)[0])
-            lsp_dist = lsp_dist[keep_idxs, :][:, keep_idxs]
-            assert np.all(lsp_dist.shape == (np.ones(2)*keep_idxs.size))
-            assert np.all(lsp_dist == lsp_dist.T)
-
-            # calculate flowering-date distances
-            # (i.e., numbers of days between observed flowering dates)
-            print('\n\tcalculating flowering-date distances...')
-            flw_dist = np.ones(lsp_dist.shape)*np.nan
-            keep_obs = obs.iloc[keep_idxs, :]
-            for i in range(len(keep_obs)):
-                doy_i = keep_obs.iloc[i, :]['doy']
-                for j in range(len(keep_obs)):
-                    if i==j:
-                        flw_dist[i, j] = 0
-                    else:
-                        doy_j = keep_obs.iloc[j, :]['doy']
-                        dist = calc_doy_diff(doy_i, doy_j)
-                        flw_dist[i, j] = flw_dist[j, i] = dist
-            assert np.sum(pd.isnull(flw_dist)) == 0
-            assert np.all(flw_dist == flw_dist.T)
-
-            # calculate environmental distances
-            print('\n\tcalculating environmental distances...')
-            keep_pts = pts[keep_idxs, :]
-            env_dist = phf.calc_pw_clim_dist_mat(keep_pts,
-                                                 nodata_val=bioclim_nodata_val,
-                                                )
-            assert np.sum(pd.isnull(env_dist)) == 0
-            assert np.all(env_dist == env_dist.T)
-            assert np.all(env_dist.shape == lsp_dist.shape), (('Environmental'
-                    'distance matrix shape does not match LSP distance matrix'
-                                                               'shape!'))
-
-            # calculate geographic distances
-            geo_dist = np.ones(flw_dist.shape) * np.nan
-            print('\n\tcalculating geographic distances...')
-            g = pyproj.Geod(ellps='WGS84')
-            keep_pts = pts[keep_idxs, :]
-            for i in range(geo_dist.shape[0]):
-                lon_i, lat_i = keep_pts[i, :]
-                for j in range(geo_dist.shape[1]):
-                    # calculate geographic distance
-                    if i == j:
-                        dist_ij = 0
-                    else:
-                        lon_j, lat_j = keep_pts[j, :]
-                        (az_ij, az_ji, dist_ij) = g.inv(lon_i, lat_i, lon_j, lat_j)
-                    geo_dist[i, j] = geo_dist[j, i] = dist_ij
-            assert np.sum(pd.isnull(geo_dist)) == 0
-            assert np.all(geo_dist == geo_dist.T)
-
-            # run MMRR and store results
-            # run the MMRR model and print results
-            print('\n\trunning MMRR model...')
-            res = MMRR(Y=flw_dist,
-                       X=[geo_dist, env_dist, lsp_dist],
-                       Xnames=['geo_dist', 'env_dist', 'lsp_dist'],
-                       # NOTE: MMRR will standardize lower-triangular distance values, and thus
-                       #       returns coefficient values as beta-coefficients
-                       standardize=True,
-                       intercept=True,
-                       nperm=MMRR_nperm,
-                      )
+            res = fit_LSP_MMRR(obs,
+                               strict_coeffs=strict_coeffs,
+                               bioclim_nodata_val=bioclim_nodata_val,
+                               standardize_lsp_ts=True,
+                               interp_lsp_data=interp_lsp_data,
+                               neigh_dist_lsp_fill_tol=neigh_dist_lsp_fill_tol,
+                               standardize_MMRR_data=True,
+                               fit_MMRR_intercept=True,
+                               MMRR_nperm=MMRR_nperm,
+                              )
             pprint.pprint(res)
             # log results
             with open('./inat_phen_MMRR_log.txt', 'a') as f:
@@ -501,8 +525,14 @@ mmrr_filt = mmrr_gdf[~mmrr_gdf['spread_across_eq']]
 mmrr_filt = mmrr_filt.sort_values(['lsp_p'], ascending=[True])
 
 # Bonferroni correction
-alpha = 0.05/(len(mmrr_filt))
-mmrr_filt.loc[:, 'lsp_p_sig_bonf_corr'] = mmrr_filt.loc[:, 'lsp_p']<=alpha
+p_bonf_corr = 0.05/(len(mmrr_filt))
+mmrr_filt.loc[:, 'lsp_p_sig_bonf_corr'] = mmrr_filt.loc[:, 'lsp_p']<=p_bonf_corr
+
+# save MMRR results to supplemental table
+mmrr_filt.to_csv(os.path.join(phf.TABS_DIR,
+                              'TAB_SUPP_iNat_MMRR_results.csv'),
+                 index=False,
+                )
 
 # print & log numbers & percentages of taxa passing filtering & analysis stages
 n_nonunimodal_taxa = np.sum(res_gdf['signif_npeaks']!=1)
@@ -645,6 +675,7 @@ fig.show()
 # plot demonstrative taxa
 #------------------------------------------------------------------------------
 
+
 # drop small sample sizes (i.e., where too many LSP pixels were masked out)
 mmrr_filt = mmrr_filt[mmrr_filt['n'] >=min_n_samps_for_demo_plots]
 
@@ -677,18 +708,6 @@ andes= countries[countries['adm0_a3'].isin(['COL',
 andes_taxa = andes.loc[:, ['geometry', 'adm0_a3']].sjoin(
                                                     mmrr_filt.to_crs(crs))
 
-# Eastern Brazil
-n_e_brz = subnational[subnational['NAME_1'].isin(['Bahia', 'Sergipe',
-                                                 'Alagoas', 'Pernambuco',
-                                                 'RioGrandedoNorte',
-                                                 'Paraíba'])].dissolve()
-s_e_brz = subnational[subnational['NAME_1'].isin(['EspíritoSanto',
-                                                 'RiodeJaneiro',
-                                                 'MinasGerais'])].dissolve()
-n_e_brz_taxa = n_e_brz.loc[:, ['geometry', 'COUNTRY']].sjoin(mmrr_filt.to_crs(crs))
-s_e_brz_taxa = s_e_brz.loc[:, ['geometry', 'COUNTRY']].sjoin(mmrr_filt.to_crs(crs))
-e_brz_taxa = n_e_brz_taxa[n_e_brz_taxa['tid'].isin(s_e_brz_taxa['tid'].values)]
-
 # South Africa
 zaf = countries[countries['adm0_a3'] == 'ZAF'].dissolve()
 zaf_taxa = zaf.loc[:, ['geometry', 'adm0_a3']].sjoin(
@@ -699,24 +718,40 @@ aus = countries[countries['adm0_a3'] == 'AUS'].dissolve()
 aus_taxa = aus.loc[:, ['geometry', 'adm0_a3']].sjoin(
                                                     mmrr_filt.to_crs(crs))
 
+# Eastern Brazil
+e_brz = subnational[subnational['NAME_1'].isin(['Maranhão',
+                                                'Piauí',
+                                                'Ceará',
+                                                'RioGrandedoNorte',
+                                                'Paraíba',
+                                                'Pernambuco',
+                                                'Alagoas',
+                                                'Sergipe',
+                                                'Tocantins',
+                                                'Bahia',
+                                                'Goiás',
+                                                'DistritoFederal',
+                                                'MinasGerais',
+                                                'EspíritoSanto',
+                                                'RiodeJaneiro',
+                                                'SãoPaulo',
+                                               ])].dissolve()
+e_brz_taxa = e_brz.loc[:, ['geometry', 'COUNTRY']].sjoin(mmrr_filt.to_crs(crs))
+
+e_brz = pd.concat((n_e_brz, s_e_brz)).dissolve()
+
 # re-sort main and focal dfs
 for df in [baja_taxa, tx_taxa, andes_taxa, e_brz_taxa, zaf_taxa, aus_taxa]:
     df.sort_values('lsp_p', ascending=True, inplace=True)
 
 
 # load the scaled, ITCZ-folded EOFs, for data viz of phen significant MMRR results
-dataset = 'NIRv'
-normts_file_substr = '_normts'
-mask_filename_ext = ''
-eofs = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
-            '%s_4_EOFs_sqrt_coswts%s_SCALED_FOLDED_EPSG-8857.tif') %(dataset,
-                                                      normts_file_substr))[:3]
+eofs = rxr.open_rasterio(phf.EOFS_PREPPED_FILE)[:3]
 if strict_coeffs:
     strict_coeffs_xarr = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
                                                      phf.COEFFS_STRICT_FILE),
                                         masked=True)[0].rio.reproject(crs)
     eofs = eofs.where(pd.notnull(strict_coeffs_xarr), np.nan)
-
 
 
 def plot_annual_flowering_clock(obs, eofs, ax):
@@ -785,6 +820,8 @@ def plot_signif_taxon(tid,
                       mmrr_res=None,
                       map=True,
                       savefig=False,
+                      doy_cmap=cmc.brocO_r,
+                      obs_clip_gdf=None,
                      ):
     if fill_nans:
         assert fill_tol is not None and isinstance(fill_tol, int)
@@ -797,6 +834,9 @@ def plot_signif_taxon(tid,
     pval = mmrr_df[mmrr_df['tid'] == tid]['lsp_p'].values[0]
     obs_fn = f"TID_{tid}_{name.replace(' ', '_')}.json"
     obs = gpd.read_file(os.path.join(obs_data_dir, obs_fn))
+    assert obs.crs.to_epsg() == 4326
+    if obs_clip_gdf is not None:
+        obs = gpd.sjoin(obs.to_crs(obs_clip_gdf.crs), obs_clip_gdf).to_crs(4326)
     pts = np.vstack([obs.geometry.x, obs.geometry.y]).T
     obs = obs.to_crs(crs)
     if strict_coeffs:
@@ -817,7 +857,7 @@ def plot_signif_taxon(tid,
     ax = fig.add_axes([0.04, 0.54, 0.9, 0.4])
     doy_scale = (obs['doy'].values - np.min(obs['doy']))/(np.max(obs['doy']) -
                                                           np.min(obs['doy']))
-    doy_colors = cmc.brocO_r(doy_scale)
+    doy_colors = doy_cmap(doy_scale)
     for i in range(len(obs)):
         if not missing[i]:
             color = doy_colors[i]
@@ -854,7 +894,7 @@ def plot_signif_taxon(tid,
     divider = make_axes_locatable(ax)
     cax = divider.append_axes('right', size='5%', pad=0.1)
     norm = Normalize(vmin=0, vmax=365)
-    cbar = ColorbarBase(cax, cmap=cmc.brocO_r, norm=norm, orientation='vertical')
+    cbar = ColorbarBase(cax, cmap=doy_cmap, norm=norm, orientation='vertical')
     cbar.set_label('flowering observation day of year', fontsize=12)
     ax = fig.add_axes([0.04, 0.04, 0.4, 0.4])
     ax.set_aspect('equal')
@@ -869,7 +909,7 @@ def plot_signif_taxon(tid,
                               strip_axes=True,
                              )
         obs.plot('doy',
-                 cmap=cmc.brocO_r,
+                 cmap=doy_cmap,
                  alpha=0.8,
                  zorder=3,
                  ax=ax,

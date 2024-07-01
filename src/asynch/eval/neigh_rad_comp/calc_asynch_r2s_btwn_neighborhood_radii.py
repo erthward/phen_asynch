@@ -45,5 +45,7 @@ df = pd.DataFrame({'var': var_col,
                    'neigh_comp': neigh_comp_col,
                    'r2': r2_col,
                   })
-df.to_csv('TAB_SUPP_asynch_neigh_rad_comp_r2s.csv', index=False)
+df.to_csv(os.path.join(phf.TABS_DIR, 'TAB_SUPP_asynch_neigh_rad_comp_r2s.csv'),
+          index=False,
+         )
 

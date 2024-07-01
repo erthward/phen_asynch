@@ -28,62 +28,12 @@ axlabel_fontdict={'fontsize': 14}
 ticklabel_fontsize=10
 
 # main behavioral params
-rescale=True
-delete_after_finished = True
-plot_time_series = True
-max_neigh_cell_dist = 2 # at our 0.05deg res, this is up to ~11km away...
 seed = 1
 np.random.seed(seed)
 
-# data directories
-rs_datadir = phf.EXTERNAL_DATA_DIR
-flux_datadir = phf.EXTERNAL_FLUX_DATA_DIR
-
-# load NIRv-SIF R2s map
-r2s = rxr.open_rasterio(os.path.join(rs_datadir, 'NIRv_SIF_phen_R2s.tif'),
-                        masked=True)[0]
-print(f'\n\nMEDIAN NIRV-SIF R2 VALUE: {np.nanmedian(r2s)}\n\n')
-
 # make fig
-fig = plt.figure(figsize=(12,12.5))
-gs = fig.add_gridspec(nrows=125,ncols=90)
-
-# map results
-ax_map = fig.add_subplot(gs[:42, :])
-divider = make_axes_locatable(ax_map)
-cax = divider.append_axes('bottom', size='8%', pad=0.5)
-r2s.plot.imshow(ax=ax_map,
-                vmin=0,
-                vmax=1,
-                cmap='gray',
-                zorder=2,
-                add_colorbar=True,
-                cbar_ax=cax,
-                cbar_kwargs={'orientation': 'horizontal'},
-               )
-phf.plot_juris_bounds(ax_map,
-                      lev0_color='#ede6d1', #'#9e8e67',
-                      lev0_alpha=0.8,
-                      lev0_zorder=0,
-                      lev1_linewidth=0.25,
-                      lev1_alpha=0.6,
-                      lev1_zorder=1,
-                      crs = r2s.rio.crs.to_epsg(),
-                      strip_axes=True,
-                     )
-ax_map.set_xlim(r2s.rio.bounds()[::2])
-ax_map.set_ylim(r2s.rio.bounds()[1::2])
-ax_map.text(1.12 * r2s.rio.bounds()[0],
-            0.96 * r2s.rio.bounds()[3],
-            'A.',
-            weight='bold',
-            size=24,
-           )
-cax.set_xlabel('')
-#cax.set_ylabel('$R^2$', fontdict={'fontsize': 16,
-#                                  'rotation': 90,})
-cax.text(0.49, 1.25, '$R^2$', size=16)
-
+fig = plt.figure(figsize=(13,9))
+gs = fig.add_gridspec(nrows=90,ncols=100)
 
 # load and plot flux-tower evaluation results
 for i, rs_var in enumerate(['NIRv', 'SIF']):
@@ -97,12 +47,10 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
         biome_end_col = 90
         scat_start_col = 58
         scat_end_col = 90
-    ax1 = fig.add_subplot(gs[50:85, biome_start_col:biome_end_col])
-    results_df = pd.read_csv(('./flux_tower_GPP/'
-                              'FLUXNET_evaluation_results_%s.csv' % rs_var))
+    ax1 = fig.add_subplot(gs[:40, biome_start_col:biome_end_col])
+    results_df = pd.read_csv('./FLUXNET_evaluation_results_%s.csv' % rs_var)
 
-    whittaker = pd.read_csv(('./flux_tower_GPP/'
-                             'whittaker_biomes.csv'), sep=';')
+    whittaker = pd.read_csv('./whittaker_biomes.csv', sep=';')
     whittaker['temp_c'] = whittaker['temp_c'].apply(lambda x:
                                                 float(x.replace(',', '.')))
     whittaker['precp_mm'] = whittaker['precp_cm'].apply(lambda x:
@@ -166,25 +114,20 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
     if False:
         divider = make_axes_locatable(ax1)
         cax = divider.append_axes('right', size='5%', pad=0.1)
-    p = PatchCollection(patches, alpha=1, color='white')#, edgecolor='k')#, cmap=custom_biome_cmap)
+    p = PatchCollection(patches, alpha=1, color='white')
     p.set_edgecolor(rgba_colors)
     p.set_linewidth(1.5)
     ax1.add_collection(p)
-    #for lab,c in zip(biome_labels, centroids):
-    #    ax1.text(c[0], c[1], add_label_newline(lab), size=8)
     scat = ax1.scatter(results_df['mat'],
-               results_df['map'],
-               c = results_df['r2'],
-               edgecolor='black',
-               linewidths=0.6,
-               s=10,
-               alpha=1,
-               cmap='gray')
-    #if rs_var == 'SIF':
-    if False:
-        cbar = plt.colorbar(scat, cax=cax)
-        cbar.set_label('$R^2$', fontdict=axlabel_fontdict)
-        cbar.ax.tick_params(labelsize=ticklabel_fontsize)
+                       results_df['map'],
+                       c = results_df['r2'],
+                       vmin=0,
+                       vmax=1,
+                       edgecolor='black',
+                       linewidths=0.6,
+                       s=10,
+                       alpha=1,
+                       cmap='gray')
     ax1.set_xlabel('MAT ($^{\circ}C$)',
                   fontdict=axlabel_fontdict)
     ax1.set_ylabel('MAP ($mm$)', fontdict=axlabel_fontdict)
@@ -194,9 +137,16 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
     else:
         title = '$SIF$'
     ax1.set_title(title, fontdict={'fontsize': 20})
+    # add colorbar at far right for the R^2 scatter colors
+    if rs_var == 'SIF':
+        cbar_ax = fig.add_subplot(gs[:40, 94:97])
+        cbar = mpl.colorbar.ColorbarBase(cbar_ax,
+                                         cmap='gray',
+                                         orientation='vertical',
+                                        )
+        cbar_ax.set_ylabel('$GPP_{FLUXNET}\sim LSP\ R^2$', fontdict={'fontsize': 11})
 
-
-    ax2 = fig.add_subplot(gs[91:, scat_start_col:scat_end_col])
+    ax2 = fig.add_subplot(gs[50:, scat_start_col:scat_end_col])
     pt_biomes = []
     for i, row in results_df.iterrows():
         if pd.notnull(row['mat']) and pd.notnull(row['map']):
@@ -297,11 +247,11 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
 
     # add part labels
     if rs_var == 'NIRv':
-        ax1_lab = 'B.'
-        ax2_lab = 'C.'
+        ax1_lab = 'A.'
+        ax2_lab = 'B.'
     else:
-        ax1_lab = 'D.'
-        ax2_lab = 'E.'
+        ax1_lab = 'C.'
+        ax2_lab = 'D.'
     ax1.text(ax1.get_xlim()[0]-(0.24*np.diff(ax1.get_xlim())),
              1.005*ax1.get_ylim()[1],
              ax1_lab,
@@ -316,7 +266,7 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
             )
 
 
-fig.subplots_adjust(top=0.98, bottom=0.04, left=0.08, right=0.98)
+fig.subplots_adjust(top=0.94, bottom=0.08, left=0.08, right=0.98)
 
-fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_SUPP_phen_evaluation_results.png'), dpi=700)
+fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_SUPP_flux_evaluation_results.png'), dpi=700)
 

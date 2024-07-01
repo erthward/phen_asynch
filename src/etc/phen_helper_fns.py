@@ -49,7 +49,9 @@ neigh_rads = [50, 100, 150]
 DATA_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
             'seasonal_asynchrony/data')
 FIGS_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
-            'seasonal_asynchrony/figs')
+            'seasonal_asynchrony/res/figs')
+TABS_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+            'seasonal_asynchrony/res/tabs')
 EXTERNAL_DATA_DIR = '/media/deth/SLAB/diss/3-phn/final_maps_and_results/'
 EXTERNAL_MASK_DATA_DIR = '/media/deth/SLAB/diss/3-phn/GEE_outputs/LSP_masks/'
 EXTERNAL_RF_DATA_DIR = '/media/deth/SLAB/diss/3-phn/final_maps_and_results/rf/'
@@ -57,6 +59,10 @@ EXTERNAL_INAT_DATA_DIR = '/media/deth/SLAB/diss/3-phn/inat/'
 EXTERNAL_FLUX_DATA_DIR = '/media/deth/SLAB/diss/3-phn/flux/'
 COEFFS_FILE = os.path.join(EXTERNAL_DATA_DIR, 'NIRv_coeffs.tif')
 COEFFS_STRICT_FILE = os.path.join(EXTERNAL_DATA_DIR, 'NIRv_STRICT_coeffs.tif')
+EOFS_FILE = os.path.join(EXTERNAL_DATA_DIR,
+                         'NIRv_4_EOFs_sqrt_coswts_standts.tif')
+EOFS_PREPPED_FILE = os.path.join(EXTERNAL_DATA_DIR,
+                         'NIRv_4_EOFs_sqrt_coswts_standts_SCALED_FOLDED_EPSG-8857.tif')
 ASYNCH_FILES = {rad: os.path.join(EXTERNAL_DATA_DIR,
                 'NIRv_STRICT_asynch_%ikm.tif' % rad) for rad in neigh_rads}
 BOUNDS_DIR = os.path.join(DATA_DIR, 'bounds')

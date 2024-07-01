@@ -215,5 +215,8 @@ if __name__ == '__main__':
     # save the mask-fraction table
     frac_tab = pd.DataFrame.from_dict(fracs)
     frac_tab = frac_tab.iloc[:, [6]+[*range(6)]]
-    frac_tab.to_csv('TAB_SUPP_mask_fracs.csv', index=False)
+    frac_tab.to_csv(os.path.join(phf.TABS_DIR,
+                                 'TAB_SUPP_mask_fracs.csv'),
+                    index=False,
+                   )
 

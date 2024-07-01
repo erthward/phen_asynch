@@ -21,7 +21,6 @@ stdbuf -i0 -o0 -e0 command
 
 module load python/3.7
 
-# loop over vars, calculating asynch maps for each
 echo "CALCULATING EOFs FOR NIRv-BASED LSP MAP..."
 python /global/home/users/drewhart/seasonality/seasonal_asynchrony/phen/analysis/div/calc_LSP_EOFs.py > LSP_EOFs.pyout
 echo "FINISHED CALCULATING EOFS."

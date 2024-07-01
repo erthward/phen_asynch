@@ -18,11 +18,9 @@ sys.path.insert(1, '/global/home/users/drewhart/seasonality/seasonal_asynchrony/
 import phen_helper_fns as phf
 
 
-
 ###################
 # BEHAVIORAL PARAMS
 ###################
-
 # save results?
 save_res = True
 
@@ -50,8 +48,8 @@ max_y = None
 
 # data dir on laptop
 if os.getcwd().split('/')[1] == 'home':
-    data_dir = os.path.join('/media/deth/SLAB/diss/3-phn/GEE_outputs',
-                            dataset + mask_filename_ext)
+    data_dir = os.path.join('/media/deth/SLAB/diss/3-phn/final_maps_and_results/',
+                            mask_filename_ext)
 # data dir on savio
 else:
     data_dir = os.path.join('/global/scratch/users/drewhart/seasonality/GEE_outputs',
@@ -94,7 +92,6 @@ n_ts_to_plot = 1000
 #################################
 # GET ARRAY OF FITTED TIME SERIES
 #################################
-
 # read global NIRv coeffs
 coeffs = rxr.open_rasterio(os.path.join(data_dir, '%s%s_coeffs.tif' % (dataset, mask_filename_ext)))
 
@@ -151,7 +148,6 @@ else:
 #########
 # RUN EOF
 #########
-
 # calculate weights array requested
 if lat_weights == 'cos':
     weights = np.cos(np.deg2rad(Y))

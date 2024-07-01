@@ -1,6 +1,11 @@
 import pandas as pd
 import numpy as np
 
+sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+                                                            'seasonal_asynchrony/etc/'))
+import phen_helper_fns as phf
+
+
 # read in evaluation results
 nirv_val = pd.read_csv('./FLUXNET_evaluation_results_NIRv.csv')
 sif_val = pd.read_csv('./FLUXNET_evaluation_results_SIF.csv')
@@ -31,6 +36,8 @@ print(f'\n\n{np.sum(pd.notnull(val["R2_SIF"]))} val datasets for SIF')
 print(f'\n\n{len(val)} total datasets')
 
 # write out
-val.to_csv('./TABLE_S1_FLUXNET_evaluation_all_results.csv',
+val.to_csv(os.path.join(phf.TABS_DIR,
+                        'TAB_SUPP_FLUXNET_evaluation_all_results.csv'),
            index=False,
           )
+

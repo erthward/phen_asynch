@@ -505,7 +505,7 @@ if __name__ == '__main__':
 
     if what_to_plot == 'error_supp':
         fig_err = plt.figure(figsize=(16,8))
-        err_filename = f'OLD_REPLACE_ME_err_map_{include_coords}COORDS_{var}_{neigh_rad}km.tif'
+        err_filename = f'err_map_{include_coords}COORDS_{var}_{neigh_rad}km.tif'
         rast = rxr.open_rasterio(os.path.join(data_dir,
                                               err_filename), masked=True)[0]
         # NOTE: multiply raster by -1 because I accidentally subtracted real value from
@@ -533,14 +533,15 @@ if __name__ == '__main__':
             axis = 'y'
         else:
             axis = 'x'
-        getattr(cax, f'set_{axis}label')('standardized prediction error ($\Delta NIR_{V}/\Delta m$)', supp_axlabel_fontdict)
-        phf.plot_juris_bounds(lev1_linewidth=0.1,
+        getattr(cax, f'set_{axis}label')('standardized prediction error', supp_axlabel_fontdict)
+        phf.plot_juris_bounds(ax,
+                              lev1_linewidth=0.1,
                               lev1_alpha=0.5,
                               lev1_zorder=1,
                               lev0_linewidth=0.25,
                               lev0_alpha=0.6,
                               lev0_zorder=2,
-                              crs=plot_crs,
+                              crs=rast.rio.crs,
                               strip_axes=True,
                              )
         # format axes
