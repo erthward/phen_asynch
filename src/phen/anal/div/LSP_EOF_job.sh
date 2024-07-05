@@ -9,7 +9,7 @@
 #SBATCH --partition=savio3_bigmem
 #
 # Wall clock limit:
-#SBATCH --time=72:00:00
+#SBATCH --time=12:00:00
 #
 # Email options
 #SBATCH --mail-type=END,FAIL

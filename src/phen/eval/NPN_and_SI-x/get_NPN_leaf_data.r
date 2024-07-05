@@ -51,23 +51,6 @@ tree_phases = npn_get_phenophases_for_taxon(family_ids=dom_tree_family_ids,
                                             return_all=1)
 tp_df = get_phenophase_df(tree_phases)
 
-# get unique leaf phenophase names
-leaf_pps = unique(tp_df[tp_df$phenophase_category == 'Leaves', ]$phenophase_name)
-cat("All leaf phenophases:\n")
-for (pp in leaf_pps) print(pp)
-cat("\n\n")
-
-# get all families that have "Leaves" recorded
-leaf_fams = unique(tp_df[tp_df$phenophase_name == 'Leaves', ]$family_name)
-cat("All families with 'Leaves' recorded:\n")
-for (fam in leaf_fams) print(fam)
-cat("\n\n")
-
-# get definition of the 'Leaves' phenophase
-# NOTE: there are a number of different defs, but they're all just rearrangements of the same wording
-leaf_defs = unique(tp_df[tp_df$phenophase_name=='Leaves', ]$phenophase_definition)
-cat("The 'Leaves' phenophase is defined as: \"", leaf_defs[1], '"')
-
 # get the 'Leaves' phenophase id
 leaf_ids = unique(tp_df[tp_df$phenophase_name == 'Leaves', ]$phenophase_id)
 # NOTE: there should be two ids for the "Leaves" phase; the majority are 483,
@@ -99,7 +82,6 @@ pms = pms[order(pms$mean_first_yes_doy), ]
 # merge on the species table for some additional info
 pms = base::merge(pms, species[, c('species_id', 'family_id', 'family_common_name', 'order_id', 'order_common_name',
                                    'class_id', 'class_common_name', 'functional_type')], by='species_id', all.x=T, all.y=F)
-
 
 # write to disk
 write.csv(pms, 'NPN_leaves_data_dom_tree_spp.csv', row.names=F)

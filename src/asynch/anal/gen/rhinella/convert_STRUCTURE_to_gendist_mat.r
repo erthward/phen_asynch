@@ -8,7 +8,6 @@
   # genotypes coded by a single row? n
 
 library(adegenet)
-library(poppr)
 
 # read genetic data
 # NOTE: appears it is in 2-row STRUCTURE format,

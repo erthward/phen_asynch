@@ -41,7 +41,7 @@ import h3
 
 # local modules
 sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
-                    'seasonal_asynchrony/etc/'))
+                    'seasonal_asynchrony/src/etc/'))
 from MMRR import MMRR
 import phen_helper_fns as phf
 

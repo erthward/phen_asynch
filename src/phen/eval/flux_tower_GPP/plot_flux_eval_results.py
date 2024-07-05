@@ -18,7 +18,7 @@ import seaborn as sns
 import re, os, sys
 
 sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
-                                                            'seasonal_asynchrony/etc/'))
+                                                            'seasonal_asynchrony/src/etc/'))
 import phen_helper_fns as phf
 
 
@@ -139,12 +139,12 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
     ax1.set_title(title, fontdict={'fontsize': 20})
     # add colorbar at far right for the R^2 scatter colors
     if rs_var == 'SIF':
-        cbar_ax = fig.add_subplot(gs[:40, 94:97])
+        cbar_ax = fig.add_subplot(gs[:40, 92:95])
         cbar = mpl.colorbar.ColorbarBase(cbar_ax,
                                          cmap='gray',
                                          orientation='vertical',
                                         )
-        cbar_ax.set_ylabel('$GPP_{FLUXNET}\sim LSP\ R^2$', fontdict={'fontsize': 11})
+        cbar_ax.set_ylabel('$GPP-LSP\ R^2$', fontdict={'fontsize': 11})
 
     ax2 = fig.add_subplot(gs[50:, scat_start_col:scat_end_col])
     pt_biomes = []
@@ -202,7 +202,7 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
         ax2.axvline(x=yrs, ymin=-1, ymax=2, linewidth=0.5, alpha=0.6,
                     color='black', linestyle=':', zorder=0)
     if rs_var == 'NIRv':
-        rs_dataset_len = 10
+        rs_dataset_len = 20
     else:
         rs_dataset_len = 4.33
     ax2.axvline(x=rs_dataset_len, ymin=-1, ymax=2, linewidth=1.3, alpha=0.8,

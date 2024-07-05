@@ -14,7 +14,8 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from eofs.xarray import Eof
 
-sys.path.insert(1, '/global/home/users/drewhart/seasonality/seasonal_asynchrony/etc/')
+sys.path.insert(1,
+                '/global/home/users/drewhart/seasonality/seasonal_asynchrony/src/etc/')
 import phen_helper_fns as phf
 
 
@@ -220,5 +221,5 @@ ax.plot(solver.varianceFraction(10)*100)
 ax.set_title('pct variance explained by first 10 EOFs')
 ax.set_xlabel('EOF number')
 ax.set_ylabel('pct variance explained')
-scree_fig_filepath = os.path.join(data_dir, f'{dataset}{mask_filename_ext}_scree_fig.png')
+scree_fig_filepath = os.path.join(data_dir, f'{dataset}{mask_filename_ext}_EOF_scree_plot.png')
 scree_fig.savefig(scree_fig_filepath, dpi=500)

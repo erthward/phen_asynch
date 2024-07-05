@@ -2,3 +2,5 @@ __pycache__
 *.json
 *.csv
 *log.txt
+*.png
+notes_on_top_sig_taxa.md

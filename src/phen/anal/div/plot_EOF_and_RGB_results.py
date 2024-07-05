@@ -32,7 +32,7 @@ import os, sys, re
 
 # local imports
 sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
-                    'seasonal_asynchrony/etc/'))
+                    'seasonal_asynchrony/src/etc/'))
 import phen_helper_fns as phf
 
 
@@ -64,12 +64,12 @@ mask_filename_ext_dict = {'strict': '_STRICTMASK',
                           'default': ''}
 mask_filename_ext = mask_filename_ext_dict[masking_mode]
 
-# were ts normalized before EOF calculation?
-normts = True
-if normts:
-    normts_file_substr = '_normts'
+# were ts standardized before EOF calculation?
+standts = True
+if standts:
+    standts_file_substr = '_standts'
 else:
-    normts_file_substr = ''
+    standts_file_substr = ''
 
 # which clustering algo to use?
 clust_algo = 'kmeans'
@@ -100,7 +100,7 @@ coeffs = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
 # load the EOFs
 eofs = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
                                       '%s_4_EOFs_sqrt_coswts%s%s.tif') %
-                         (dataset, normts_file_substr, mask_filename_ext))[:3]
+                         (dataset, standts_file_substr, mask_filename_ext))[:3]
 eofs.rio.set_crs(4326)
 # rescale each EOFs layer to [0, 1]
 for i in range(eofs.shape[0]):
@@ -121,8 +121,8 @@ reg_bboxes = {
               'GB': [-1.01e7, 5.5e6, -0.94e7, 4.6e6],     # Great Basin
               'Mad':[3.94e6, -1.4e6, 4.84e6, -3.3e6],     # Madagascar
               'Fl': [-7.525e6, 3.53e6, -7.25e6, 3.13e6],  # South Florida
-              'SAf':[1.57e6, -4.0e6, 2.2e6, -4.34e6],     # S. Africa cape
-              'Au': [1.009e7, -3.959e6, 1.092e7, -4.364e6],  # SW Australia Medit.
+              'SAf':[1.57e6, -4.1e6, 2.1e6, -4.34e6],     # S. Africa cape
+              'WAu':[1.009e7, -3.959e6, 1.092e7, -4.364e6],  # SW Australia
               'IT': [0.55e6, 5.62e6, 1.2e6, 5.35e6],      # Po Valley, Italy
               'CB': [-8.9e6, 5.95e6, -6.95e6, 3.6e6],     # US Corn Belt
              }
@@ -131,16 +131,16 @@ reg_bboxes = {
 # NOTE: K VALUES WERE DETERMINED BY MANUAL INSPECTION OF SCREE PLOTS
 #       USING THE run_clust_analysis FN WITH plot_scree=True
 reg_K_vals = {
-              'QLD': 3,
-              'Am': 3,
-              'Ba': 4,
-              'GB': 3,
-              'Mad':3,
-              'Fl': 3,
-              'SAf':4,
-              'Au': 4,
-              'IT': 3,
-              'CB': 3,
+              'QLD': 4,
+              'Am':  3,
+              'Ba':  4,
+              'GB':  3,
+              'Mad': 4,
+              'Fl':  3,
+              'SAf': 4,
+              'WAu': 4,
+              'IT':  4,
+              'CB':  5,
              }
 
 
@@ -151,7 +151,7 @@ reg_K_vals = {
 
 out_da_filename = ('%s_4_EOFs_sqrt_coswts%s%s'
                    '_SCALED_FOLDED_EPSG-8857.tif') % (dataset,
-                                                      normts_file_substr,
+                                                      standts_file_substr,
                                                       mask_filename_ext,
                                                      )
 out_da_filepath = os.path.join(phf.EXTERNAL_DATA_DIR, out_da_filename)
@@ -195,12 +195,6 @@ for j, x in enumerate(wts.x):
     interp = np.linspace(1, 0, len(wts.y) - n_N - n_S + 2)
     assert len(interp) == 2 + np.sum(np.isnan(wts_arr[:, j]))
     wts_arr[n_N-1:-n_S+1, j] = interp
-    # determine maximum possible weighted-sum value at this x;
-    # add reciprocal of that to inflation array
-    #wt_sum_maxes = np.max(np.stack([n*wts_arr[:,j] +
-    #    ((1-n)*(1-wts_arr[:,j])) for n in np.linspace(0, 1, 100)]), axis=0)
-    #inflation_factors = 1/wt_sum_maxes
-    #wts_inflation_arr[:, j] = inflation_factors
 wts.values = wts_arr
 #wts_inflation.values = wts_inflation_arr
 # make the weighted-sum EOFs map
@@ -256,10 +250,17 @@ if write_wt_sum_eofs_to_file:
 if what_to_plot == 'eof_summ_fig':
     # create EOF fig
     fig_eof = plt.figure(figsize=(21,30))
-    gs = GridSpec(3, 3, figure=fig_eof)
-    # make maps of EOFS 1, 2, and 3 (all raw)
-    eofs_for_map = eofs.rio.write_crs(4326)
-    eofs_for_map = eofs_for_map.rio.reproject(8857)
+    gs = GridSpec(4, 3, figure=fig_eof)
+    # make maps of EOFS 1 through 4, all raw
+    # NOTE: reloading, to grab all 4
+    eofs = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
+                                          '%s_4_EOFs_sqrt_coswts%s%s.tif') %
+                        (dataset, standts_file_substr, mask_filename_ext))[:4]
+    # rescale each EOFs layer to [0, 1]
+    for i in range(eofs.shape[0]):
+        eofs[i] = (eofs[i]-eofs[i].min())/(eofs[i].max()-eofs[i].min())
+    eofs.rio.set_crs(4326)
+    eofs_for_map = eofs.rio.reproject(8857)
     # mask to Equal Earth projection bounds
     eofs_for_map = phf.mask_xarr_to_other_xarr_bbox(eofs_for_map,
                                                     eofs,
@@ -267,7 +268,7 @@ if what_to_plot == 'eof_summ_fig':
                                                     n_bbox_xcoords=4000,
                                                     n_bbox_ycoords=2000,
                                                    )
-    for i in range(3):
+    for i in range(4):
         ax_map = fig_eof.add_subplot(gs[i, :2])
         ax_pc = fig_eof.add_subplot(gs[i, 2])
         eofs_for_map[i] = eofs_for_map[i].where(
@@ -287,7 +288,7 @@ if what_to_plot == 'eof_summ_fig':
                              )
         ax_map.set_ylim(eofs_for_map.rio.bounds()[1::2])
         ax_map.text(0.92*ax_map.get_xlim()[0], 0.92*ax_map.get_ylim()[0],
-                    'EOF %i:\n%0.1f%%' % (i+1, eofs_pcts[i]),
+                    'EOF %i:\n%0.2f%%' % (i+1, eofs_pcts[i]),
                     fontdict={'fontsize': 38})
         # plot PC time series
         ax_pc.plot(pc_df.loc[:, str(i)], linewidth=2, color='black')
@@ -297,13 +298,12 @@ if what_to_plot == 'eof_summ_fig':
         # square the PC axes
         ax_pc.set_box_aspect(1)
     del eofs_for_map
-    fig_eof.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98,
-                            hspace=0.05)
+    fig_eof.subplots_adjust(left=0.02, right=0.98, bottom=0, top=1, hspace=0)
     fig_eof.subplots_adjust(wspace=.3)
     if save_it:
-        fig_eof.savefig(os.path.join(phf.FIGS_DIR, 'FIG_SUPP_%s_EOF_maps%s.png' % (dataset,
-                    mask_filename_ext)), dpi=600)
-
+        fig_eof.savefig(os.path.join(phf.FIGS_DIR,
+                                     'FIG_SUPP_%s_EOF_summary%s.png' % (dataset,
+                                                mask_filename_ext)), dpi=600)
 
 
 #############################
@@ -328,23 +328,24 @@ if what_to_plot == 'raw_rgb_maps':
     axs = {0: ax_top, 1: ax_bot}
     for row in range(2):
         ax = axs[row]
-        phf.plot_juris_bounds(ax,
-                              lev0_linewidth=0.5,
-                              lev0_alpha=0.7,
-                              lev1_linewidth=0.3,
-                              lev1_alpha=0.5,
-                              strip_axes=True,
-                             )
         if row == 0:
             eofs_for_map.plot.imshow(ax=ax, zorder=0)
         elif row == 1:
             eofs_trans = deepcopy(eofs_for_map)
             # NOTE: folding all 3 EOFs, on the assumption that a hemispheric signal is
-            #       embedded in each, rather than eyeballing whethere or not one is...
+            #       embedded in each, rather than eyeballing whether or not one is...
             for i in range(3):
                 eofs_trans[i,:,:] = 1 - eofs_trans[i,:,:]
             eofs_trans = eofs_trans.where(np.abs(eofs_trans)<1e37)
             eofs_trans.plot.imshow(ax=ax, zorder=0)
+        phf.plot_juris_bounds(ax,
+                              lev0_linewidth=0.2,
+                              lev0_alpha=0.7,
+                              lev1_linewidth=0.1,
+                              lev1_alpha=0.5,
+                              strip_axes=True,
+                              reset_axlims=False,
+                             )
         ax.set_ylim(eofs_for_map.rio.bounds()[1::2])
     fig_untrans.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98,
                                 hspace=0.05)
@@ -665,6 +666,8 @@ if what_to_plot == 'reg_figs':
             hspace_top_offset=1.05
         elif n_lines == 4:
             hspace_top_offset = 0.65
+        elif n_lines == 5:
+            hspace_top_offset = 0.25
         relmaxes = [argrelmax(l.get_ydata(),
                               order=40,
                               mode='clip',
@@ -713,14 +716,11 @@ if what_to_plot == 'reg_figs':
         return fig_dims
 
     for reg, bbox in reg_bboxes.items():
-
         print('now plotting region: %s' % reg)
-
         # create regional figure
         dims = get_fig_dims_from_reg_bbox(bbox)
         fig_reg, ax_reg = plt.subplots(1, figsize=dims)
         fig_lines, ax_lines = plt.subplots(1, figsize=(4,1))
-
         # plot the focal region
         eofs_wt_sum_for_map.sel(x=slice(bbox[0], bbox[2]),
                                 y=slice(bbox[1], bbox[3])).plot.imshow(ax=ax_reg,
@@ -730,7 +730,6 @@ if what_to_plot == 'reg_figs':
         phf.plot_juris_bounds(ax_reg, lev0_alpha=0.8, strip_axes=True)
         ax_reg.set_xlim(bbox[0], bbox[2])
         ax_reg.set_ylim(bbox[3], bbox[1])
-
         # subset the focal region's data and run clustering
         eofs_wt_sum_foc = eofs_wt_sum_for_map.sel(x=slice(bbox[0], bbox[2]),
                                                   y=slice(bbox[1], bbox[3]),
@@ -743,7 +742,6 @@ if what_to_plot == 'reg_figs':
                                                  ).rio.write_crs(8857)
         coeffs_foc = coeffs_foc.rio.reproject(4326)
         coeffs_foc = coeffs_foc.where(coeffs_foc != coeffs_foc._FillValue, np.nan)
-
         # run K-means clustering
         K = reg_K_vals[reg]
         clust_colors = run_clust_analysis(eofs_wt_sum_foc,
@@ -766,7 +764,6 @@ if what_to_plot == 'reg_figs':
         ax_lines.tick_params(labelsize=10, rotation=0)
         for axis in ['top','bottom','left','right']:
             ax_lines.spines[axis].set_linewidth(2)
-
         # save figures
         fig_reg.subplots_adjust(left=0.01,
                                  right=0.99,
@@ -776,7 +773,6 @@ if what_to_plot == 'reg_figs':
                                  right=0.94,
                                  bottom=0.24,
                                  top=0.97)
-
         if save_it:
             fig_reg.savefig(os.path.join(phf.FIGS_DIR, 'SUBFIG_REG_%s_%s_RGB_EOF_reg_map%s.png' % (reg, dataset,
                                 mask_filename_ext)), dpi=700)

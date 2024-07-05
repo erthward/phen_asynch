@@ -14,6 +14,7 @@ from sklearn.linear_model import LinearRegression
 from rasterio.fill import fillnodata
 from geopy.distance import geodesic
 from shapely.geometry import Point
+from sklearn.cluster import KMeans
 from scipy.spatial import cKDTree
 import matplotlib.pyplot as plt
 from copy import deepcopy
@@ -46,6 +47,8 @@ from collections import Counter as C
 neigh_rads = [50, 100, 150]
 
 # get the variables' filepaths
+REPO_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+            'seasonal_asynchrony')
 DATA_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
             'seasonal_asynchrony/data')
 FIGS_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
@@ -201,6 +204,22 @@ def get_tolerancefilled_arr(arr, tol):
     # fill and return the copy
     filled = fillnodata(out_arr, mask)
     return filled
+
+
+
+####################
+# TEMPORAL FUNCTIONS
+####################
+
+def calc_doy_diff(doy1, doy2):
+    '''
+    calculate the distance, in number of days, between 2 numericaly days of year
+    '''
+    # get the lesser of the distance back to the earlier day of year or
+    # forward to the same day of year next year
+    d = sorted([doy1, doy2])
+    dist = np.min((d[1]-d[0], d[0] + 365 - d[1]))
+    return dist
 
 
 
@@ -431,12 +450,11 @@ def calc_pw_clim_dist_mat(pts,
                           vars_list=None,
                          ):
     """
-    Calculates the pw bioclim-dist matrix for an nx2 numpy array
-    containing the (lon, lat) coordinates for n points.
+    Calculates the matrix of pairwise distances between
+    any (if vars_list is not None) or all standardized
+    BioClim variables for the given nx2 numpy array
+    geographic coordinates (with the columns provided in lon,lat order).
     """
-    # TODO:
-        # IMPLEMENT ARGUMENT TO NORMALIZE BIOCLIM DATA?
-
     # get only the indicated subset of bioclim vars, if necessary
     if vars_list is None:
         infilepaths = [*BIOCLIM_INFILEPATHS]
@@ -555,4 +573,268 @@ def plot_juris_bounds(ax=None,
             ax.set_xlim(xlim)
             ax.set_ylim(ylim)
 
+
+
+def plot_flowerdate_LSP_comparison(flower_obs,
+                                   ax_map,
+                                   ax_ts,
+                                   ax_radar,
+                                   colors=np.array(['#2d5098', '#ca1957']), # [blue, red]
+                                   plot_crs=8857,
+                                   map_xlim=None,
+                                   map_ylim=None,
+                                   interp_lsp_data=False,
+                                   neigh_dist_lsp_fill_tol=2,
+                                   radar_alpha=0.5,
+                                   radar_width_shrink_factor=0.9,
+                                   save_scree_plot=False,
+                                   name=None,
+                                   tid=None,
+                                  ):
+    """
+    plot a visual comparison between the flowering-doy differences
+    across a set of iNat observation locations and the spatial LSP variability
+    observed at the locations, using the length of the 'colors' argument
+    to determine K (i.e., the number of clusters to fit to the LSP
+    time series data using K-means clustering)
+    """
+    # get the LSP time series at all observations
+    pts = flower_obs.get_coordinates().values
+    lsp_ts = get_raster_info_points(COEFFS_STRICT_FILE,
+                                     pts,
+                                     'ts',
+                                     standardize=True,
+                                     fill_nans=interp_lsp_data,
+                                     fill_tol=neigh_dist_lsp_fill_tol,
+                                    )
+    assert np.all(lsp_ts.shape == (len(flower_obs), 365))
+    # TODO: determine and drop those without those LSP data available
+    miss = np.sum(pd.isnull(lsp_ts), axis=1) > 0
+    pct_lsp_miss = np.mean(miss)
+    pct_lsp_miss_msg = (f"{np.round(100*pct_lsp_miss, 2)}% "
+                        f"of sites for are missing LSP data")
+    print(pct_lsp_miss_msg)
+    keep = np.invert(miss)
+    flower_obs = flower_obs.loc[keep, :]
+    pts = pts[keep, :]
+    lsp_ts = lsp_ts[keep, :]
+    assert np.all(lsp_ts.shape == (len(flower_obs), 365))
+    assert np.all(pts.shape == (len(flower_obs), 2))
+    # cluster by genetics and by LSP
+    K = len(colors)
+    lsp_clusts = KMeans(n_clusters=K).fit(lsp_ts)
+    # also save a scree plot for values of K=[1,10], if requested
+    if save_scree_plot:
+        assert name is not None and tid is not None
+        fig_scree, ax_scree = plt.subplots(1,1)
+        inertias = [KMeans(n_clusters=i).fit(lsp_ts).inertia_ for i in range(1,
+                                                                             11)]
+        ax_scree.plot([*range(1, 11)], inertias)
+        ax.set_xlabel('K')
+        ax.set_ylabel('K-means clustering inertia')
+        ax.set_title(f"{name}, TID:{tid}")
+        fig_scree.savefig(os.path.join(FIGS_DIR,
+                                       'MMRR_res_figs',
+            f"TID_{tid}_{name.replace(' ', '_')}_lsp_ts_kmeans_clust_scree.png"),
+                          dpi=300,
+                         )
+    # get the first index of the points at the northernmost
+    # location in the dataset, as this will be used to ensure that
+    # that point's cluster is blue in each figure (for clearer visual
+    # comparison)
+    northest_pt_idx = np.where(pts[:, 1] == np.max(pts[:, 1]))[0][0]
+    # flip the clustering labels
+    # so that the first of the northernmost points is always labeled
+    # cluster 0 (because the labels are arbitrary anyhow,
+    # but this aligns the colors with Thomé Fig. 5,
+    # and aligns them across our subfigs, by putting blue in north)
+    if lsp_clusts.labels_[northest_pt_idx] == 1:
+        lsp_clusts.labels_ = np.int16(lsp_clusts.labels_ == 0)
+    # jitter points by <=0.05 degrees, i.e., ~<=1 of our analysis raster pixels,
+    # for visibility of co-ocurring samples
+    x_jitters = np.random.uniform(low=-0.05, high=0.05, size=pts.shape[0])
+    y_jitters = np.random.uniform(low=-0.05, high=0.05, size=pts.shape[0])
+    jitters = np.stack((x_jitters, y_jitters)).T
+    assert np.all(pts.shape == jitters.shape)
+    pts_for_plot = pts + jitters
+    # project the plotting plots as needed
+    pts_df = pd.DataFrame({'geometry': [Point(*pts_for_plot[i,:]) for i in
+                                        range(pts_for_plot.shape[0])],
+                           'idx': [*range(pts_for_plot.shape[0])]
+                          })
+    pts_gdf = gpd.GeoDataFrame(pts_df, geometry='geometry', crs=4326)
+    pts_for_plot = pts_gdf.to_crs(plot_crs).get_coordinates().values
+    # map sample points, colored by both the LSP and genetic clusters
+    ax_map.scatter(pts_for_plot[:, 0],
+                   pts_for_plot[:, 1],
+                   s=11,
+                   c=colors[lsp_clusts.labels_],
+                   edgecolor='black',
+                   linewidth=0.5,
+                   alpha=0.6,
+                   zorder=2,
+                  )
+    plot_juris_bounds(ax_map,
+                      lev1_linewidth=0.05,
+                      lev1_alpha=0.6,
+                      lev1_zorder=0,
+                      lev0_linewidth=0.2,
+                      lev0_alpha=1,
+                      lev0_zorder=1,
+                      crs=plot_crs,
+                      strip_axes=True,
+                     )
+    if map_xlim is not None:
+        ax_map.set_xlim(*map_xlim)
+    if map_ylim is not None:
+        ax_map.set_ylim(*map_ylim)
+    # plot LSP fitted time series, colored by both the LSP and genetic clusters
+    for i in range(lsp_ts.shape[0]):
+        ax_ts.plot(lsp_ts[i, :],
+                   color=colors[lsp_clusts.labels_[i]],
+                   alpha=0.7,
+                   linewidth=0.5,
+                  )
+    xax_ticks = [0, 90, 180, 271, 364]
+    xax_ticklabs = ['Jan', 'Apr', 'Jul', 'Oct', 'Jan']
+    ax_ts.set_xticks(xax_ticks)
+    ax_ts.set_xticklabels(xax_ticklabs, size=7)
+    assert np.round(np.max(lsp_ts), 0) == 2
+    assert np.round(np.min(lsp_ts), 0) == -2
+    ax_ts.set_yticks([*range(-2, 3)],
+                  [str(n) for n in range(-2, 3)],
+                  size=7,
+                 )
+    ax_ts.set_xlim(0, 364)
+    ax_ts.set_xlabel('doy', fontdict={'fontsize': 8})
+    ax_ts.set_ylabel('scaled LSP', fontdict={'fontsize': 8})
+    # plot radar plot of observed flowering dates
+    weeks = np.linspace(0, int(7*np.ceil(365/7)), int(np.ceil(365/7)))
+    woy = [np.where((weeks[:-1]<=d) * (d<weeks[1:]))[0] for d in flower_obs['doy']]
+    assert np.all([len(w) == 1 for w in woy])
+    flower_obs.loc[:, 'woy'] = [w[0] for w in woy]
+    for lab in np.unique(lsp_clusts.labels_):
+        color = colors[lab]
+        sub_obs = flower_obs[lsp_clusts.labels_ == lab]
+        woy_cts = {i:0 for i in range(52)}
+        for i, row in sub_obs.iterrows():
+            w = row['woy']
+            woy_cts[w] += 1
+        for w, ct in woy_cts.items():
+            ax_radar.bar(x=w/52*2*np.pi,
+                         height=ct,
+                         width=2*np.pi/52*radar_width_shrink_factor,
+                         alpha=radar_alpha,
+                         color=color,
+                        )
+    # TODO: ADD AXIS LABELS FOR MONTHS
+
+
+def plot_popgen_LSP_comparison(gen_dist_mat,
+                               pts,
+                               ax_lspclust_map,
+                               ax_lspclust_ts,
+                               ax_genclust_map,
+                               ax_genclust_ts,
+                               colors=np.array(['#2d5098', '#ca1957']), # [blue, red]
+                               plot_crs=8857,
+                               map_xlim=None,
+                               map_ylim=None,
+                               interp_lsp_data=False,
+                               neigh_dist_lsp_fill_tol=2,
+                              ):
+    """
+    plot a visual comparison between the genetic structure of the given genetic
+    distance matrix and the spatial LSP variability observed as the given
+    points, using the length of the 'colors' argument to set K
+    (i.e., the number of genetic and LSP clusters to fit by K-means clustering)
+    """
+    # cluster by genetics and by LSP
+    K = len(colors)
+    gen_clusts = KMeans(n_clusters=K).fit(gen_dist_mat)
+    lsp_ts = get_raster_info_points(COEFFS_STRICT_FILE,
+                                    pts,
+                                    'ts',
+                                    standardize=True,
+                                    fill_nans=interp_lsp_data,
+                                    fill_tol=neigh_dist_lsp_fill_tol,
+                                   )
+    lsp_clusts = KMeans(n_clusters=K).fit(lsp_ts)
+    # get the first index of the points at the northernmost
+    # location in the dataset, as this will be used to ensure that
+    # that point's cluster is blue in each figure (for clearer visual
+    # comparison)
+    northest_pt_idx = np.where(pts[:, 1] == np.max(pts[:, 1]))[0][0]
+    # flip the clustering labels in both sets of clustering results,
+    # so that the first of the northernmost points is always labeled
+    # cluster 0 (because the labels are arbitrary anyhow,
+    # but this aligns the colors with Thomé Fig. 5,
+    # and aligns them across our subfigs, by putting blue in north)
+    if gen_clusts.labels_[northest_pt_idx] == 1:
+        gen_clusts.labels_ = np.int16(gen_clusts.labels_ == 0)
+    if lsp_clusts.labels_[northest_pt_idx] == 1:
+        lsp_clusts.labels_ = np.int16(lsp_clusts.labels_ == 0)
+    # (jittered by <=0.05 degrees, i.e., ~<=1 of our analysis raster pixels,
+    # for visibility of co-ocurring samples)
+    x_jitters = np.random.uniform(low=-0.05, high=0.05, size=pts.shape[0])
+    y_jitters = np.random.uniform(low=-0.05, high=0.05, size=pts.shape[0])
+    jitters = np.stack((x_jitters, y_jitters)).T
+    assert np.all(pts.shape == jitters.shape)
+    pts_for_plot = pts + jitters
+    # project the plotting plots as needed
+    pts_df = pd.DataFrame({'geometry': [Point(*pts_for_plot[i,:]) for i in
+                                        range(pts_for_plot.shape[0])],
+                           'idx': [*range(pts_for_plot.shape[0])]
+                          })
+    pts_gdf = gpd.GeoDataFrame(pts_df, geometry='geometry', crs=4326)
+    pts_for_plot = pts_gdf.to_crs(plot_crs).get_coordinates().values
+    # map sample points, colored by both the LSP and genetic clusters
+    for ax, clusts in zip([ax_lspclust_map, ax_genclust_map],
+                          [lsp_clusts, gen_clusts]):
+        ax.scatter(pts_for_plot[:, 0],
+                  pts_for_plot[:, 1],
+                   s=11,
+                   c=colors[clusts.labels_],
+                   edgecolor='black',
+                   linewidth=0.5,
+                   alpha=0.6,
+                   zorder=2,
+                  )
+        plot_juris_bounds(ax,
+                         lev1_linewidth=0.05,
+                         lev1_alpha=0.6,
+                         lev1_zorder=0,
+                         lev0_linewidth=0.2,
+                         lev0_alpha=1,
+                         lev0_zorder=1,
+                         crs=plot_crs,
+                         strip_axes=True,
+                        )
+        if map_xlim is not None:
+            ax.set_xlim(*map_xlim)
+        if map_ylim is not None:
+            ax.set_ylim(*map_ylim)
+    # plot LSP fitted time series, colored by both the LSP and genetic clusters
+    for ax, clusts in zip([ax_lspclust_ts, ax_genclust_ts],
+                          [lsp_clusts, gen_clusts],
+                         ):
+        for i in range(lsp_ts.shape[0]):
+            ax.plot(lsp_ts[i, :],
+                    color=colors[clusts.labels_[i]],
+                    alpha=0.7,
+                    linewidth=0.5,
+                   )
+        xax_ticks = [0, 90, 180, 271, 364]
+        xax_ticklabs = ['Jan', 'Apr', 'Jul', 'Oct', 'Jan']
+        ax.set_xticks(xax_ticks)
+        ax.set_xticklabels(xax_ticklabs, size=7)
+        assert np.round(np.max(lsp_ts), 0) == 2
+        assert np.round(np.min(lsp_ts), 0) == -2
+        ax.set_yticks([*range(-2, 3)],
+                      [str(n) for n in range(-2, 3)],
+                      size=7,
+                     )
+        ax.set_xlim(0, 364)
+        ax.set_xlabel('day of calendar year', fontdict={'fontsize': 8})
+        ax.set_ylabel('normalized LSP value', fontdict={'fontsize': 8})
 

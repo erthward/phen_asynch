@@ -14,7 +14,7 @@ import re
 
 
 sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
-                    'seasonal_asynchrony/etc/'))
+                    'seasonal_asynchrony/src/etc/'))
 import phen_helper_fns as phf
 
 # set data-directory path

@@ -18,7 +18,7 @@ import seaborn as sns
 import re, os, sys
 
 sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
-                                                            'seasonal_asynchrony/etc/'))
+                                                            'seasonal_asynchrony/src/etc/'))
 import phen_helper_fns as phf
 
 
@@ -325,9 +325,6 @@ def process_site_data(zip_filename,
 
     # filter out dates, if needed
     if filter_start_date is not None and filter_end_date is not None:
-        # for now, just drop years after 2006 in the forest dataset,
-        # because of the big gap caused by the missing 2007-ish data
-        # TODO: COME UP WITH BETTER SOLUTION
         gpp = gpp.loc[filter_start_date:filter_end_date]
 
     # add numeric day of year columns,

@@ -12,9 +12,8 @@ from shapely.geometry import Point
 
 # local modules
 sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
-                    'seasonal_asynchrony/etc/'))
+                    'seasonal_asynchrony/src/etc/'))
 import phen_helper_fns as phf
-
 
 
 # whether to interpolate missing LSP coefficients, 
@@ -40,14 +39,17 @@ lsp = phf.get_raster_info_points(phf.COEFFS_FILE,
                                  fill_nans=interp_sea_data,
                                  fill_tol=neigh_dist_sea_fill_tol,
                                 )
-print((f"\n\n{np.round(100*np.mean(np.any(pd.isnull(lsp), axis=1)), 2)} % "
-        "of variable 'lsp' consists of missing values"))
 
 # subset to points where we have data
 not_missing = np.all(pd.notnull(lsp), axis=1)
 npn = npn.loc[not_missing, ]
 lsp = lsp[not_missing, :]
 assert lsp.shape[0] == len(npn)
+
+print(("\n\nAfter accounting for masked LSP pixels, "
+       f"data from {len(npn['site_id'].unique())} NPN "
+       "sites remain.\n\n"))
+
 
 # estimate start of season (SOS) as doy when LSP exceeds 50% of its amplitude
 # (a la Melaas et al. 2016, but I take it this is standard practice)
@@ -73,6 +75,7 @@ label_dict = {'lsp_sos': 'SOS$_{NIR_{V}}$',
               'site_mean_first_yes_doy': 'first leaf$_{NPN}$',
               'six_leaf_val': 'SOS$_{SI-x}$',
              }
+letter_labs = ['A.', 'B.', 'C.']
 for i in range(len(comp_cols)):
     ax = fig.add_subplot(1,3,i+1)
     # drop rows with missing SI-x values
@@ -112,9 +115,10 @@ for i in range(len(comp_cols)):
     predictor = f"{np.round(coeffs[1], 2)} {label_dict[cols[0]]}"
     intercept= f"{np.round(coeffs[0], 2)}"
     eqxn_txt = f"{label_dict[cols[1]]} ~ {intercept} + {predictor}"
-    r2_pval_txt = "$R^2 = $" + "%0.2f" % (np.round(r2, 2)) + f" (P≤{np.round(pval, 2)})"
+    r2_pval_txt = "$R^2 = $" + "%0.2f" % (np.round(r2, 2)) + f" (P≤{np.round(pval, 3)})"
     ax.text(160, 345, eqxn_txt, size=7)
     ax.text(260, 330, r2_pval_txt, color='red', size=7)
+    ax.text(15, 330, letter_labs[i], size=24, weight='bold')
     ax.set_xlim(0, 365)
     ax.set_ylim(0, 365)
     ax.set_xlabel(label_dict[cols[0]], fontdict={'fontsize': 10})
