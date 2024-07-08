@@ -1,42 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""
- TODO:
- - finalize taxa
- - refine map bounds
- - coordinate cluster colors for multiple taxa within a region
- - move colorbar to top of global map and improve label
- - plot scree plot for each taxon's lsp clusters and double-check k! (see marsypianthes)
- - plot demo taxa for sw and saf
- - arrange and clean up draft plot
- - figure out month labels for radar plots, and brainstorm improvements for clarity...
- - change colored scatterplots to pie charts?
- - could clustering be used to determine folding points in eof map???
-"""
-
-
-
-
-
-
-
-
-
-
 import os
 import re
 import h3
@@ -75,7 +39,6 @@ sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
 import test_rhinella_granulosa as rg
 
 
-
 #------------------------------------------------------------------------------
 # set overarching params and load supporting data:
 #------------------------------------------------------------------------------
@@ -85,6 +48,124 @@ import test_rhinella_granulosa as rg
 # coefficient raster?
 interp_lsp_data = False
 neigh_dist_lsp_fill_tol = 2
+
+# plotting params for LSP time series and iNat flowering-date plots
+ts_linewidth = 0.2
+flower_obs_hatch_marker = 'o'
+flower_obs_hatch_size = 10
+radar_alpha=0.5
+radar_width_shrink_factor=0.9
+
+# plotting font sizes
+section_lab_fontsize=25
+title_fontsize = 15
+axlabel_fontsize = 9
+
+# configure figure and axes sizes
+figsize = (22, 16)
+gridspec_dims = (210, 220)
+modality_map_slices = (slice(0, 50),
+                       slice(8, 105),
+                      )
+modality_map_colorbar_slices = (slice(10, 40),
+                                slice(9, 11),
+                               )
+sw_rgb_map_slices = (slice(11, 31),
+                     slice(114, 134),
+                    )
+sw_scat_map_slices = [(slice(0, 30),
+                       slice(135, 175),
+                      ),
+                      (slice(0, 30),
+                       slice(180, 220),
+                      ),
+                     ]
+sw_ts_slices = [(slice(30, 45),
+                 slice(135, 175),
+                ),
+                (slice(30, 45),
+                 slice(180, 220),
+                ),
+               ]
+andes_rgb_map_slices = (slice(75, 105),
+                        slice(0, 30),
+                       )
+andes_scat_map_slices = [(slice(60, 90),
+                          slice(25, 65),
+                         ),
+                         (slice(60, 90),
+                          slice(70, 110),
+                         ),
+                        ]
+andes_ts_slices = [(slice(90, 105),
+                    slice(25, 65),
+                   ),
+                   (slice(90, 105),
+                    slice(70, 110),
+                   ),
+                  ]
+zaf_rgb_map_slices = (slice(71, 91),
+                      slice(114, 134),
+                     )
+zaf_scat_map_slices = [(slice(60, 90),
+                        slice(140, 170),
+                       ),
+                       (slice(60, 90),
+                        slice(185, 215),
+                       ),
+                      ]
+zaf_ts_slices = [(slice(90, 105),
+                  slice(135, 175),
+                 ),
+                 (slice(90, 105),
+                  slice(180, 220),
+                 ),
+                ]
+e_brz_rgb_map_slices = (slice(145, 175),
+                        slice(0, 30),
+                       )
+e_brz_genclust_map_slices = [(slice(120, 150),
+                              slice(25, 65),
+                             ),
+                             (slice(120, 150),
+                              slice(70, 110),
+                             ),
+                            ]
+e_brz_genclust_ts_slices = [(slice(150, 165),
+                             slice(25, 65),
+                            ),
+                            (slice(150, 165),
+                             slice(70, 110),
+                            ),
+                           ]
+e_brz_lspclust_map_slices = [(slice(170, 200),
+                              slice(25, 65),
+                             ),
+                             (slice(170, 200),
+                              slice(70, 110),
+                             ),
+                            ]
+e_brz_lspclust_ts_slices = [(slice(200, 215),
+                             slice(25, 65),
+                            ),
+                            (slice(200, 215),
+                             slice(70, 110),
+                            ),
+                           ]
+e_brz_scat_map_slices = [(slice(170, 200),
+                          slice(120, 160),
+                         ),
+                         (slice(170, 200),
+                          slice(175, 215),
+                         ),
+                        ]
+e_brz_ts_slices = [(slice(200, 215),
+                    slice(120, 160),
+                   ),
+                   (slice(200, 215),
+                    slice(175, 215),
+                   ),
+                  ]
 
 # common equal-area projection to use
 crs = 8857
@@ -120,8 +201,9 @@ if strict_coeffs:
 #------------------------------------------------------------------------------
 
 # create the overall figure
-fig = plt.figure(figsize=(16,22))
-gs = fig.add_gridspec(ncols=180, nrows=220)
+fig = plt.figure(figsize=figsize)
+gs = fig.add_gridspec(nrows=gridspec_dims[0], ncols=gridspec_dims[1])
+gs_supp = fig.add_gridspec(ncols=1, nrows=16)
 
 # create the iNat peak-analysis supp figure
 fig_supp = plt.figure(figsize=(9,16))
@@ -144,29 +226,36 @@ label_dict = {'prop_non1peak_signif': 'non-unimodal',
               'prop_2pluspeak_signif': '≥2 significant peaks',
              }
 for i, res_col in enumerate(res_cols):
-    gs_imin = 5*i
-    gs_imax = 5*i+5+(1*(i==2))
+    gs_supp_imin = 5*i
+    gs_supp_imax = 5*i+5+(1*(i==2))
     if i == 3:
-        ax = fig.add_subplot(gs[:45, :70])
+        ax = fig.add_subplot(gs[modality_map_slices[0], modality_map_slices[1]])
     else:
-        ax = fig_supp.add_subplot(gs[gs_imin:gs_imax, 0])
+        ax = fig_supp.add_subplot(gs_supp[gs_supp_imin:gs_supp_imax, 0])
     # add bottom axes for a colorbar
     if i >= 2:
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes('bottom', size='7%', pad=0.2)
+        if i == 2:
+            position = 'bottom'
+            pad = 0.2
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes(position, size='7%', pad=pad)
+        else:
+            position = 'left'
+            pad = 0.08
+            cax = fig.add_subplot(gs[modality_map_colorbar_slices[0],
+                                 modality_map_colorbar_slices[1]])
     # transform to equal-area projection and plot
     inat_h3_gdf.to_crs(crs).plot(res_col,
-                            cmap=cmap,
-                            alpha=1,
-                            zorder=0,
-                            ax=ax,
-                            edgecolor='white',
-                            linewidth=0.2,
-                            legend=False,
-                            vmin=0,
-                            #vmax=1,
-                            vmax=np.nanpercentile(inat_h3_gdf[res_col], 95),
-                           )
+                                 cmap=cmap,
+                                 alpha=1,
+                                 zorder=0,
+                                 ax=ax,
+                                 edgecolor='white',
+                                 linewidth=0.2,
+                                 legend=False,
+                                 vmin=0,
+                                 vmax=1,
+                                )
     phf.plot_juris_bounds(ax,
                           lev1_alpha=0.6,
                           lev1_linewidth=0.05,
@@ -183,14 +272,27 @@ for i, res_col in enumerate(res_cols):
         scalcmap = plt.cm.ScalarMappable(cmap=cmap,
                                          norm=plt.Normalize(vmin=0, vmax=1),
                                         )
-        plt.colorbar(scalcmap, cax=cax, orientation='horizontal')
-        xticks = np.linspace(0, 1, 5)
-        cax.set_xlabel('proportion of taxa present',
-                       fontdict={'fontsize': 15},
+        if i == 2:
+            orientation = 'horizontal'
+        else:
+            orientation = 'vertical'
+        plt.colorbar(scalcmap, cax=cax, orientation=orientation)
+        ticks = np.linspace(0, 1, 5)
+        cax.set_xlabel('proportion\nnon-unimodal\ntaxa',
+                       fontdict={'fontsize': title_fontsize},
                       )
-        cax.set_xticks(xticks, ['%0.2f' % t for t in xticks], size=9)
-        cax.set_ylabel('')
-        cax.set_yticks(())
+        if i == 3:
+            cax.set_yticks(ticks, ['%0.2f' % t for t in ticks], size=9)
+            cax.set_xticks(())
+            cax.yaxis.tick_left()
+            cax.yaxis.set_label_position('left')
+        else:
+            cax.set_xticks(ticks, ['%0.2f' % t for t in ticks], size=9)
+            cax.set_ylabel('')
+            cax.set_yticks(())
+    # get rid of axis border in main figure
+    if i == 3:
+        ax.axis('off')
 
 # save the supplemental figure
 fig_supp.subplots_adjust(top=0.96,
@@ -415,220 +517,211 @@ else:
 # plot demonstrative taxa
 #------------------------------------------------------------------------------
 
-def determine_map_bounds(obs):
-    coords = [np.min(obs.geometry.x),
-              np.min(obs.geometry.y),
-              np.max(obs.geometry.x),
-              np.max(obs.geometry.y),
-             ]
-    ranges = [np.abs(coords[2] - coords[0]),
-              np.abs(coords[3] - coords[1]),
-             ]
-    margins = [-0.05*ranges[0],
-               -0.05*ranges[1],
-                0.05*ranges[0],
-                0.05*ranges[1],
-              ]
-    # NOTE: assuming no coords are exactly 0
-    bounds = [coords[i] + margins[i] for i in range(4)]
-    return bounds
-
-
-def plot_sig_taxon(inat_mmrr_res_df_row,
-                   colors=np.array(['#2d5098', '#ca1957']),
-                   subset_poly=None,
-                   subset_poly_buffer=None,
-                   save_it=False,
-                  ):
-    # read observations
-    tid = inat_mmrr_res_df_row['tid']
-    name = inat_mmrr_res_df_row['name']
-    obs_fn = f"TID_{tid}_{name.replace(' ', '_')}.json"
-    obs = gpd.read_file(os.path.join(inat_obs_data_dir, obs_fn))
-    if subset_poly is not None:
-        if subset_poly_buffer is not None:
-            poly = subset_poly.buffer(subset_poly_buffer)
-        else:
-            poly = subset_poly
-        obs = obs[obs.to_crs(poly.crs).within(poly.iloc[0])]
-    bounds = determine_map_bounds(obs)
-    map_xlim = bounds[0::2]
-    map_ylim = bounds[1::2]
-    map_lim_df = pd.DataFrame({'geometry':[Point(*lims) for lims in zip(map_xlim,
-                                                                    map_ylim)],
-                               'idx': range(2)})
-    map_lim_gdf = gpd.GeoDataFrame(map_lim_df, geometry='geometry', crs=4326)
-    map_lim_proj_coords = map_lim_gdf.to_crs(crs).get_coordinates().values
-    map_xlim = map_lim_proj_coords[:, 0]
-    map_ylim = map_lim_proj_coords[:, 1]
-    fig = plt.figure(figsize=(10,5))
-    gs = fig.add_gridspec(ncols=100, nrows=50)
-    ax_rgb = fig.add_subplot(gs[:, :50])
-    eofs.plot.imshow(ax=ax_rgb)
-    obs.to_crs(crs).plot(color='black', markersize=15, alpha=0.7, ax=ax_rgb)
-    phf.plot_juris_bounds(ax_rgb,
-                          crs=crs,
-                          strip_axes=True,
-                          reset_axlims=False,
-                         )
-    ax_rgb.set_xlim(map_xlim)
-    ax_rgb.set_ylim(map_ylim)
-    ax_map = fig.add_subplot(gs[:15, 50:])
-    ax_ts = fig.add_subplot(gs[15:30, 50:])
-    ax_radar = fig.add_subplot(gs[30:50, 50:], projection='polar')
-    phf.plot_flowerdate_LSP_comparison(flower_obs=obs,
-                                       ax_map=ax_map,
-                                       ax_ts=ax_ts,
-                                       ax_radar=ax_radar,
-                                       plot_crs=crs,
-                                       map_xlim=map_xlim,
-                                       map_ylim=map_ylim,
-                                       interp_lsp_data=interp_lsp_data,
-                                       neigh_dist_lsp_fill_tol=neigh_dist_lsp_fill_tol,
-                                       radar_alpha=0.5,
-                                       radar_width_shrink_factor=0.9,
-                                      )
-    if save_it:
-        fig.savefig(os.path.join(phf.FIGS_DIR,
-                             'MMRR_res_figs',
-            f"TID_{tid}_{name.replace(' ', '_')}_MMRR_res_map_ts_radar.png"))
-    else:
-        fig.show()
-        input('<Enter> to close...')
-    plt.close('all')
-
-
 # drop small sample sizes (i.e., where too many LSP pixels were masked out)
 inat_mmrr_filt_adeq_n = inat_mmrr_filt[inat_mmrr_filt['n'] >=min_n_inat_samps_for_demo_plots]
 
 # set cluster colors
 clust_colors=np.array(['#2d5098', # blue
                        '#ca1957', # red
-                       '#baeb34', # lime
-                       '#8b54bf', # purple
+                       '#ffc107', # yellow
                       ])
 
-# select and plot exemplary taxa in North American southwest
-sw_names = ['Datura wrightii',
-            'Allionia incarnata',
-            'Xanthisma spinulosum',
-           ]
-sw_taxa = inat_mmrr_filt_adeq_n[inat_mmrr_filt_adeq_n['name'].isin(sw_names)]
-# set values of K (based on manually inspected scree plots of LSP clustering)
-K_vals = {'Datura wrightii': 3,
-          'Allionia incarnata': 3,
-          'Xanthisma spinulosum': 2,
-         }
+
+def plot_focal_inat_taxa(mmrr_res_gdf,
+                         taxa,
+                         ax_rgb_map,
+                         scatter_map_axs,
+                         ts_axs,
+                         flow_obs_axs,
+                         map_xlims,
+                         map_ylims,
+                         flow_obs_plot_type='stack',
+                         radar_alpha=0.5,
+                         radar_width_shrink_factor=0.9,
+                         save_scree_plot=False,
+                        ):
+    """
+    function for identically visualizing a series of example taxa
+    """
+    assert len(taxa) == len(scatter_map_axs) == len(ts_axs)
+    assert flow_obs_axs is None or len(taxa) == len(flow_obs_axs)
+    map_lims_df = pd.DataFrame({'geometry':[Point(*lims) for lims in zip(map_xlims,
+                                                                        map_ylims)],
+                               'idx': range(2)})
+    map_lims_gdf = gpd.GeoDataFrame(map_lims_df, geometry='geometry', crs=4326)
+    map_lims_proj_coords = map_lims_gdf.to_crs(crs).get_coordinates().values
+    map_xlims_proj = map_lims_proj_coords[:, 0]
+    map_ylims_proj = map_lims_proj_coords[:, 1]
+    if ax_rgb_map is not None:
+        eofs.plot.imshow(ax=ax_rgb_map)
+        ax_rgb_map.set_xlim(map_xlims_proj)
+        ax_rgb_map.set_ylim(map_ylims_proj)
+        phf.plot_juris_bounds(ax_rgb_map,
+                              crs=crs,
+                              strip_axes=True,
+                              reset_axlims=False,
+                             )
+    ct = 0
+    for taxon, K in taxa.items():
+        tax_dict = mmrr_res_gdf[mmrr_res_gdf['name'] == taxon].iloc[0,:]
+        tid = tax_dict['tid']
+        name = tax_dict['name']
+        print(f"\n\tnow plotting {name}...")
+        ax_map = scatter_map_axs[ct]
+        ax_ts = ts_axs[ct]
+        if flow_obs_axs is not None:
+            ax_flow_obs = flow_obs_axs[ct]
+        else:
+            ax_flow_obs = None
+        # read observations
+        obs_fn = f"TID_{tid}_{name.replace(' ', '_')}.json"
+        obs = gpd.read_file(os.path.join(inat_obs_data_dir, obs_fn))
+        # drop points outside max boundaries
+        len_b4 = len(obs)
+        in_bounds = []
+        for pt in obs.to_crs(4326).get_coordinates().values:
+            in_bounds.append((map_xlims[0]<=pt[0]<=map_xlims[1] and
+                              map_ylims[0]<=pt[1]<=map_ylims[1]))
+        obs = obs[in_bounds]
+        len_af = len(obs)
+        print(f"{len_b4-len_af} points dropped outside map bounds")
+        phf.plot_flowerdate_LSP_comparison(flower_obs=obs,
+                                           ax_map=ax_map,
+                                           ax_ts=ax_ts,
+                                           ax_flow_obs=ax_flow_obs,
+                                           K=K,
+                                           plot_crs=crs,
+                                           map_xlim=map_xlims_proj,
+                                           map_ylim=map_ylims_proj,
+                                           interp_lsp_data=interp_lsp_data,
+                                           neigh_dist_lsp_fill_tol=neigh_dist_lsp_fill_tol,
+                                           ts_linewidth=ts_linewidth,
+                                           flower_obs_plot_type=None,
+                                           flower_obs_hatch_marker=flower_obs_hatch_marker,
+                                           flower_obs_hatch_size=flower_obs_hatch_size,
+                                           radar_alpha=radar_alpha,
+                                           radar_width_shrink_factor=radar_width_shrink_factor,
+                                           colors=clust_colors,
+                                           save_scree_plot=save_scree_plot,
+                                           name=name,
+                                           tid=tid,
+                                          )
+        # set axis titles after all other components have been plotted
+        ax_map.set_title("$" + name.replace(' ', '\ ') + "$",
+                         fontdict={'fontsize': title_fontsize},
+                        )
+        ct+=1
+
+
+# . . . . . . . . . . . . 
+# plot example taxa in SW
+# . . . . . . . . . . . . 
+# set taxa and their K values (based on manual inspection of scree plots)
+sw_taxa_clust_Ks = {'Xanthisma spinulosum': 2,
+                    'Allionia incarnata': 2,
+                   }
+# set up axes objects and params for plotting
+map_xlims = [-123, -97]
+map_ylims = [23, 38]
+ax_rgb_map = fig.add_subplot(gs[sw_rgb_map_slices[0],
+                                sw_rgb_map_slices[1]])
+scatter_map_axs = [fig.add_subplot(gs[sw_scat_map_slices[i][0],
+                                      sw_scat_map_slices[i][1]]) for i in range(len(sw_taxa_clust_Ks))]
+ts_axs = [fig.add_subplot(gs[sw_ts_slices[i][0],
+                             sw_ts_slices[i][1]]) for i in range(len(sw_taxa_clust_Ks))]
+#flow_obs_axs = [fig.add_subplot(gs[25:40, 135+(i*15):145+(i*15)],
+#                             projection=flowdate_ax_proj) for i in range(len(sw_taxa_clust_Ks))]
+plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
+                     taxa=sw_taxa_clust_Ks,
+                     ax_rgb_map=ax_rgb_map,
+                     scatter_map_axs=scatter_map_axs,
+                     ts_axs=ts_axs,
+                     flow_obs_axs=None,
+                     map_xlims=map_xlims,
+                     map_ylims=map_ylims,
+                     radar_alpha=radar_alpha,
+                     radar_width_shrink_factor=radar_width_shrink_factor,
+                     save_scree_plot=False,
+                    )
+[ax.set_ylabel('scaled LSP',
+               fontdict={'fontsize': axlabel_fontsize},
+             ) for ax in ts_axs]
+
+
+# . . . . . . . . . . . . . . 
+# plot example taxa in Andes
+# . . . . . . . . . . . . . . 
+# set taxa and their K values (based on manual inspection of scree plots)
+andes_taxa_clust_Ks = {'Lycianthes lycioides': 2,
+                       'Guzmania monostachia': 2,
+                      }
+# set up axes objects and params for plotting
+map_xlims = [-86.5, -64]
+map_ylims = [-21, 11.8]
+ax_rgb_map = fig.add_subplot(gs[andes_rgb_map_slices[0],
+                                andes_rgb_map_slices[1]])
+scatter_map_axs = [fig.add_subplot(gs[andes_scat_map_slices[i][0],
+                                      andes_scat_map_slices[i][1]]) for i in range(len(andes_taxa_clust_Ks))]
+ts_axs = [fig.add_subplot(gs[andes_ts_slices[i][0],
+                             andes_ts_slices[i][1]]) for i in range(len(andes_taxa_clust_Ks))]
+#flow_obs_axs = [fig.add_subplot(gs[85:110, 45+(i*15):55+(i*15)],
+#                             projection=flowdate_ax_proj) for i in range(len(andes_taxa_clust_Ks))]
+plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
+                     taxa=andes_taxa_clust_Ks,
+                     ax_rgb_map=ax_rgb_map,
+                     scatter_map_axs=scatter_map_axs,
+                     ts_axs=ts_axs,
+                     flow_obs_axs=None,
+                     map_xlims=map_xlims,
+                     map_ylims=map_ylims,
+                     radar_alpha=radar_alpha,
+                     radar_width_shrink_factor=radar_width_shrink_factor,
+                     save_scree_plot=False,
+                    )
+[ax.set_ylabel('scaled LSP',
+               fontdict={'fontsize': axlabel_fontsize},
+             ) for ax in ts_axs]
+
+
+# . . . . . . . . . . . . . . . .
+# plot example taxa in S. Africa
+# . . . . . . . . . . . . . . . .
+# set taxa and their K values (based on manual inspection of scree plots)
+zaf_taxa_clust_Ks = {'Satyrium parviflorum': 2,
+                     'Pelargonium sidoides': 2,
+                    }
 # set map bounding box
-map_xlim = [-126, -94]
-map_ylim = [21, 45]
-map_lim_df = pd.DataFrame({'geometry':[Point(*lims) for lims in zip(map_xlim,
-                                                                    map_ylim)],
-                           'idx': range(2)})
-map_lim_gdf = gpd.GeoDataFrame(map_lim_df, geometry='geometry', crs=4326)
-map_lim_proj_coords = map_lim_gdf.to_crs(crs).get_coordinates().values
-map_xlim = map_lim_proj_coords[:, 0]
-map_ylim = map_lim_proj_coords[:, 1]
-ax_rgb_map = fig.add_subplot(gs[5:40, 80:120])
-eofs.plot.imshow(ax=ax_rgb_map)
-ax_rgb_map.set_xlim(map_xlim)
-ax_rgb_map.set_ylim(map_ylim)
-phf.plot_juris_bounds(ax_rgb_map,
-                      crs=crs,
-                      strip_axes=True,
-                      reset_axlims=False,
-                     )
-for i, row in sw_taxa.reset_index().iterrows():
-    tid = row['tid']
-    name = row['name']
-    K = K_vals[name]
-    colors = clust_colors[:K]
-    ax_map = fig.add_subplot(gs[5:15, 125+(i*15):135+(i*15)])
-    ax_ts = fig.add_subplot(gs[15:20, 125+(i*15):135+(i*15)])
-    ax_radar = fig.add_subplot(gs[25:40, 125+(i*15):135+(i*15)],
-                               projection='polar',
-                              )
-    # read observations
-    obs_fn = f"TID_{tid}_{name.replace(' ', '_')}.json"
-    obs = gpd.read_file(os.path.join(inat_obs_data_dir, obs_fn))
-    phf.plot_flowerdate_LSP_comparison(flower_obs=obs,
-                                       ax_map=ax_map,
-                                       ax_ts=ax_ts,
-                                       ax_radar=ax_radar,
-                                       plot_crs=crs,
-                                       map_xlim=map_xlim,
-                                       map_ylim=map_ylim,
-                                       interp_lsp_data=interp_lsp_data,
-                                       neigh_dist_lsp_fill_tol=neigh_dist_lsp_fill_tol,
-                                       radar_alpha=0.5,
-                                       radar_width_shrink_factor=0.9,
-                                       colors=colors,
-                                       save_scree_plot=False,
-                                       name=row['name'],
-                                       tid=row['tid'],
-                                      )
+map_xlims = [16.5, 31]
+map_ylims = [-35.5, -29]
+ax_rgb_map = fig.add_subplot(gs[zaf_rgb_map_slices[0],
+                                zaf_rgb_map_slices[1]])
+scatter_map_axs = [fig.add_subplot(gs[zaf_scat_map_slices[i][0],
+                                      zaf_scat_map_slices[i][1]]) for i in range(len(zaf_taxa_clust_Ks))]
+ts_axs = [fig.add_subplot(gs[zaf_ts_slices[i][0],
+                             zaf_ts_slices[i][1]]) for i in range(len(zaf_taxa_clust_Ks))]
+#flow_obs_axs = [fig.add_subplot(gs[85:110, 135+(i*15):145+(i*15)],
+#                             projection=flowdate_ax_proj) for i in range(len(zaf_taxa_clust_Ks))]
+plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
+                     taxa=zaf_taxa_clust_Ks,
+                     ax_rgb_map=ax_rgb_map,
+                     scatter_map_axs=scatter_map_axs,
+                     ts_axs=ts_axs,
+                     flow_obs_axs=None,
+                     map_xlims=map_xlims,
+                     map_ylims=map_ylims,
+                     radar_alpha=radar_alpha,
+                     radar_width_shrink_factor=radar_width_shrink_factor,
+                     save_scree_plot=False,
+                    )
+[ax.set_ylabel('scaled LSP',
+               fontdict={'fontsize': axlabel_fontsize},
+             ) for ax in ts_axs]
 
 
-# select and plot exemplary taxa in South African Cape
-zaf_names = ['Satyrium parviflorum',
-            'Pelargonium sidoides',
-            'Pelargonium englerianum',
-           ]
-zaf_taxa = inat_mmrr_filt_adeq_n[inat_mmrr_filt_adeq_n['name'].isin(zaf_names)]
-# set values of K (based on manually inspected scree plots of LSP clustering)
-K_vals = {'Satyrium parviflorum': 2,
-          'Pelargonium sidoides': 2,
-          'Pelargonium englerianum': 2,
-         }
-# set map bounding box
-map_xlim = [12, 36]
-map_ylim = [-36, -21]
-map_lim_df = pd.DataFrame({'geometry':[Point(*lims) for lims in zip(map_xlim,
-                                                                    map_ylim)],
-                           'idx': range(2)})
-map_lim_gdf = gpd.GeoDataFrame(map_lim_df, geometry='geometry', crs=4326)
-map_lim_proj_coords = map_lim_gdf.to_crs(crs).get_coordinates().values
-map_xlim = map_lim_proj_coords[:, 0]
-map_ylim = map_lim_proj_coords[:, 1]
-ax_rgb_map = fig.add_subplot(gs[60:110, :60])
-eofs.plot.imshow(ax=ax_rgb_map)
-ax_rgb_map.set_xlim(map_xlim)
-ax_rgb_map.set_ylim(map_ylim)
-phf.plot_juris_bounds(ax_rgb_map,
-                      crs=crs,
-                      strip_axes=True,
-                      reset_axlims=False,
-                     )
-for i, row in zaf_taxa.reset_index().iterrows():
-    tid = row['tid']
-    name = row['name']
-    K = K_vals[name]
-    colors = clust_colors[:K]
-    ax_map = fig.add_subplot(gs[65:75, 65+(i*15):75+(i*15)])
-    ax_ts = fig.add_subplot(gs[75:80, 65+(i*15):75+(i*15)])
-    ax_radar = fig.add_subplot(gs[85:100, 65+(i*15):75+(i*15)],
-                               projection='polar',
-                              )
-    # read observations
-    obs_fn = f"TID_{tid}_{name.replace(' ', '_')}.json"
-    obs = gpd.read_file(os.path.join(inat_obs_data_dir, obs_fn))
-    phf.plot_flowerdate_LSP_comparison(flower_obs=obs,
-                                       ax_map=ax_map,
-                                       ax_ts=ax_ts,
-                                       ax_radar=ax_radar,
-                                       plot_crs=crs,
-                                       map_xlim=map_xlim,
-                                       map_ylim=map_ylim,
-                                       interp_lsp_data=interp_lsp_data,
-                                       neigh_dist_lsp_fill_tol=neigh_dist_lsp_fill_tol,
-                                       radar_alpha=0.5,
-                                       radar_width_shrink_factor=0.9,
-                                       colors=colors,
-                                       save_scree_plot=False,
-                                       name=row['name'],
-                                       tid=row['tid'],
-                                      )
-
+# . . . . . . . . . . . . . . . .
+# plot example taxa in E. Brazil
+# . . . . . . . . . . . . . . . .
+#
 
 # find and plot top candidate taxa in Eastern Brazil
 # (need to be taxa with adequate and fairly balanced sampling across the
@@ -717,13 +810,44 @@ e_brz_taxa.loc[:, 'reg_obs_ct'] = [ne_brz_obs_cts[tid] + se_brz_obs_cts[tid] for
 # then order by sample proportion ratio and take most evenly sampled taxon
 e_brz_taxa = e_brz_taxa[e_brz_taxa['reg_obs_ct'] >= min_n_inat_samps_for_demo_plots]
 e_brz_taxa = e_brz_taxa.sort_values(by='reg_obs_prop_ratio', ascending=False)
-# and get the SE Brazilian polygon, too
-# (to clip out a handful of very distant samples)
-e_brz = ne_brz.union(se_brz)
 
-# these taxa will be plotted after landgen results, in the next section...
+print('\nplotting the following taxa in eastern Brazil:\n')
+for i, row in e_brz_taxa.iterrows():
+    print((f"\t{row['name']} (TID: {row['tid']}) "
+           f"(β_LSP P-value: {np.round(row['lsp_p'], 5)}\n\n"))
 
+# K values for the taxa (from manual inspection of their LSP-cluster scree plots)
+e_brz_taxa_clust_Ks = {'Marsypianthes chamaedrys': 3,
+                      'Pleroma heteromallum': 2,
+                     }
+# set map bounding box
+e_brz_map_xlims = [-53.8, -34]
+e_brz_map_ylims = [-31.5, -2.8]
 
+# now plot them to the right of the landscape genetics results that will be
+# plotted in the last section of this script
+# NOTE: skipping the RGB map bc it will be plotted in the landgen section, below
+scatter_map_axs = [fig.add_subplot(gs[e_brz_scat_map_slices[i][0],
+                                      e_brz_scat_map_slices[i][1]]) for i in range(len(e_brz_taxa_clust_Ks))]
+ts_axs = [fig.add_subplot(gs[e_brz_ts_slices[i][0],
+                             e_brz_ts_slices[i][1]]) for i in range(len(e_brz_taxa_clust_Ks))]
+#flow_obs_axs = [fig.add_subplot(gs[180:205, 135+(i*15):145+(i*15)],
+#                             projection=flowdate_ax_proj) for i in range(len(e_brz_taxa_clust_Ks))]
+plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
+                     taxa=e_brz_taxa_clust_Ks,
+                     ax_rgb_map=None,
+                     scatter_map_axs=scatter_map_axs,
+                     ts_axs=ts_axs,
+                     flow_obs_axs=None,
+                     map_xlims=e_brz_map_xlims,
+                     map_ylims=e_brz_map_ylims,
+                     radar_alpha=radar_alpha,
+                     radar_width_shrink_factor=radar_width_shrink_factor,
+                     save_scree_plot=False,
+                    )
+[ax.set_ylabel('scaled LSP',
+               fontdict={'fontsize': axlabel_fontsize},
+             ) for ax in ts_axs]
 
 
 #------------------------------------------------------------------------------
@@ -731,19 +855,18 @@ e_brz = ne_brz.union(se_brz)
 #------------------------------------------------------------------------------
 
 # set map bounding box
-map_xlim = [-70, -30]
-map_ylim = [-50, 0]
-map_lim_df = pd.DataFrame({'geometry':[Point(*lims) for lims in zip(map_xlim,
-                                                                    map_ylim)],
-                           'idx': range(2)})
-map_lim_gdf = gpd.GeoDataFrame(map_lim_df, geometry='geometry', crs=4326)
-map_lim_proj_coords = map_lim_gdf.to_crs(crs).get_coordinates().values
-map_xlim = map_lim_proj_coords[:, 0]
-map_ylim = map_lim_proj_coords[:, 1]
-ax_rgb_map = fig.add_subplot(gs[125:215, :40])
+map_lims_df = pd.DataFrame({'geometry':[Point(*lims) for
+                                lims in zip(e_brz_map_xlims, e_brz_map_ylims)],
+                            'idx': range(2)})
+map_lims_gdf = gpd.GeoDataFrame(map_lims_df, geometry='geometry', crs=4326)
+map_lims_proj_coords = map_lims_gdf.to_crs(crs).get_coordinates().values
+map_xlims = map_lims_proj_coords[:, 0]
+map_ylims = map_lims_proj_coords[:, 1]
+ax_rgb_map = fig.add_subplot(gs[e_brz_rgb_map_slices[0],
+                                e_brz_rgb_map_slices[1]])
 eofs.plot.imshow(ax=ax_rgb_map)
-ax_rgb_map.set_xlim(map_xlim)
-ax_rgb_map.set_ylim(map_ylim)
+ax_rgb_map.set_xlim(map_xlims)
+ax_rgb_map.set_ylim(map_ylims)
 phf.plot_juris_bounds(ax_rgb_map,
                       crs=crs,
                       strip_axes=True,
@@ -751,46 +874,170 @@ phf.plot_juris_bounds(ax_rgb_map,
                      )
 
 # analyze and plot Rhinella granulosa data
-rg_l_gs_col = 45
-rg_r_gs_col = 75
 rg_gen_dist, rg_pts = rg.run_analysis()
-ax_rg_genclust_map = fig.add_subplot(gs[130:160, rg_l_gs_col:rg_r_gs_col])
-ax_rg_genclust_ts = fig.add_subplot(gs[160:170, rg_l_gs_col:rg_r_gs_col])
-ax_rg_lspclust_map = fig.add_subplot(gs[175:205, rg_l_gs_col:rg_r_gs_col])
-ax_rg_lspclust_ts = fig.add_subplot(gs[205:215, rg_l_gs_col:rg_r_gs_col])
+ax_rg_genclust_map = fig.add_subplot(gs[e_brz_genclust_map_slices[0][0],
+                                        e_brz_genclust_map_slices[0][1]])
+ax_rg_genclust_ts = fig.add_subplot(gs[e_brz_genclust_ts_slices[0][0],
+                                       e_brz_genclust_ts_slices[0][1]])
+ax_rg_lspclust_map = fig.add_subplot(gs[e_brz_lspclust_map_slices[0][0],
+                                        e_brz_lspclust_map_slices[0][1]])
+ax_rg_lspclust_ts = fig.add_subplot(gs[e_brz_lspclust_ts_slices[0][0],
+                                       e_brz_lspclust_ts_slices[0][1]])
 phf.plot_popgen_LSP_comparison(gen_dist_mat=rg_gen_dist,
                                pts=rg_pts,
                                ax_lspclust_map=ax_rg_lspclust_map,
                                ax_lspclust_ts=ax_rg_lspclust_ts,
                                ax_genclust_map=ax_rg_genclust_map,
                                ax_genclust_ts=ax_rg_genclust_ts,
+                               K=2,
+                               colors=clust_colors,
                                plot_crs=crs,
-                               map_xlim=map_xlim,
-                               map_ylim=map_ylim,
+                               map_xlim=map_xlims,
+                               map_ylim=map_ylims,
                                interp_lsp_data=interp_lsp_data,
                                neigh_dist_lsp_fill_tol=neigh_dist_lsp_fill_tol,
                               )
 
+# set title and labels last 
+ax_rg_genclust_map.set_title('$Rhinella\ granulosa$',
+                             fontdict={'fontsize': title_fontsize},
+                            )
+ax_rg_genclust_ts.set_ylabel('scaled LSP',
+                              fontdict={'fontsize': axlabel_fontsize},
+                             )
+ax_rg_lspclust_ts.set_ylabel('scaled LSP',
+                              fontdict={'fontsize': axlabel_fontsize},
+                             )
+
 # analyze and plot Xiphorhynchus fuscus data
-xf_l_gs_col = 80
-xf_r_gs_col = 110
 xf_gen_dist, xf_pts = xf.run_analysis()
-ax_xf_genclust_map = fig.add_subplot(gs[130:160, xf_l_gs_col:xf_r_gs_col])
-ax_xf_genclust_ts = fig.add_subplot(gs[160:170, xf_l_gs_col:xf_r_gs_col])
-ax_xf_lspclust_map = fig.add_subplot(gs[175:205, xf_l_gs_col:xf_r_gs_col])
-ax_xf_lspclust_ts = fig.add_subplot(gs[205:215, xf_l_gs_col:xf_r_gs_col])
+ax_xf_genclust_map = fig.add_subplot(gs[e_brz_genclust_map_slices[1][0],
+                                        e_brz_genclust_map_slices[1][1]])
+ax_xf_genclust_ts = fig.add_subplot(gs[e_brz_genclust_ts_slices[1][0],
+                                       e_brz_genclust_ts_slices[1][1]])
+ax_xf_lspclust_map = fig.add_subplot(gs[e_brz_lspclust_map_slices[1][0],
+                                        e_brz_lspclust_map_slices[1][1]])
+ax_xf_lspclust_ts = fig.add_subplot(gs[e_brz_lspclust_ts_slices[1][0],
+                                       e_brz_lspclust_ts_slices[1][1]])
 phf.plot_popgen_LSP_comparison(gen_dist_mat=xf_gen_dist,
                                pts=xf_pts,
                                ax_lspclust_map=ax_xf_lspclust_map,
                                ax_lspclust_ts=ax_xf_lspclust_ts,
                                ax_genclust_map=ax_xf_genclust_map,
                                ax_genclust_ts=ax_xf_genclust_ts,
+                               K=2,
+                               colors=clust_colors,
                                plot_crs=crs,
-                               map_xlim=map_xlim,
-                               map_ylim=map_ylim,
+                               map_xlim=map_xlims,
+                               map_ylim=map_ylims,
                                interp_lsp_data=interp_lsp_data,
                                neigh_dist_lsp_fill_tol=neigh_dist_lsp_fill_tol,
                               )
+# set title and labels last
+ax_xf_genclust_map.set_title('$Xiphorhynchus\ fuscus$',
+                             fontdict={'fontsize': title_fontsize},
+                            )
+ax_xf_genclust_ts.set_ylabel('scaled LSP',
+                              fontdict={'fontsize': axlabel_fontsize},
+                             )
+ax_xf_lspclust_ts.set_ylabel('scaled LSP',
+                              fontdict={'fontsize': axlabel_fontsize},
+                             )
+# add single giant transparent axes over top of everything, then use that to
+# add section labels and dividers
+ax_meta = fig.add_subplot(gs[:, :])
+ax_meta.patch.set_alpha(0)
+ax_meta.axis('off')
+ax_meta.set_xticks(())
+ax_meta.set_yticks(())
+ax_meta.set_xlabel('')
+ax_meta.set_ylabel('')
+ax_meta.set_title('')
+ax_meta.text(0.02,
+             0.98,
+             'A.',
+             weight='bold',
+             size=section_lab_fontsize,
+             clip_on=False,
+            )
+ax_meta.text(0.52,
+             0.98,
+             'B.',
+             weight='bold',
+             size=section_lab_fontsize,
+             clip_on=False,
+            )
+ax_meta.text(0.02,
+             0.7,
+             'C.',
+             weight='bold',
+             size=section_lab_fontsize,
+             clip_on=False,
+            )
+ax_meta.text(0.52,
+             0.7,
+             'D.',
+             weight='bold',
+             size=section_lab_fontsize,
+             clip_on=False,
+            )
+ax_meta.text(0.02,
+             0.42,
+             'E.',
+             weight='bold',
+             size=section_lab_fontsize,
+             clip_on=False,
+            )
+ax_meta.plot([0.508, 0.508],
+             [0.46, 1.2],
+             linewidth=0.3,
+             color='black',
+             alpha=0.3,
+             clip_on=False,
+             zorder=0,
+            )
+ax_meta.plot([-0.2, 1.2],
+             [0.74, 0.74],
+             linewidth=0.3,
+             color='black',
+             alpha=0.3,
+             clip_on=False,
+             zorder=0,
+            )
+ax_meta.plot([-0.2, 1.2],
+             [0.46, 0.46],
+             linewidth=0.3,
+             color='black',
+             alpha=0.3,
+             clip_on=False,
+             zorder=0,
+            )
+ax_meta.text(0.094,
+        0.25,
+        'genetic clusters',
+        rotation=90,
+        size=title_fontsize,
+       )
+ax_meta.text(0.094,
+        0.04,
+        'LSP clusters',
+        rotation=90,
+        size=title_fontsize,
+       )
+ax_meta.set_xlim(0, 1)
+ax_meta.set_ylim(0, 1)
+
+# adjust subplots and save
+fig.subplots_adjust(hspace=0,
+                    wspace=0,
+                    left=0.0,
+                    right=0.98,
+                    bottom=0.03,
+                    top=0.98,
+                   )
+fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_inatphen_and_landgen_results.png'),
+            dpi=600,
+           )
 
 # read and combine results tables from landgen analyses, save as supp table
 rg_df = pd.read_csv(os.path.join(phf.TABS_DIR,
@@ -837,50 +1084,4 @@ out_df = out_df.T
 out_df.to_csv(os.path.join(phf.TABS_DIR, 'TAB_SUPP_landgen_MMRR_results.csv'),
               index=True,
              )
-
-# plot data for the two most significant iNat taxa that have substantial and well
-# balanced (north:south) sampling within the same eastern Brazilian region
-# (bottom right of figure, where it will appear next to the landscape genetic
-# analyses for the same region)
-e_brz_l_gs_cols = [110, 145]
-e_brz_r_gs_cols = [125, 170]
-
-# set values of K (based on manually inspected scree plots of LSP clustering)
-K_vals = [2, # Pleroma heteromallum
-          3, #Marsypianthes chamaedrys
-         ]
-
-for i, row in e_brz_taxa.reset_index().iterrows():
-    K = K_vals[i]
-    colors = clust_colors[:K]
-    l_gs_col = e_brz_l_gs_cols[i]
-    r_gs_col = e_brz_r_gs_cols[i]
-    ax_map = fig.add_subplot(gs[130:160, l_gs_col:r_gs_col])
-    ax_ts = fig.add_subplot(gs[160:170, l_gs_col:r_gs_col])
-    ax_radar = fig.add_subplot(gs[180:210, l_gs_col:r_gs_col],
-                               projection='polar',
-                              )
-    # read observations
-    tid = row['tid']
-    name = row['name']
-    obs_fn = f"TID_{tid}_{name.replace(' ', '_')}.json"
-    obs = gpd.read_file(os.path.join(inat_obs_data_dir, obs_fn))
-    phf.plot_flowerdate_LSP_comparison(flower_obs=obs,
-                                       ax_map=ax_map,
-                                       ax_ts=ax_ts,
-                                       ax_radar=ax_radar,
-                                       plot_crs=crs,
-                                       map_xlim=map_xlim,
-                                       map_ylim=map_ylim,
-                                       interp_lsp_data=interp_lsp_data,
-                                       neigh_dist_lsp_fill_tol=neigh_dist_lsp_fill_tol,
-                                       radar_alpha=0.5,
-                                       radar_width_shrink_factor=0.9,
-                                       colors=colors,
-                                       save_scree_plot=False,
-                                       name=row['name'],
-                                       tid=row['tid'],
-                                      )
-
-
 

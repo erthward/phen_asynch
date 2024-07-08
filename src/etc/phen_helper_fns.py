@@ -509,6 +509,19 @@ def strip_axes_labels_and_ticks(ax):
     ax.set_title('')
 
 
+def convert_clock_ang_to_quadrant_ang(ang):
+    '''
+    convert the given angle (**in radians**), expressed in clock (or compass)
+    polar coordinates (i.e., clockwise from (0,1))
+    to the quadrant angular coordinates in which it must be plotted
+    (i.e., counter-clockwise starting from (0,1))
+    '''
+    ang_out = -1 * (ang - (np.pi/2))
+    if ang_out < 0:
+        ang_out += (2 * np.pi)
+    return ang_out
+
+
 def plot_juris_bounds(ax=None,
                       lev0=True,
                       lev0_color='none',
@@ -578,15 +591,25 @@ def plot_juris_bounds(ax=None,
 def plot_flowerdate_LSP_comparison(flower_obs,
                                    ax_map,
                                    ax_ts,
-                                   ax_radar,
-                                   colors=np.array(['#2d5098', '#ca1957']), # [blue, red]
+                                   ax_flow_obs,
+                                   K,
+                                   # colorblind-friendly [blue, red, yellow]
+                                   colors=np.array(['#2d5098',
+                                                    '#ca1957',
+                                                    '#ffc107',
+                                                   ]),
                                    plot_crs=8857,
                                    map_xlim=None,
                                    map_ylim=None,
                                    interp_lsp_data=False,
                                    neigh_dist_lsp_fill_tol=2,
+                                   ts_linewidth=0.2,
+                                   flower_obs_plot_type=None,
+                                   flower_obs_hatch_marker='|',
+                                   flower_obs_hatch_size=250,
                                    radar_alpha=0.5,
                                    radar_width_shrink_factor=0.9,
+                                   radar_ticklabel_size=11,
                                    save_scree_plot=False,
                                    name=None,
                                    tid=None,
@@ -594,10 +617,11 @@ def plot_flowerdate_LSP_comparison(flower_obs,
     """
     plot a visual comparison between the flowering-doy differences
     across a set of iNat observation locations and the spatial LSP variability
-    observed at the locations, using the length of the 'colors' argument
-    to determine K (i.e., the number of clusters to fit to the LSP
-    time series data using K-means clustering)
+    observed at the locations
     """
+    assert flower_obs_plot_type in ['radar', 'flowerstack', None]
+    if flower_obs_plot_type is None:
+        assert ax_flow_obs is None
     # get the LSP time series at all observations
     pts = flower_obs.get_coordinates().values
     lsp_ts = get_raster_info_points(COEFFS_STRICT_FILE,
@@ -621,7 +645,6 @@ def plot_flowerdate_LSP_comparison(flower_obs,
     assert np.all(lsp_ts.shape == (len(flower_obs), 365))
     assert np.all(pts.shape == (len(flower_obs), 2))
     # cluster by genetics and by LSP
-    K = len(colors)
     lsp_clusts = KMeans(n_clusters=K).fit(lsp_ts)
     # also save a scree plot for values of K=[1,10], if requested
     if save_scree_plot:
@@ -646,7 +669,8 @@ def plot_flowerdate_LSP_comparison(flower_obs,
     # flip the clustering labels
     # so that the first of the northernmost points is always labeled
     # cluster 0 (because the labels are arbitrary anyhow,
-    # but this aligns the colors with Thomé Fig. 5,
+    # but this aligns the colors with Thomé Fig. 5
+    # (for the Rhinella granulosa data, for which I first developed this fn)
     # and aligns them across our subfigs, by putting blue in north)
     if lsp_clusts.labels_[northest_pt_idx] == 1:
         lsp_clusts.labels_ = np.int16(lsp_clusts.labels_ == 0)
@@ -657,7 +681,7 @@ def plot_flowerdate_LSP_comparison(flower_obs,
     jitters = np.stack((x_jitters, y_jitters)).T
     assert np.all(pts.shape == jitters.shape)
     pts_for_plot = pts + jitters
-    # project the plotting plots as needed
+    # project the plotting points as needed
     pts_df = pd.DataFrame({'geometry': [Point(*pts_for_plot[i,:]) for i in
                                         range(pts_for_plot.shape[0])],
                            'idx': [*range(pts_for_plot.shape[0])]
@@ -693,41 +717,115 @@ def plot_flowerdate_LSP_comparison(flower_obs,
         ax_ts.plot(lsp_ts[i, :],
                    color=colors[lsp_clusts.labels_[i]],
                    alpha=0.7,
-                   linewidth=0.5,
+                   linewidth=ts_linewidth,
                   )
-    xax_ticks = [0, 90, 180, 271, 364]
-    xax_ticklabs = ['Jan', 'Apr', 'Jul', 'Oct', 'Jan']
-    ax_ts.set_xticks(xax_ticks)
-    ax_ts.set_xticklabels(xax_ticklabs, size=7)
+        # also plot flowering-date hatches, if flower_obs_plot_type is None
+        # (i.e., if there are not separate axes for that data)
+        if flower_obs_plot_type is None:
+            # NOTE: subtract 1 from doy to align with intrinsic axis of the
+            #       plotted time series, which starts at 0
+            doy = flower_obs.iloc[i, :]['doy'] - 1
+            ax_ts.scatter(doy,
+                          lsp_ts[i, doy],
+                          marker=flower_obs_hatch_marker,
+                          color=colors[lsp_clusts.labels_[i]],
+                          s=flower_obs_hatch_size,
+                         )
+    if flower_obs_plot_type != 'flowerstack':
+        xax_ticks = [0, 90, 180, 271, 364]
+        xax_ticklabs = ['Jan', 'Apr', 'Jul', 'Oct', 'Jan']
+        ax_ts.set_xticks(xax_ticks)
+        ax_ts.set_xticklabels(xax_ticklabs, size=7)
     assert np.round(np.max(lsp_ts), 0) == 2
     assert np.round(np.min(lsp_ts), 0) == -2
-    ax_ts.set_yticks([*range(-2, 3)],
-                  [str(n) for n in range(-2, 3)],
-                  size=7,
-                 )
+    ax_ts.set_yticks(())
     ax_ts.set_xlim(0, 364)
-    ax_ts.set_xlabel('doy', fontdict={'fontsize': 8})
-    ax_ts.set_ylabel('scaled LSP', fontdict={'fontsize': 8})
-    # plot radar plot of observed flowering dates
-    weeks = np.linspace(0, int(7*np.ceil(365/7)), int(np.ceil(365/7)))
-    woy = [np.where((weeks[:-1]<=d) * (d<weeks[1:]))[0] for d in flower_obs['doy']]
-    assert np.all([len(w) == 1 for w in woy])
-    flower_obs.loc[:, 'woy'] = [w[0] for w in woy]
-    for lab in np.unique(lsp_clusts.labels_):
-        color = colors[lab]
-        sub_obs = flower_obs[lsp_clusts.labels_ == lab]
-        woy_cts = {i:0 for i in range(52)}
-        for i, row in sub_obs.iterrows():
-            w = row['woy']
-            woy_cts[w] += 1
-        for w, ct in woy_cts.items():
-            ax_radar.bar(x=w/52*2*np.pi,
-                         height=ct,
-                         width=2*np.pi/52*radar_width_shrink_factor,
-                         alpha=radar_alpha,
-                         color=color,
-                        )
-    # TODO: ADD AXIS LABELS FOR MONTHS
+    ax_ts.set_ylim(1.1*np.min(lsp_ts), 1.1*np.max(lsp_ts))
+    ax_ts.set_xlabel('')
+    ax_ts.set_ylabel('', fontdict={'fontsize': 8})
+    if flower_obs_plot_type == 'stack':
+        stack_cts = {}
+        # plot all one cluster first, then the next, etc...
+        for lab in range(K):
+            sub_obs = flower_obs[lsp_clusts.labels_ == lab]
+            for i, row in flower_obs.reset_index().iterrows():
+                doy = row['doy']
+                woy = doy//7
+                if woy in stack_cts:
+                    stack_cts[woy] += 1
+                else:
+                    stack_cts[woy] = 1
+                y = stack_cts[woy]
+                ax_flow_obs.scatter(woy,
+                                    y,
+                                    color=colors[lab],
+                                    s=80,
+                                    # flower-looking marker
+                                    marker=(5, 2, 0),
+                                   )
+        ax_flow_obs.set_xlim(0, 365//7)
+        ax_flow_obs.set_ylim(0, 1.05*np.max([*stack_cts.values()]))
+        xax_ticks = np.linspace(0, 365, 5)//7
+        xax_ticklabs = ['Jan', 'Apr', 'Jul', 'Oct', 'Jan']
+        ax_flow_obs.set_xticks(xax_ticks)
+        ax_flow_obs.set_xticklabels(xax_ticklabs, size=7)
+    elif flower_obs_plot_type == 'radar':
+        # plot radar plot of observed flowering dates
+        weeks = np.linspace(0, int(7*np.ceil(365/7)), int(np.ceil(365/7)))
+        woy = [np.where((weeks[:-1]<=d) * (d<weeks[1:]))[0] for d in flower_obs['doy']]
+        assert np.all([len(w) == 1 for w in woy])
+        flower_obs.loc[:, 'woy'] = [w[0] for w in woy]
+        for lab in np.unique(lsp_clusts.labels_):
+            color = colors[lab]
+            sub_obs = flower_obs[lsp_clusts.labels_ == lab]
+            woy_cts = {i:0 for i in range(52)}
+            for i, row in sub_obs.iterrows():
+                w = row['woy']
+                woy_cts[w] += 1
+            for w, ct in woy_cts.items():
+                # calculate the polar coordinate corresponding to the week
+                # by dividing the week number by the number of week bins in a year
+                # (NOTE: 53, because there are 52 full weeks plus some extra days)
+                # and multiplying by 2π
+                x_ang_quad = w/53*2*np.pi
+                # then convert from clock (or compass) coordinates to the quadrant
+                # coordiantes of the polar axes (which plot angles
+                # counter-clockwise from (1,0)),
+                # so that the resulting plot can be interpreted clockwise from top
+                x_ang_clock = convert_clock_ang_to_quadrant_ang(x_ang_quad)
+                ax_flow_obs.bar(x=x_ang_clock,
+                             height=ct,
+                             width=2*np.pi/53*radar_width_shrink_factor,
+                             alpha=radar_alpha,
+                             color=color,
+                            )
+        # add month labels clockwise around axis
+        # NOTE: the polar axes plot in quadrant angles
+        #       (counter-clockwise from (1, 0)),
+        #       so need to express coordinates in that way
+        #       so that the resulting plot is interpreted clockwise from the top
+        x_tick_labs = ['Jan', 'Apr', 'Jul', 'Oct']
+        x_tick_pos = [convert_clock_ang_to_quadrant_ang(a) for
+                                  a in np.linspace(0, 3/2*np.pi, len(x_tick_labs))]
+        ax_flow_obs.set_xticks(x_tick_pos, x_tick_labs)
+        # only use integer values for y ticklabels
+        max_ylim = int(np.ceil(np.max(ax_flow_obs.get_ylim())))
+        if max_ylim <= 6:
+            step = 1
+        elif max_ylim > 6 and max_ylim <= 12:
+            step = 2
+        elif max_ylim > 12 and max_ylim <= 18:
+            step = 3
+        elif max_ylim > 18 and max_ylim <= 24:
+            step = 4
+        else:
+            step = 5
+        start = step
+        y_tick_pos = [*range(start, max_ylim+1, step)]
+        y_tick_labs = [str(int(t)) for t in y_tick_pos]
+        ax_flow_obs.set_yticks(y_tick_pos, y_tick_labs)
+        # adjust ticklabel size
+        ax_flow_obs.tick_params(labelsize=radar_ticklabel_size)
 
 
 def plot_popgen_LSP_comparison(gen_dist_mat,
@@ -736,7 +834,9 @@ def plot_popgen_LSP_comparison(gen_dist_mat,
                                ax_lspclust_ts,
                                ax_genclust_map,
                                ax_genclust_ts,
-                               colors=np.array(['#2d5098', '#ca1957']), # [blue, red]
+                               K,
+                               # colorblind-friednly [blue, red, yellow]
+                               colors=np.array(['#2d5098', '#ca1957', '#ffc107']),
                                plot_crs=8857,
                                map_xlim=None,
                                map_ylim=None,
@@ -750,7 +850,6 @@ def plot_popgen_LSP_comparison(gen_dist_mat,
     (i.e., the number of genetic and LSP clusters to fit by K-means clustering)
     """
     # cluster by genetics and by LSP
-    K = len(colors)
     gen_clusts = KMeans(n_clusters=K).fit(gen_dist_mat)
     lsp_ts = get_raster_info_points(COEFFS_STRICT_FILE,
                                     pts,
@@ -830,11 +929,8 @@ def plot_popgen_LSP_comparison(gen_dist_mat,
         ax.set_xticklabels(xax_ticklabs, size=7)
         assert np.round(np.max(lsp_ts), 0) == 2
         assert np.round(np.min(lsp_ts), 0) == -2
-        ax.set_yticks([*range(-2, 3)],
-                      [str(n) for n in range(-2, 3)],
-                      size=7,
-                     )
+        ax.set_yticks(())
         ax.set_xlim(0, 364)
-        ax.set_xlabel('day of calendar year', fontdict={'fontsize': 8})
-        ax.set_ylabel('normalized LSP value', fontdict={'fontsize': 8})
+        ax.set_xlabel('')
+        ax.set_ylabel('', fontdict={'fontsize': 8})
 
