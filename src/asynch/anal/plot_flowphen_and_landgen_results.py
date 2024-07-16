@@ -17,6 +17,7 @@ import geopandas as gpd
 import rioxarray as rxr
 import cmcrameri.cm as cmc
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 from sklearn.cluster import KMeans
 from shapely.geometry import Point
 from collections import OrderedDict
@@ -51,121 +52,121 @@ neigh_dist_lsp_fill_tol = 2
 
 # plotting params for LSP time series and iNat flowering-date plots
 ts_linewidth = 0.2
-flower_obs_hatch_marker = 'o'
-flower_obs_hatch_size = 10
+flower_obs_hatch_marker = '|'
+flower_obs_hatch_size = 25
 radar_alpha=0.5
 radar_width_shrink_factor=0.9
 
 # plotting font sizes
 section_lab_fontsize=25
-title_fontsize = 15
-axlabel_fontsize = 9
+cbar_lab_fontsize = 12
+title_fontsize = 19
+taxon_fontsize = 14
+axlabel_fontsize = 10
 
 # configure figure and axes sizes
-figsize = (22, 16)
-gridspec_dims = (210, 220)
-modality_map_slices = (slice(0, 50),
-                       slice(8, 105),
+figsize = (16.5, 17)
+gridspec_dims = (165, 160)
+modality_map_slices = (slice(0, 55),
+                       slice(5, 81),
                       )
 modality_map_colorbar_slices = (slice(10, 40),
-                                slice(9, 11),
+                                slice(6, 8),
                                )
-sw_rgb_map_slices = (slice(11, 31),
-                     slice(114, 134),
+sw_rgb_map_slices = (slice(54, 74),
+                     slice(23, 53),
                     )
-sw_scat_map_slices = [(slice(0, 30),
-                       slice(135, 175),
-                      ),
-                      (slice(0, 30),
-                       slice(180, 220),
+sw_scat_map_slices = [(slice(54, 74),
+                       slice(50, 80),
                       ),
                      ]
-sw_ts_slices = [(slice(30, 45),
-                 slice(135, 175),
-                ),
-                (slice(30, 45),
-                 slice(180, 220),
+sw_ts_slices = [(slice(76, 86),
+                 slice(50, 80),
                 ),
                ]
-andes_rgb_map_slices = (slice(75, 105),
-                        slice(0, 30),
+sw_photo_slices = [(slice(57, 85),
+                      slice(2, 27),
+                     )
+                    ]
+andes_rgb_map_slices = (slice(94, 114),
+                        slice(28, 58),
                        )
-andes_scat_map_slices = [(slice(60, 90),
-                          slice(25, 65),
-                         ),
-                         (slice(60, 90),
-                          slice(70, 110),
+andes_scat_map_slices = [(slice(94, 114),
+                          slice(50, 80),
                          ),
                         ]
-andes_ts_slices = [(slice(90, 105),
-                    slice(25, 65),
-                   ),
-                   (slice(90, 105),
-                    slice(70, 110),
+andes_ts_slices = [(slice(116, 126),
+                    slice(50, 80),
                    ),
                   ]
-zaf_rgb_map_slices = (slice(71, 91),
-                      slice(114, 134),
+andes_photo_slices = [(slice(99, 127),
+                         slice(2, 27),
+                        )
+                       ]
+zaf_rgb_map_slices = (slice(132, 152),
+                      slice(23, 53),
                      )
-zaf_scat_map_slices = [(slice(60, 90),
-                        slice(140, 170),
-                       ),
-                       (slice(60, 90),
-                        slice(185, 215),
+zaf_scat_map_slices = [(slice(134, 154),
+                        slice(50, 80),
                        ),
                       ]
-zaf_ts_slices = [(slice(90, 105),
-                  slice(135, 175),
-                 ),
-                 (slice(90, 105),
-                  slice(180, 220),
+zaf_ts_slices = [(slice(155, 165),
+                  slice(50, 80),
                  ),
                 ]
-e_brz_rgb_map_slices = (slice(145, 175),
-                        slice(0, 30),
+zaf_photo_slices = [(slice(142, 165),
+                       slice(0, 30),
+                      )
+                     ]
+e_brz_rgb_map_slices = (slice(0, 34),
+                        slice(101, 131),
                        )
-e_brz_genclust_map_slices = [(slice(120, 150),
-                              slice(25, 65),
+e_brz_genclust_map_slices = [(slice(60, 95),
+                              slice(97, 127),
                              ),
-                             (slice(120, 150),
-                              slice(70, 110),
-                             ),
-                            ]
-e_brz_genclust_ts_slices = [(slice(150, 165),
-                             slice(25, 65),
-                            ),
-                            (slice(150, 165),
-                             slice(70, 110),
-                            ),
-                           ]
-e_brz_lspclust_map_slices = [(slice(170, 200),
-                              slice(25, 65),
-                             ),
-                             (slice(170, 200),
-                              slice(70, 110),
+                             (slice(118, 153),
+                              slice(97, 127),
                              ),
                             ]
-e_brz_lspclust_ts_slices = [(slice(200, 215),
-                             slice(25, 65),
+e_brz_genclust_ts_slices = [(slice(97, 107),
+                             slice(97, 127),
                             ),
-                            (slice(200, 215),
-                             slice(70, 110),
+                            (slice(155, 165),
+                             slice(97, 127),
                             ),
                            ]
-e_brz_scat_map_slices = [(slice(170, 200),
-                          slice(120, 160),
-                         ),
-                         (slice(170, 200),
-                          slice(175, 215),
+e_brz_lspclust_map_slices = [(slice(60, 95),
+                              slice(130, 160),
+                             ),
+                             (slice(118, 153),
+                              slice(130, 160),
+                             ),
+                            ]
+e_brz_lspclust_ts_slices = [(slice(97, 107),
+                             slice(131, 162),
+                            ),
+                            (slice(155, 165),
+                             slice(130, 160),
+                            ),
+                           ]
+e_brz_scat_map_slices = [(slice(0, 34),
+                          slice(130, 160),
                          ),
                         ]
-e_brz_ts_slices = [(slice(200, 215),
-                    slice(120, 160),
-                   ),
-                   (slice(200, 215),
-                    slice(175, 215),
+e_brz_ts_slices = [(slice(36, 46),
+                    slice(130, 160),
                    ),
                   ]
+e_brz_photo_slices = [(slice(10, 40),
+                       slice(83, 103),
+                      ),
+                      (slice(64, 83),
+                       slice(83, 102),
+                      ),
+                      (slice(127, 151),
+                       slice(80, 105),
+                      ),
+                     ]
 
 # common equal-area projection to use
 crs = 8857
@@ -279,7 +280,7 @@ for i, res_col in enumerate(res_cols):
         plt.colorbar(scalcmap, cax=cax, orientation=orientation)
         ticks = np.linspace(0, 1, 5)
         cax.set_xlabel('proportion\nnon-unimodal\ntaxa',
-                       fontdict={'fontsize': title_fontsize},
+                       fontdict={'fontsize': cbar_lab_fontsize},
                       )
         if i == 3:
             cax.set_yticks(ticks, ['%0.2f' % t for t in ticks], size=9)
@@ -526,12 +527,31 @@ clust_colors=np.array(['#2d5098', # blue
                        '#ffc107', # yellow
                       ])
 
+def plot_taxon_photo(ax, name):
+    """
+    plot a photo of the taxon, taken from among the available CC BY-NC photos
+    """
+    filename = name.replace(' ', '_') + '.jpg'
+    filepath = os.path.join(phf.EXTERNAL_INAT_DATA_DIR,
+                            'photos',
+                            filename,
+                           )
+    img = mpimg.imread(filepath)
+    ax.imshow(img)
+    ax.set_aspect('equal')
+    ax.set_title('')
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.set_xticks(())
+    ax.set_yticks(())
+
 
 def plot_focal_inat_taxa(mmrr_res_gdf,
                          taxa,
                          ax_rgb_map,
                          scatter_map_axs,
                          ts_axs,
+                         photo_axs,
                          flow_obs_axs,
                          map_xlims,
                          map_ylims,
@@ -539,6 +559,7 @@ def plot_focal_inat_taxa(mmrr_res_gdf,
                          radar_alpha=0.5,
                          radar_width_shrink_factor=0.9,
                          save_scree_plot=False,
+                         set_title=False,
                         ):
     """
     function for identically visualizing a series of example taxa
@@ -606,10 +627,15 @@ def plot_focal_inat_taxa(mmrr_res_gdf,
                                            name=name,
                                            tid=tid,
                                           )
+        # plot photo
+        plot_taxon_photo(photo_axs[ct], taxon)
         # set axis titles after all other components have been plotted
-        ax_map.set_title("$" + name.replace(' ', '\ ') + "$",
-                         fontdict={'fontsize': title_fontsize},
-                        )
+        if set_title:
+            ax_map.set_title("$" + name.replace(' ', '\ ') + "$",
+                             fontdict={'fontsize': title_fontsize},
+                            )
+        else:
+            ax_map.set_title('')
         ct+=1
 
 
@@ -618,10 +644,10 @@ def plot_focal_inat_taxa(mmrr_res_gdf,
 # . . . . . . . . . . . . 
 # set taxa and their K values (based on manual inspection of scree plots)
 sw_taxa_clust_Ks = {'Xanthisma spinulosum': 2,
-                    'Allionia incarnata': 2,
+                    #'Allionia incarnata': 2,
                    }
 # set up axes objects and params for plotting
-map_xlims = [-123, -97]
+map_xlims = [-115, -105]
 map_ylims = [23, 38]
 ax_rgb_map = fig.add_subplot(gs[sw_rgb_map_slices[0],
                                 sw_rgb_map_slices[1]])
@@ -629,13 +655,14 @@ scatter_map_axs = [fig.add_subplot(gs[sw_scat_map_slices[i][0],
                                       sw_scat_map_slices[i][1]]) for i in range(len(sw_taxa_clust_Ks))]
 ts_axs = [fig.add_subplot(gs[sw_ts_slices[i][0],
                              sw_ts_slices[i][1]]) for i in range(len(sw_taxa_clust_Ks))]
-#flow_obs_axs = [fig.add_subplot(gs[25:40, 135+(i*15):145+(i*15)],
-#                             projection=flowdate_ax_proj) for i in range(len(sw_taxa_clust_Ks))]
+photo_axs = [fig.add_subplot(gs[sw_photo_slices[i][0],
+                                sw_photo_slices[i][1]]) for i in range(len(sw_taxa_clust_Ks))]
 plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
                      taxa=sw_taxa_clust_Ks,
                      ax_rgb_map=ax_rgb_map,
                      scatter_map_axs=scatter_map_axs,
                      ts_axs=ts_axs,
+                     photo_axs=photo_axs,
                      flow_obs_axs=None,
                      map_xlims=map_xlims,
                      map_ylims=map_ylims,
@@ -653,24 +680,25 @@ plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
 # . . . . . . . . . . . . . . 
 # set taxa and their K values (based on manual inspection of scree plots)
 andes_taxa_clust_Ks = {'Lycianthes lycioides': 2,
-                       'Guzmania monostachia': 2,
+                       #'Guzmania monostachia': 2,
                       }
 # set up axes objects and params for plotting
-map_xlims = [-86.5, -64]
-map_ylims = [-21, 11.8]
+map_xlims = [-83.5, -67]
+map_ylims = [-21, 8]
 ax_rgb_map = fig.add_subplot(gs[andes_rgb_map_slices[0],
                                 andes_rgb_map_slices[1]])
 scatter_map_axs = [fig.add_subplot(gs[andes_scat_map_slices[i][0],
                                       andes_scat_map_slices[i][1]]) for i in range(len(andes_taxa_clust_Ks))]
 ts_axs = [fig.add_subplot(gs[andes_ts_slices[i][0],
                              andes_ts_slices[i][1]]) for i in range(len(andes_taxa_clust_Ks))]
-#flow_obs_axs = [fig.add_subplot(gs[85:110, 45+(i*15):55+(i*15)],
-#                             projection=flowdate_ax_proj) for i in range(len(andes_taxa_clust_Ks))]
+photo_axs = [fig.add_subplot(gs[andes_photo_slices[i][0],
+                                andes_photo_slices[i][1]]) for i in range(len(sw_taxa_clust_Ks))]
 plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
                      taxa=andes_taxa_clust_Ks,
                      ax_rgb_map=ax_rgb_map,
                      scatter_map_axs=scatter_map_axs,
                      ts_axs=ts_axs,
+                     photo_axs=photo_axs,
                      flow_obs_axs=None,
                      map_xlims=map_xlims,
                      map_ylims=map_ylims,
@@ -688,24 +716,25 @@ plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
 # . . . . . . . . . . . . . . . .
 # set taxa and their K values (based on manual inspection of scree plots)
 zaf_taxa_clust_Ks = {'Satyrium parviflorum': 2,
-                     'Pelargonium sidoides': 2,
+                     #'Pelargonium sidoides': 2,
                     }
 # set map bounding box
-map_xlims = [16.5, 31]
-map_ylims = [-35.5, -29]
+map_xlims = [17, 31]
+map_ylims = [-35.5, -22]
 ax_rgb_map = fig.add_subplot(gs[zaf_rgb_map_slices[0],
                                 zaf_rgb_map_slices[1]])
 scatter_map_axs = [fig.add_subplot(gs[zaf_scat_map_slices[i][0],
                                       zaf_scat_map_slices[i][1]]) for i in range(len(zaf_taxa_clust_Ks))]
 ts_axs = [fig.add_subplot(gs[zaf_ts_slices[i][0],
                              zaf_ts_slices[i][1]]) for i in range(len(zaf_taxa_clust_Ks))]
-#flow_obs_axs = [fig.add_subplot(gs[85:110, 135+(i*15):145+(i*15)],
-#                             projection=flowdate_ax_proj) for i in range(len(zaf_taxa_clust_Ks))]
+photo_axs = [fig.add_subplot(gs[zaf_photo_slices[i][0],
+                                zaf_photo_slices[i][1]]) for i in range(len(sw_taxa_clust_Ks))]
 plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
                      taxa=zaf_taxa_clust_Ks,
                      ax_rgb_map=ax_rgb_map,
                      scatter_map_axs=scatter_map_axs,
                      ts_axs=ts_axs,
+                     photo_axs=photo_axs,
                      flow_obs_axs=None,
                      map_xlims=map_xlims,
                      map_ylims=map_ylims,
@@ -817,9 +846,9 @@ for i, row in e_brz_taxa.iterrows():
            f"(β_LSP P-value: {np.round(row['lsp_p'], 5)}\n\n"))
 
 # K values for the taxa (from manual inspection of their LSP-cluster scree plots)
-e_brz_taxa_clust_Ks = {'Marsypianthes chamaedrys': 3,
-                      'Pleroma heteromallum': 2,
-                     }
+e_brz_taxa_clust_Ks = {'Pleroma heteromallum': 2,
+                       #'Marsypianthes chamaedrys': 3,
+                      }
 # set map bounding box
 e_brz_map_xlims = [-53.8, -34]
 e_brz_map_ylims = [-31.5, -2.8]
@@ -831,13 +860,14 @@ scatter_map_axs = [fig.add_subplot(gs[e_brz_scat_map_slices[i][0],
                                       e_brz_scat_map_slices[i][1]]) for i in range(len(e_brz_taxa_clust_Ks))]
 ts_axs = [fig.add_subplot(gs[e_brz_ts_slices[i][0],
                              e_brz_ts_slices[i][1]]) for i in range(len(e_brz_taxa_clust_Ks))]
-#flow_obs_axs = [fig.add_subplot(gs[180:205, 135+(i*15):145+(i*15)],
-#                             projection=flowdate_ax_proj) for i in range(len(e_brz_taxa_clust_Ks))]
+photo_axs = [fig.add_subplot(gs[e_brz_photo_slices[i][0],
+                                e_brz_photo_slices[i][1]]) for i in range(len(sw_taxa_clust_Ks))]
 plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
                      taxa=e_brz_taxa_clust_Ks,
                      ax_rgb_map=None,
                      scatter_map_axs=scatter_map_axs,
                      ts_axs=ts_axs,
+                     photo_axs=photo_axs,
                      flow_obs_axs=None,
                      map_xlims=e_brz_map_xlims,
                      map_ylims=e_brz_map_ylims,
@@ -897,17 +927,18 @@ phf.plot_popgen_LSP_comparison(gen_dist_mat=rg_gen_dist,
                                interp_lsp_data=interp_lsp_data,
                                neigh_dist_lsp_fill_tol=neigh_dist_lsp_fill_tol,
                               )
-
+# add photo
+ax_rg_photo = fig.add_subplot(gs[e_brz_photo_slices[1][0],
+                                 e_brz_photo_slices[1][1]])
+plot_taxon_photo(ax_rg_photo, 'Rhinella granulosa')
 # set title and labels last 
-ax_rg_genclust_map.set_title('$Rhinella\ granulosa$',
-                             fontdict={'fontsize': title_fontsize},
-                            )
+ax_rg_genclust_map.set_title('')
 ax_rg_genclust_ts.set_ylabel('scaled LSP',
                               fontdict={'fontsize': axlabel_fontsize},
                              )
-ax_rg_lspclust_ts.set_ylabel('scaled LSP',
-                              fontdict={'fontsize': axlabel_fontsize},
-                             )
+#ax_rg_lspclust_ts.set_ylabel('scaled LSP',
+#                              fontdict={'fontsize': axlabel_fontsize},
+#                             )
 
 # analyze and plot Xiphorhynchus fuscus data
 xf_gen_dist, xf_pts = xf.run_analysis()
@@ -933,16 +964,18 @@ phf.plot_popgen_LSP_comparison(gen_dist_mat=xf_gen_dist,
                                interp_lsp_data=interp_lsp_data,
                                neigh_dist_lsp_fill_tol=neigh_dist_lsp_fill_tol,
                               )
+# add photo
+ax_xf_photo = fig.add_subplot(gs[e_brz_photo_slices[2][0],
+                                 e_brz_photo_slices[2][1]])
+plot_taxon_photo(ax_xf_photo, 'Xiphorhynchus fuscus')
 # set title and labels last
-ax_xf_genclust_map.set_title('$Xiphorhynchus\ fuscus$',
-                             fontdict={'fontsize': title_fontsize},
-                            )
+ax_xf_genclust_map.set_title('')
 ax_xf_genclust_ts.set_ylabel('scaled LSP',
                               fontdict={'fontsize': axlabel_fontsize},
                              )
-ax_xf_lspclust_ts.set_ylabel('scaled LSP',
-                              fontdict={'fontsize': axlabel_fontsize},
-                             )
+#ax_xf_lspclust_ts.set_ylabel('scaled LSP',
+#                              fontdict={'fontsize': axlabel_fontsize},
+#                             )
 # add single giant transparent axes over top of everything, then use that to
 # add section labels and dividers
 ax_meta = fig.add_subplot(gs[:, :])
@@ -953,77 +986,134 @@ ax_meta.set_yticks(())
 ax_meta.set_xlabel('')
 ax_meta.set_ylabel('')
 ax_meta.set_title('')
-ax_meta.text(0.02,
+ax_meta.text(0.01,
              0.98,
              'A.',
              weight='bold',
              size=section_lab_fontsize,
              clip_on=False,
             )
-ax_meta.text(0.52,
-             0.98,
+ax_meta.text(0.01,
+             0.67,
              'B.',
              weight='bold',
              size=section_lab_fontsize,
              clip_on=False,
             )
-ax_meta.text(0.02,
-             0.7,
+ax_meta.text(0.01,
+             0.42,
              'C.',
              weight='bold',
              size=section_lab_fontsize,
              clip_on=False,
             )
-ax_meta.text(0.52,
-             0.7,
+ax_meta.text(0.01,
+             0.17,
              'D.',
              weight='bold',
              size=section_lab_fontsize,
              clip_on=False,
             )
-ax_meta.text(0.02,
-             0.42,
+ax_meta.text(0.52,
+             0.98,
              'E.',
              weight='bold',
              size=section_lab_fontsize,
              clip_on=False,
             )
-ax_meta.plot([0.508, 0.508],
-             [0.46, 1.2],
+ax_meta.text(0.52,
+             0.67,
+             'F.',
+             weight='bold',
+             size=section_lab_fontsize,
+             clip_on=False,
+            )
+ax_meta.text(0.62,
+             0.66,
+             'genetic clusters',
+             rotation=0,
+             size=title_fontsize,
+            )
+ax_meta.text(0.84,
+             0.66,
+             'LSP clusters',
+             rotation=0,
+             size=title_fontsize,
+            )
+ax_meta.text(0.02,
+             0.635,
+             [*sw_taxa_clust_Ks][0].replace(' ', '\n'),
+             fontdict={'fontsize': taxon_fontsize,
+                       'style': 'italic',
+                      },
+            )
+ax_meta.text(0.02,
+             0.385,
+             [*andes_taxa_clust_Ks][0].replace(' ', '\n'),
+             fontdict={'fontsize': taxon_fontsize,
+                       'style': 'italic',
+                      },
+            )
+ax_meta.text(0.05,
+             0.15,
+             [*zaf_taxa_clust_Ks][0].replace(' ', '\n'),
+             fontdict={'fontsize': taxon_fontsize,
+                       'style': 'italic',
+                      },
+            )
+ax_meta.text(0.52,
+             0.94,
+             [*e_brz_taxa_clust_Ks][0].replace(' ', '\n'),
+             fontdict={'fontsize': taxon_fontsize,
+                       'style': 'italic',
+                      },
+            )
+ax_meta.text(0.525,
+             0.62,
+             'Rhinella\ngranulosa',
+             fontdict={'fontsize': taxon_fontsize,
+                       'style': 'italic',
+                      },
+            )
+ax_meta.text(0.53,
+             0.24,
+             'Xiphorhynchus\nfuscus',
+             fontdict={'fontsize': taxon_fontsize,
+                       'style': 'italic',
+                      },
+            )
+ax_meta.plot([0.51, 0.51],
+             [-0.1, 1.2],
              linewidth=0.3,
              color='black',
-             alpha=0.3,
+             alpha=0.4,
              clip_on=False,
              zorder=0,
             )
 ax_meta.plot([-0.2, 1.2],
-             [0.74, 0.74],
+             [0.70, 0.70],
              linewidth=0.3,
              color='black',
-             alpha=0.3,
+             alpha=0.4,
              clip_on=False,
              zorder=0,
             )
-ax_meta.plot([-0.2, 1.2],
-             [0.46, 0.46],
+ax_meta.plot([-0.2, 0.51],
+             [0.45, 0.45],
              linewidth=0.3,
              color='black',
-             alpha=0.3,
+             alpha=0.4,
              clip_on=False,
              zorder=0,
             )
-ax_meta.text(0.094,
-        0.25,
-        'genetic clusters',
-        rotation=90,
-        size=title_fontsize,
-       )
-ax_meta.text(0.094,
-        0.04,
-        'LSP clusters',
-        rotation=90,
-        size=title_fontsize,
-       )
+ax_meta.plot([-0.2, 0.51],
+             [0.21, 0.21],
+             linewidth=0.3,
+             color='black',
+             alpha=0.4,
+             clip_on=False,
+             zorder=0,
+            )
 ax_meta.set_xlim(0, 1)
 ax_meta.set_ylim(0, 1)
 

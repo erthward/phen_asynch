@@ -1,0 +1,2277 @@
+LOCUS       EU073025                1056 bp    DNA     linear   VRT 26-JUL-2016
+DEFINITION  Xiphorhynchus fuscus atlanticus voucher LGEMA 10391 cytochrome B
+            gene, partial cds; mitochondrial.
+ACCESSION   EU073025
+VERSION     EU073025.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus atlanticus
+  ORGANISM  Xiphorhynchus fuscus atlanticus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1056)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1056)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (30-JUL-2007) Genetics and Evolutionary Biology,
+            Institute of Biociences, University of Sao Paulo, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1056
+                     /organism="Xiphorhynchus fuscus atlanticus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /sub_species="atlanticus"
+                     /specimen_voucher="LGEMA 10391"
+                     /db_xref="taxon:436321"
+                     /geo_loc_name="Brazil: Serra de Baturite, CE"
+     CDS             <1..1042
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome B"
+                     /protein_id="ABW69436.1"
+                     /translation="WILLGICLMAQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGW
+                     LIRNLHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPW
+                     GQMSFWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLT
+                     FIHLTFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLG
+                     DPENFTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHK
+                     SKQRTMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFP
+                     IVGALENKMLNL"
+ORIGIN      
+        1 ttggatcctt ctaggcatct gcctcatggc acaaatcatc acgggtctcc taatagcaat
+       61 acactataca gcagacacta ccctagcctt cacatccgta gcccatacat gccgaaacgt
+      121 ccaattcggc tgactgatcc gcaacctcca cgcaaacgga gcctcaatat tcttcatctg
+      181 tatctacctc cacatcggac gaggcttcta ctacggctct tacctcttca aagaaacttg
+      241 aaatacagga attatcctcc tattaaccct catagcaaca gctttcgtcg gctatgtcct
+      301 accatgaggc caaatatcat tttgaggtgc tacagtcatc accaatctat tttcagcaat
+      361 tccttacatc ggacaaacac ttgtagaatg agcatgggga ggattttcag tagacaaccc
+      421 aacactaacc cgattctttg ccctacactt cctcctacca ttcgccattg caggccttac
+      481 atttatccac ctgaccttcc tacatgaaac cggctcaaac aaccccttag gtatttcatc
+      541 aaactgcgat aaaattccat tccacccata cttctctact aaagacattc taggttttat
+      601 agccatactg acaccactag ccgcactagc catattctca ccaaacctct taggtgaccc
+      661 agaaaacttt acacctgcaa acccactagt aacccctccc cacatcaaac cagaatgata
+      721 cttcctattc gcatacgcca tcctacgatc aatcccaaat aaactaggag gagttctagc
+      781 ccttgccgct tcagtcctaa tcctattcct agtcccattc ctccacaaat caaaacaacg
+      841 aacaataact ttccgccccc tatcccaact cttattttga atcctagtaa ctaacctctt
+      901 tatcctcacg tgagtaggaa gccaaccagt tgaacatccc ttcattatca tcggacaatt
+      961 agcctcactc acctatttca tgacactcct catcctattc ccaattgtcg gagccttaga
+     1021 aaataagata ctcaatctct aaacactcta atagtt
+//
+
+LOCUS       EU073026                1026 bp    DNA     linear   VRT 26-JUL-2016
+DEFINITION  Xiphorhynchus fuscus atlanticus voucher LGEMA 10392 cytochrome B
+            gene, partial cds; mitochondrial.
+ACCESSION   EU073026
+VERSION     EU073026.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus atlanticus
+  ORGANISM  Xiphorhynchus fuscus atlanticus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1026)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1026)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (30-JUL-2007) Genetics and Evolutionary Biology,
+            Institute of Biociences, University of Sao Paulo, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1026
+                     /organism="Xiphorhynchus fuscus atlanticus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /sub_species="atlanticus"
+                     /specimen_voucher="LGEMA 10392"
+                     /db_xref="taxon:436321"
+                     /geo_loc_name="Brazil: Serra de Baturite, CE"
+     CDS             <1..1012
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome B"
+                     /protein_id="ABW69437.1"
+                     /translation="QIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRNLHANGA
+                     SMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSFWGATV
+                     ITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLTFLHET
+                     GSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENFTPANP
+                     LVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRTMTFRP
+                     LSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGALENKML
+                     NL"
+ORIGIN      
+        1 acaaatcatc acgggtctcc taatagcaat acactataca gcagacacta ccctagcctt
+       61 cacatccgta gcccatacat gccgaaacgt ccaattcggc tgactgatcc gcaacctcca
+      121 cgcaaacgga gcctcaatat tcttcatctg tatctacctc cacatcggac gaggcttcta
+      181 ctacggctct tacctcttca aagaaacttg aaatacagga attatcctcc tattaaccct
+      241 catagcaaca gctttcgtcg gctatgtcct accatgaggc caaatatcat tttgaggtgc
+      301 tacagtcatc accaatctat tttcagcaat tccttacatc ggacaaacac ttgtagaatg
+      361 agcatgggga ggattttcag tagacaaccc aacactaacc cgattctttg ccctacactt
+      421 cctcctacca ttcgccattg caggccttac atttatccac ctgaccttcc tacatgaaac
+      481 cggctcaaac aaccccttag gtatttcatc aaactgcgat aaaattccat tccacccata
+      541 cttctctact aaagacattc taggttttat agccatactg acaccactag ccgcactagc
+      601 catattctca ccaaacctct taggtgaccc agaaaacttt acacctgcaa acccactagt
+      661 aacccctccc cacatcaaac cagaatgata cttcctattc gcatacgcca tcctacgatc
+      721 aatcccaaat aaactaggag gagttctagc ccttgccgct tcagtcctaa tcctattcct
+      781 agtcccattc ctccacaaat caaaacaacg aacaataact ttccgccccc tatcccaact
+      841 cttattttga atcctagtaa ctaacctctt tatcctcacg tgagtaggaa gccaaccagt
+      901 tgaacatccc ttcattatca tcggacaatt agcctcactc acctatttca tgacactcct
+      961 catcctattc ccaattgtcg gagccttaga aaataagata ctcaatctct aaacactcta
+     1021 atagtt
+//
+
+LOCUS       EU073027                 990 bp    DNA     linear   VRT 26-JUL-2016
+DEFINITION  Xiphorhynchus fuscus atlanticus voucher LGEMA 10395 cytochrome B
+            gene, partial cds; mitochondrial.
+ACCESSION   EU073027
+VERSION     EU073027.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus atlanticus
+  ORGANISM  Xiphorhynchus fuscus atlanticus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 990)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 990)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (30-JUL-2007) Genetics and Evolutionary Biology,
+            Institute of Biociences, University of Sao Paulo, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..990
+                     /organism="Xiphorhynchus fuscus atlanticus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /sub_species="atlanticus"
+                     /specimen_voucher="LGEMA 10395"
+                     /db_xref="taxon:436321"
+                     /geo_loc_name="Brazil: Serra de Baturite, CE"
+     CDS             <1..980
+                     /codon_start=3
+                     /transl_table=2
+                     /product="cytochrome B"
+                     /protein_id="ABW69438.1"
+                     /translation="YTADTTLAFTSVAHTCRNVQFGWLIRNLHANGASMFFICIYLHI
+                     GRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSFWGATVITNLFSAIPYI
+                     GQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLTFLHETGSNNPLGISSN
+                     CDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENFTPANPLVTPPHIKPEW
+                     YFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRTMTFRPLSQLLFWILVT
+                     NLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGALENKMLNL"
+ORIGIN      
+        1 actatacagc agacactacc ctagccttca catccgtagc ccatacatgc cgaaacgtcc
+       61 aattcggctg actgatccgc aacctccacg caaacggagc ctcaatattc ttcatctgta
+      121 tctacctcca catcggacga ggcttctact acggctctta cctcttcaaa gaaacttgaa
+      181 atacaggaat tatcctccta ttaaccctca tagcaacagc tttcgtcggc tatgtcctac
+      241 catgaggcca aatatcattt tgaggtgcta cagtcatcac caatctattt tcagcaattc
+      301 cttacatcgg acaaacactt gtagaatgag catggggagg attttcagta gacaacccaa
+      361 cactaacccg attctttgcc ctacacttcc tcctaccatt cgccattgca ggccttacat
+      421 ttatccacct gaccttccta catgaaaccg gctcaaacaa ccccttaggt atttcatcaa
+      481 actgcgataa aattccattc cacccatact tctctactaa agacattcta ggttttatag
+      541 ccatactgac accactagcc gcactagcca tattctcacc aaacctctta ggtgacccag
+      601 aaaactttac acctgcaaac ccactagtaa cccctcccca catcaaacca gaatgatact
+      661 tcctattcgc atacgccatc ctacgatcaa tcccaaataa actaggagga gttctagccc
+      721 ttgccgcttc agtcctaatc ctattcctag tcccattcct ccacaaatca aaacaacgaa
+      781 caataacttt ccgcccccta tcccaactct tattttgaat cctagtaact aacctcttta
+      841 tcctcacgtg agtaggaagc caaccagttg aacatccctt cattatcatc ggacaattag
+      901 cctcactcac ctatttcatg acactcctca tcctattccc aattgtcgga gccttagaaa
+      961 ataagatact caatctctaa acactctaat
+//
+
+LOCUS       EU073028                1008 bp    DNA     linear   VRT 26-JUL-2016
+DEFINITION  Xiphorhynchus fuscus atlanticus voucher LGEMA 10406 cytochrome B
+            gene, partial cds; mitochondrial.
+ACCESSION   EU073028
+VERSION     EU073028.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus atlanticus
+  ORGANISM  Xiphorhynchus fuscus atlanticus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1008)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1008)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (30-JUL-2007) Genetics and Evolutionary Biology,
+            Institute of Biociences, University of Sao Paulo, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1008
+                     /organism="Xiphorhynchus fuscus atlanticus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /sub_species="atlanticus"
+                     /specimen_voucher="LGEMA 10406"
+                     /db_xref="taxon:436321"
+                     /geo_loc_name="Brazil: Serra de Baturite, CE"
+     CDS             <1..996
+                     /codon_start=1
+                     /transl_table=2
+                     /product="cytochrome B"
+                     /protein_id="ABW69439.1"
+                     /translation="LLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRNLHANGASMFFI
+                     CIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSFWGATVITNLF
+                     SAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLTFLHETGSNNP
+                     LGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENFTPANPLVTPP
+                     HIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRTMTFRPLSQLL
+                     FWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGALENKMLNL"
+ORIGIN      
+        1 ctcctaatag caatacacta tacagcagac actaccctag ccttcacatc cgtagcccat
+       61 acatgccgaa acgtccaatt cggctgactg atccgcaacc tccacgcaaa cggagcctca
+      121 atattcttca tctgtatcta cctccacatc ggacgaggct tctactacgg ctcttacctc
+      181 ttcaaagaaa cttgaaatac aggaattatc ctcctattaa ccctcatagc aacagctttc
+      241 gtcggctatg tcctaccatg aggccaaata tcattttgag gtgctacagt catcaccaat
+      301 ctattttcag caattcctta catcggacaa acacttgtag aatgagcatg gggaggattt
+      361 tcagtagaca acccaacact aacccgattc tttgccctac acttcctcct accattcgcc
+      421 attgcaggcc ttacatttat ccacctgacc ttcctacatg aaaccggctc aaacaacccc
+      481 ttaggtattt catcaaactg cgataaaatt ccattccacc catacttctc tactaaagac
+      541 attctaggtt ttatagccat actgacacca ctagccgcac tagccatatt ctcaccaaac
+      601 ctcttaggtg acccagaaaa ctttacacct gcaaacccac tagtaacccc tccccacatc
+      661 aaaccagaat gatacttcct attcgcatac gccatcctac gatcaatccc aaataaacta
+      721 ggaggagttc tagcccttgc cgcttcagtc ctaatcctat tcctagtccc attcctccac
+      781 aaatcaaaac aacgaacaat aactttccgc cccctatccc aactcttatt ttgaatccta
+      841 gtaactaacc tctttatcct cacgtgagta ggaagccaac cagttgaaca tcccttcatt
+      901 atcatcggac aattagcctc actcacctat ttcatgacac tcctcatcct attcccaatt
+      961 gtcggagcct tagaaaataa gatactcaat ctctaaacac tctaatag
+//
+
+LOCUS       EU073029                1054 bp    DNA     linear   VRT 26-JUL-2016
+DEFINITION  Xiphorhynchus fuscus atlanticus voucher LGEMA 10417 cytochrome B
+            gene, partial cds; mitochondrial.
+ACCESSION   EU073029
+VERSION     EU073029.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus atlanticus
+  ORGANISM  Xiphorhynchus fuscus atlanticus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1054)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1054)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (30-JUL-2007) Genetics and Evolutionary Biology,
+            Institute of Biociences, University of Sao Paulo, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1054
+                     /organism="Xiphorhynchus fuscus atlanticus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /sub_species="atlanticus"
+                     /specimen_voucher="LGEMA 10417"
+                     /db_xref="taxon:436321"
+                     /geo_loc_name="Brazil: Serra de Baturite, CE"
+     CDS             <1..1031
+                     /codon_start=3
+                     /transl_table=2
+                     /product="cytochrome B"
+                     /protein_id="ABW69440.1"
+                     /translation="GICLMAQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRN
+                     LHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMS
+                     FWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHL
+                     TFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPEN
+                     FTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQR
+                     TMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGA
+                     LENKMLNL"
+ORIGIN      
+        1 taggcatctg cctcatggca caaatcatca cgggtctcct aatagcaata cactatacag
+       61 cagacactac cctagccttc acatccgtag cccatacatg ccgaaacgtc caattcggct
+      121 gactgatccg caacctccac gcaaacggag cctcaatatt cttcatctgt atctacctcc
+      181 acatcggacg aggcttctac tacggctctt acctcttcaa agaaacttga aatacaggaa
+      241 ttatcctcct attaaccctc atagcaacag ctttcgtcgg ctatgtccta ccatgaggcc
+      301 aaatatcatt ttgaggtgct acagtcatca ccaatctatt ttcagcaatt ccttacatcg
+      361 gacaaacact tgtagaatga gcatggggag gattttcagt agacaaccca acactaaccc
+      421 gattctttgc cctacacttc ctcctaccat tcgccattgc aggccttaca tttatccacc
+      481 tgaccttcct acatgaaacc ggctcaaaca accccttagg tatttcatca aactgcgata
+      541 aaattccatt ccacccatac ttctctacta aagacattct aggttttata gccatactga
+      601 caccactagc cgcactagcc atattctcac caaacctctt aggtgaccca gaaaacttta
+      661 cacctgcaaa cccactagta acccctcccc acatcaaacc agaatgatac ttcctattcg
+      721 catacgccat cctacgatca atcccaaata aactaggagg agttctagcc cttgccgctt
+      781 cagtcctaat cctattccta gtcccattcc tccacaaatc aaaacaacga acaataactt
+      841 tccgccccct atcccaactc ttattttgaa tcctagtaac taacctcttt atcctcacgt
+      901 gagtaggaag ccaaccagtt gaacatccct tcattatcat cggacaatta gcctcactca
+      961 cctatttcat gacactcctc atcctattcc caattgtcgg agccttagaa aataagatac
+     1021 tcaatctcta aacactctaa tagttttatt taaa
+//
+
+LOCUS       EF190583                1013 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus atlanticus voucher FMNH 399196 cytochrome b
+            (cytb) gene, partial cds; mitochondrial.
+ACCESSION   EF190583
+VERSION     EF190583.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus atlanticus
+  ORGANISM  Xiphorhynchus fuscus atlanticus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1013)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1013)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1013
+                     /organism="Xiphorhynchus fuscus atlanticus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /sub_species="atlanticus"
+                     /specimen_voucher="FMNH 399196"
+                     /db_xref="taxon:436321"
+     gene            <1..>1013
+                     /gene="cytb"
+     CDS             <1..>1013
+                     /gene="cytb"
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88783.1"
+                     /translation="AQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRNLHANG
+                     ASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSFWGAT
+                     VITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLTFLHE
+                     TGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENFTPAN
+                     PLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRTMTFR
+                     PLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGALENKM
+                     LNL"
+ORIGIN      
+        1 ggcacaaatc atcacgggtc tcctaatagc aatacactat acagcagaca ctaccctagc
+       61 cttcacatcc gtagcccata catgccgaaa cgtccaattc ggctgactga tccgcaacct
+      121 ccacgcaaac ggagcctcaa tattcttcat ctgtatctac ctccacatcg gacgaggctt
+      181 ctactacggc tcttacctct tcaaagaaac ttgaaataca ggaattatcc tcctattaac
+      241 cctcatagca acagctttcg tcggctatgt cctaccatga ggccaaatat cattttgagg
+      301 tgctacagtc atcaccaatc tattttcagc aattccttac atcggacaaa cacttgtaga
+      361 atgagcatgg ggaggatttt cagtagacaa cccaacacta acccgattct ttgccctaca
+      421 cttcctccta ccattcgcca ttgcaggcct tacatttatc cacctgacct tcctacatga
+      481 aaccggctca aacaacccct taggtatttc atcaaactgc gataaaattc cattccaccc
+      541 atacttctct actaaagaca ttctaggttt tatagccata ctaacaccac tagccgcact
+      601 agccatattc tcaccaaacc tcttaggtga cccagaaaac tttacacctg caaacccact
+      661 agtaacccct ccccacatca aaccagaatg atacttccta ttcgcatacg ccatcctacg
+      721 atcaatccca aataaactag gaggagttct agcccttgcc gcttcagtcc taatcctatt
+      781 cctagtccca ttcctccaca aatcaaaaca acgaacgata actttccgcc ccctatccca
+      841 actcttattt tgaatcctag taactaacct ctttatcctc acgtgagtag gaagccaacc
+      901 agttgaacat cccttcatta tcatcggaca attagcctca ctcacctatt tcatgacact
+      961 cctcatccta ttcccaattg tcggagcctt agaaaataag atactcaatc tct
+//
+
+LOCUS       EF190584                1044 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus atlanticus voucher FMNH 399197 cytochrome b
+            (cytb) gene, partial cds; mitochondrial.
+ACCESSION   EF190584
+VERSION     EF190584.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus atlanticus
+  ORGANISM  Xiphorhynchus fuscus atlanticus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1044)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1044)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1044
+                     /organism="Xiphorhynchus fuscus atlanticus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /sub_species="atlanticus"
+                     /specimen_voucher="FMNH 399197"
+                     /db_xref="taxon:436321"
+     gene            <1..1030
+                     /gene="cytb"
+     CDS             <1..1030
+                     /gene="cytb"
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88784.1"
+                     /translation="GICLMAQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRN
+                     LHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMS
+                     FWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHL
+                     TFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPEN
+                     FTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQR
+                     TMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGA
+                     LENKMLNL"
+ORIGIN      
+        1 tggcatctgc ctcatggcac aaatcatcac gggtctccta atagcaatac actatacagc
+       61 agacactacc ctagccttca catccgtagc ccatacatgc cgaaacgtcc aattcggctg
+      121 actgatccgc aacctccacg caaacggagc ctcaatattc ttcatctgta tctacctcca
+      181 catcggacga ggcttctact acggctctta cctcttcaaa gaaacttgaa atacaggaat
+      241 tatcctccta ttaaccctca tagcaacagc tttcgtcggc tatgtcctac catgaggcca
+      301 aatatcattt tgaggtgcta cagtcatcac caatctattt tcagcaattc cttacatcgg
+      361 acaaacactt gtagaatgag catggggagg attttcagta gacaacccaa cactaacccg
+      421 attctttgcc ctacacttcc tcctaccatt cgccattgca ggccttacat ttatccacct
+      481 gaccttccta catgaaaccg gctcaaacaa ccccttaggt atttcatcaa actgcgataa
+      541 aattccattc cacccatact tctctactaa agacattcta ggttttatag ccatactaac
+      601 accactagcc gcactagcca tattctcacc aaacctctta ggtgacccag aaaactttac
+      661 acctgcaaac ccactagtaa cccctcccca catcaaacca gaatgatact tcctattcgc
+      721 atacgccatc ctacgatcaa tcccaaataa actaggagga gttctagccc ttgccgcttc
+      781 agtcctaatc ctattcctag tcccattcct ccacaaatca aaacaacgaa cgataacttt
+      841 ccgcccccta tcccaactct tattttgaat cctagtaact aacctcttta tcctcacgtg
+      901 agtaggaagc caaccagttg aacatccctt cattatcatc ggacaattag cctcactcac
+      961 ctatttcatg acactcctca tcctattccc aattgtcgga gccttagaaa ataagatact
+     1021 caatctctaa acactctaat agtt
+//
+
+LOCUS       EF190585                1018 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus atlanticus voucher FMNH 399198 cytochrome b
+            (cytb) gene, partial cds; mitochondrial.
+ACCESSION   EF190585
+VERSION     EF190585.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus atlanticus
+  ORGANISM  Xiphorhynchus fuscus atlanticus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1018)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1018)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1018
+                     /organism="Xiphorhynchus fuscus atlanticus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /sub_species="atlanticus"
+                     /specimen_voucher="FMNH 399198"
+                     /db_xref="taxon:436321"
+     gene            <1..1017
+                     /gene="cytb"
+     CDS             <1..1017
+                     /gene="cytb"
+                     /codon_start=1
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88785.1"
+                     /translation="MAQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRNLHAN
+                     GASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSFWGA
+                     TVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLTFLH
+                     ETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENFTPA
+                     NPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRTMTF
+                     RPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGALENK
+                     MLNL"
+ORIGIN      
+        1 atggcacaaa tcatcacggg tctcctaata gcaatacact atacagcaga cactacccta
+       61 gccttcacat ccgtagccca tacatgccga aacgtccaat tcggctgact gatccgcaac
+      121 ctccacgcaa acggagcctc aatattcttc atctgtatct acctccacat cggacgaggc
+      181 ttctactacg gctcttacct cttcaaagaa acttgaaata caggaattat cctcctatta
+      241 accctcatag caacagcttt cgtcggctat gtcctaccat gaggccaaat atcattttga
+      301 ggtgctacag tcatcaccaa tctattttca gcaattcctt acatcggaca aacacttgta
+      361 gaatgagcat ggggaggatt ttcagtagac aacccaacac taacccgatt ctttgcccta
+      421 cacttcctcc taccattcgc cattgcaggc cttacattta tccacctgac cttcctacat
+      481 gaaaccggct caaacaaccc cttaggtatt tcatcaaact gcgataaaat tccattccac
+      541 ccatacttct ctactaaaga cattctaggt tttatagcca tactgacacc actagccgca
+      601 ctagccatat tctcaccaaa cctcttaggt gacccagaaa actttacacc tgcaaaccca
+      661 ctagtaaccc ctccccacat caaaccagaa tgatacttcc tattcgcata cgccatccta
+      721 cgatcaatcc caaataaact aggaggagtt ctagccctng ccgcttcagt cctaatccta
+      781 ttcctagtcc cattcctcca caaatcaaaa caacgaacga taactttccg ccccctatcc
+      841 caactcttat tttgaatcct agtaactaac ctctttatcc tcacgtgagt aggaagccaa
+      901 ccagttgaac atcccttcat tatcatcgga caattagcct cactcaccta tttcatgaca
+      961 ctcctcatcc tattcccaat tgtcggagcc ttagaaaata agatactcaa tctctaaa
+//
+
+LOCUS       EF190586                1024 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus atlanticus voucher FMNH 399199 cytochrome b
+            (cytb) gene, partial cds; mitochondrial.
+ACCESSION   EF190586
+VERSION     EF190586.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus atlanticus
+  ORGANISM  Xiphorhynchus fuscus atlanticus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1024)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1024)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1024
+                     /organism="Xiphorhynchus fuscus atlanticus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /sub_species="atlanticus"
+                     /specimen_voucher="FMNH 399199"
+                     /db_xref="taxon:436321"
+     gene            <1..>1024
+                     /gene="cytb"
+     CDS             <1..>1024
+                     /gene="cytb"
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88786.1"
+                     /translation="GICLMAQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRN
+                     LHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMS
+                     FWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHL
+                     TFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPEN
+                     FTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQR
+                     TMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGA
+                     LENKMLN"
+ORIGIN      
+        1 tggcatctgc ctcatggcac aaatcatcac gggtctccta atagcaatac actatacagc
+       61 agacactacc ctagccttca catccgtagc ccatacatgc cgaaacgtcc aattcggctg
+      121 actgatccgc aacctccacg caaacggagc ctcaatattc ttcatctgta tctacctcca
+      181 catcggacga ggcttctact acggctctta cctcttcaaa gaaacttgaa atacaggaat
+      241 tatcctccta ttaaccctca tagcaacagc tttcgtcggc tatgtcctac catgaggcca
+      301 aatatcattt tgaggtgcta cagtcatcac caatctattt tcagcaattc cttacatcgg
+      361 acaaacactt gtagaatgag catggggagg attttcagta gacaacccaa cactaacccg
+      421 attctttgcc ctacacttcc tcctaccatt cgccattgca ggccttacat ttatccacct
+      481 gaccttccta catgaaaccg gctcaaacaa ccccttaggt atttcatcaa actgcgataa
+      541 aattccattc cacccatact tctctactaa agacattcta ggttttatag ccatactgac
+      601 accactagcc gcactagcca tattctcacc aaacctctta ggtgacccag aaaactttac
+      661 acctgcaaac ccactagtaa cccctcccca catcaaacca gaatgatact tcctattcgc
+      721 atacgccatc ctacgatcaa tcccaaataa actaggagga gttctagccc ttgccgcttc
+      781 agtcctaatc ctattcctag tcccattcct ccacaaatca aaacaacgaa cgataacttt
+      841 ccgcccccta tcccaactct tattttgaat cctagtaact aacctcttta tcctcacgtg
+      901 agtaggaagc caaccagttg aacatccctt cattatcatc ggacaattag cctcactcac
+      961 ctatttcatg acactcctca tcctattccc aattgtcgga gccttagaaa ataagatact
+     1021 caat
+//
+
+LOCUS       EF190587                1002 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA P1024 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190587
+VERSION     EF190587.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1002)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1002)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1002
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA P1024"
+                     /db_xref="taxon:326918"
+     gene            <1..>1002
+                     /gene="cytb"
+     CDS             <1..>1002
+                     /gene="cytb"
+                     /codon_start=1
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88787.1"
+                     /translation="IITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRNLHANGAS
+                     MFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSFWGATVI
+                     TNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLTFLHETG
+                     SNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENFTPANPL
+                     VTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRTMTFRPL
+                     SQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGALENKMLN
+                     "
+ORIGIN      
+        1 atcatcacag gtctcctaat agcaatacac tatacagcag acactaccct agccttcaca
+       61 tccgtagccc atacatgccg aaatgtccaa ttcggttgac tgatccgcaa cctccacgca
+      121 aacggagcct caatattctt catctgtatc tacctccaca tcggacgagg cttctactac
+      181 ggttcttacc tcttcaaaga aacttgaaat acaggaatta tcctcctatt aacactcata
+      241 gcaacagctt tcgtcggcta cgtcctacca tgaggccaaa tatcattttg aggtgctaca
+      301 gtcatcacca atctattctc agcaattcct tacattggac aaacgcttgt agaatgagca
+      361 tgaggaggat tttcagtaga caacccaaca ctaacccgat tctttgctct acacttcctc
+      421 ctaccattcg ccattgcagg ccttacattt atccacctaa ccttcctaca tgaaaccggc
+      481 tcaaacaacc ccttaggaat ttcatcaaac tgtgataaaa tcccattcca cccatacttc
+      541 tctactaaag acattctagg tttcatagcc atactaacac cactagccgc actagccata
+      601 ttctcaccaa acctcttagg tgacccagaa aactttacac ctgcaaaccc actagtaacc
+      661 cctccccata tcaaaccaga atgatacttc ctattcgcat atgccatcct acgatcaatc
+      721 ccaaataaac taggaggagt tctagccctt gccgcttcag tcctaatcct attcctagtt
+      781 ccattcctcc acaaatcaaa acaacgaaca ataactttcc gccccctatc ccaactctta
+      841 ttttgaatcc tagtaactaa cctctttatc ctaacgtgag taggaagcca accagttgag
+      901 catcccttca ttatcatcgg acaattagcc tcactcacct atttcatgac actcctcatc
+      961 ctattcccaa ttgtcggagc cttagaaaac aagatactca at
+//
+
+LOCUS       EF190588                1007 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA P1171 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190588
+VERSION     EF190588.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1007)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1007)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1007
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA P1171"
+                     /db_xref="taxon:326918"
+     gene            <1..1007
+                     /gene="cytb"
+     CDS             <1..1007
+                     /gene="cytb"
+                     /codon_start=3
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88788.1"
+                     /translation="ITGLLMAMHYTADTTLAFTSVAHTCRNVXFGWLIRNLHANGASM
+                     FFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSFWGATVIT
+                     NLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLTFLHETGS
+                     NNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENFTPANPLV
+                     TPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRTMTFRPLS
+                     QLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGALENKMLNL
+                     "
+ORIGIN      
+        1 tcatcacagg tctcctaata gcaatacact atacagcaga cactacccta gccttcacat
+       61 ccgtagccca tacatgccga aatgtccant tcggttgact gatccgcaac ctccacgcaa
+      121 acggagcctc aatattcttc atctgtatct acctccacat cggacgaggc ttctactacg
+      181 gttcttacct cttcaaagaa acttgaaata caggaattat cctcctatta acactcatag
+      241 caacagcttt cgtcggctac gtcctaccat gaggccaaat atcattttga ggtgctacag
+      301 tcatcaccaa tctattctca gcaattcctt acattggaca aacgcttgta gaatgagcat
+      361 gaggaggatt ttcagtagac aacccaacac taacccgatt ctttgctcta cacttcctcc
+      421 taccattcgc cattgcaggc cttacattta tccacctaac cttcctacat gaaaccggct
+      481 caaacaaccc cttaggaatt tcatcaaact gtgataaaat cccattccac ccatacttct
+      541 ctactaaaga cattctaggt ttcatagcca tactaacacc actagccgca ctagccatat
+      601 tctcaccaaa cctcttaggt gacccagaaa actttacacc tgcaaaccca ctagtaaccc
+      661 ctccccatat caaaccagaa tgatacttcc tattcgcata tgccatccta cgatcaatcc
+      721 caaataaact aggaggagtt ctagcccttg ccgcttcagt cctaatccta ttcctagttc
+      781 cattcctcca caaatcaaaa caacgaacaa taactttccg ccccctatcc caactcttat
+      841 tttgaatcct agtaactaac ctctttatcc taacgtgagt aggaagccaa ccagttgagc
+      901 atcccttcat tatcatcgga caattagcct cactcaccta tttcatgaca ctcctcatcc
+      961 tattcccaat tgtcggagcc ttagaaaaca agatactcaa tctctaa
+//
+
+LOCUS       EF190589                1011 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA P1321 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190589
+VERSION     EF190589.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1011)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1011)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1011
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA P1321"
+                     /db_xref="taxon:326918"
+     gene            <1..>1011
+                     /gene="cytb"
+     CDS             <1..>1011
+                     /gene="cytb"
+                     /codon_start=1
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88789.1"
+                     /translation="AQIITGLLMAMHYTADTTLXFTSVAHTCRNVQFGWLIRNLHANG
+                     ASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSFWGAT
+                     VITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLTFLHE
+                     TGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENFTPAN
+                     PLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRTMTFR
+                     PLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGALENKM
+                     LNL"
+ORIGIN      
+        1 gcacaaatca tcacaggtct cctaatagca atacactata cagcagacac taccctagnc
+       61 ttcacatccg tagcccatac atgccgaaat gtccaattcg gttgactgat ccgcaacctc
+      121 cacgcaaacg gagcctcaat attcttcatc tgtatctacc tccacatcgg acgaggcttc
+      181 tactacggtt cttacctctt caaagaaact tgaaatacag gaattatcct cctattaaca
+      241 ctcatagcaa cagctttcgt cggctacgtc ctaccatgag gccaaatatc attttgaggt
+      301 gctacagtca tcaccaatct attctcagca attccttaca ttggacaaac gcttgtagaa
+      361 tgagcatgag gaggattttc agtagacaac ccaacactaa cccgattctt tgctctacac
+      421 ttcctcctac cattcgccat tgcaggcctt acatttatcc acctaacctt cctacatgaa
+      481 accggctcaa acaacccctt aggaatttca tcaaactgtg ataaaatccc attccaccca
+      541 tacttctcta ctaaagacat tctaggtttc atagccatac taacaccact agccgcacta
+      601 gccatattct caccaaacct cttaggtgac ccagaaaact ttacacctgc aaacccacta
+      661 gtaacccctc cccatatcaa accagaatga tacttcctat tcgcatatgc catcctacga
+      721 tcaatcccaa ataaactagg aggagttcta gcccttgccg cttcagtcct aatcctattc
+      781 ctagttccat tcctccacaa atcaaaacaa cgaacaataa ctttccgccc cctatcccaa
+      841 ctcttatttt gaatcctagt aactaacctc tttatcctaa cgtgagtagg aagccaacca
+      901 gttgaacatc ccttcattat catcggacaa ttagcctcac tcacctattt catgacactc
+      961 ctcatcctat tcccaattgt cggagcctta gaaaacaaga tactcaatct c
+//
+
+LOCUS       EF190590                1011 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA P1379 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190590
+VERSION     EF190590.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1011)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1011)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1011
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA P1379"
+                     /db_xref="taxon:326918"
+     gene            <1..>1011
+                     /gene="cytb"
+     CDS             <1..>1011
+                     /gene="cytb"
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88790.1"
+                     /translation="AQIITGLLMAMHYTADTTLAFTSVAHTCRXVQFGWLIRNLHANG
+                     ASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSFWGAT
+                     VITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLTFLHE
+                     TGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENFTPAN
+                     PLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRTMTFR
+                     PLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLXSFPIVEALENKM
+                     LNL"
+ORIGIN      
+        1 ggcacaaatc atcacaggtc tcctaatagc aatacactat acagcagaca ctaccctagc
+       61 ctttacatcc gtagcccata catgccgaan cgtccaattc ggttgactga tccgcaacct
+      121 ccacgcaaac ggagcctcaa tattctttat ctgtatctac ctccacatcg gacgaggttt
+      181 ctactatggt tcatacctct tcaaagaaac ttgaaataca ggaattatcc tcctattaac
+      241 actcatagca acagctttcg tcggctacgt cctaccatga ggccaaatat cattttgagg
+      301 tgctacagtc atcaccaatc tattctcagc aattccttac attggacaaa cacttgtaga
+      361 atgagcatgg ggaggatttt cagtagacaa cccaacacta acccgattct ttgctctaca
+      421 cttcctccta ccattcgcca ttgcaggcct tacatttatc cacctaacct tcctacatga
+      481 aaccggctca aacaacccct taggaatttc atcaaactgt gataaaatcc cattccaccc
+      541 atacttctct actaaagaca ttctaggttt catagccata ctaacaccac tagccgcact
+      601 agccatattc tcaccaaacc tcctaggtga cccagaaaac tttacacctg caaacccact
+      661 agtaacccct ccccatatta aaccagaatg atacttccta ttcgcatatg ccatcctacg
+      721 atcaatccca aataaactag gaggagttct agcccttgcc gcttcagtcc taatcctatt
+      781 cctagttcca ttcctccaca aatcaaaaca acgaacaata actttccgcc ccctatccca
+      841 actcttattt tgaatcctag taactaacct ctttatccta acgtgagtag ggagccaacc
+      901 agttgaacat cccttcatta tcatcggaca attagcctca ctcacctatt tcatgacact
+      961 cctcatntca ttcccaattg tcgaagcctt agaaaacaag atactcaatc t
+//
+
+LOCUS       EF190591                1021 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA P1544 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190591
+VERSION     EF190591.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1021)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1021)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1021
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA P1544"
+                     /db_xref="taxon:326918"
+     gene            <1..>1021
+                     /gene="cytb"
+     CDS             <1..>1021
+                     /gene="cytb"
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88791.1"
+                     /translation="ICLMAQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRNL
+                     HANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSF
+                     WGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLT
+                     FLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENF
+                     TPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRT
+                     MTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGAL
+                     ENKMLN"
+ORIGIN      
+        1 catctgcctc atggcacaaa tcatcacagg tctcctaata gcaatacact atacagcaga
+       61 cactacccta gccttcacat ccgtagccca tacatgccga aatgtccaat tcggttgact
+      121 gatccgcaac ctccacgcaa acggagcctc aatattcttc atctgtatct acctccacat
+      181 cggacgaggc ttctactacg gttcttacct cttcaaagaa acttgaaata caggaattat
+      241 cctcctatta acactcatag caacagcttt cgtcggctac gtcctaccat gaggccaaat
+      301 atcattttga ggtgctacag tcatcaccaa tctattctca gcaattcctt acattggaca
+      361 aacgcttgta gaatgagcat gaggaggatt ttcagtagac aacccaacac taacccgatt
+      421 ctttgctcta cacttcctcc taccattcgc cattgcaggc cttacattta tccacctaac
+      481 cttcctacat gaaaccggct caaacaaccc cttaggaatt tcatcaaact gtgataaaat
+      541 cccattccac ccatacttct ctactaaaga cattctaggt ttcatagcca tactaacacc
+      601 actagccgca ctagccatat tctcaccaaa cctcttaggt gacccagaaa actttacacc
+      661 tgcaaaccca ctagtaaccc ctccccatat caaaccagaa tgatacttcc tattcgcata
+      721 tgccatccta cgatcaatcc caaataaact aggaggagtt ctagcccttg ccgcttcagt
+      781 cctaatccta ttcctagttc cattcctcca caaatcaaaa caacgaacaa taactttccg
+      841 ccccctatcc caactcttat tttgaatcct agtaactaac ctctttatcc taacgtgagt
+      901 aggaagccaa ccagttgagc atcccttcat tatcatcgga caattagcct cactcaccta
+      961 tttcatgaca ctcctcatcc tattcccaat tgtcggagcc ttagaaaaca agatactcaa
+     1021 t
+//
+
+LOCUS       EF190592                1012 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA P1644 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190592
+VERSION     EF190592.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1012)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1012)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1012
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA P1644"
+                     /db_xref="taxon:326918"
+     gene            <1..>1012
+                     /gene="cytb"
+     CDS             <1..>1012
+                     /gene="cytb"
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88792.1"
+                     /translation="AQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRNLHANG
+                     ASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSFWGAT
+                     VITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLTFLHE
+                     TGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENFTPAN
+                     PLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRTMTFR
+                     PLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILXPIVGALENKM
+                     LNL"
+ORIGIN      
+        1 ggcacaaatc atcacaggtc tcctaatagc aatacactat acagcagaca ctaccctagc
+       61 cttcacatcc gtagcccata catgccgaaa tgtccaattc ggttgactga tccgcaacct
+      121 ccacgcaaac ggagcctcaa tattcttcat ctgtatctac ctccacatcg gacgaggctt
+      181 ctactacggt tcttacctct tcaaagaaac ttgaaataca ggaattatcc tcctattaac
+      241 actcatagca acagctttcg tcggctacgt cctaccatga ggccaaatat cattttgagg
+      301 tgctacagtc atcaccaatc tattctcagc aattccttac attggacaaa cgcttgtaga
+      361 atgagcatgg ggaggatttt cagtagacaa cccaacacta acccgattct ttgctctaca
+      421 cttcctccta ccattcgcca ttgcaggcct tacatttatc cacctaacct tcctacatga
+      481 aaccggctca aacaacccct taggaatttc atcaaactgt gataaaatcc cattccaccc
+      541 atacttctct actaaagaca ttctaggttt catagccata ctaacaccac tagccgcact
+      601 agccatattc tcaccaaacc tcttaggtga cccagaaaac tttacacctg caaacccact
+      661 agtaacccct ccccatatca aaccagaatg atacttccta ttcgcatatg ccatcctacg
+      721 atcaatccca aataaactag gaggagttct agcccttgcc gcttcagtcc taatcctatt
+      781 cctagttcca ttcctccaca aatcaaaaca acgaacaata actttccgcc ccctatccca
+      841 actcttattt tgaatcctag taactaacct ctttatccta acgtgagtag gaagccaacc
+      901 agttgaacat cccttcatta tcatcggaca attagcctca ctcacctatt tcatgacact
+      961 cctcatccta ntcccaattg tcggagcctt agaaaacaag atactcaatc tc
+//
+
+LOCUS       EF190593                1003 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA P1771 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190593
+VERSION     EF190593.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1003)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1003)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1003
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA P1771"
+                     /db_xref="taxon:326918"
+     gene            <1..>1003
+                     /gene="cytb"
+     CDS             <1..>1003
+                     /gene="cytb"
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88793.1"
+                     /translation="QIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRNLHANGA
+                     SMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSFWGATV
+                     ITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLTFLHET
+                     GSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENFTPANP
+                     LVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRTMTFRP
+                     LSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGALENKML
+                     "
+ORIGIN      
+        1 acaaatcatc acaggtctcc taatagcaat acactataca gcagacacta ccctagcctt
+       61 tacatccgta gcccatacat gccgaaacgt ccaattcggt tgactgatcc gcaacctcca
+      121 cgcaaacgga gcctcaatat tctttatctg tatctacctc cacatcggac gaggtttcta
+      181 ctatggttca tacctcttca aagaaacttg aaatacagga attatcctcc tattaacact
+      241 catagcaaca gctttcgtcg gctacgtcct accatgaggc caaatatcat tttgaggtgc
+      301 tacagtcatc accaatctat tctcagcaat tccttacatt ggacaaacac ttgtagaatg
+      361 agcatgggga ggattttcag tagacaaccc aacactaacc cgattctttg ctctacactt
+      421 cctcctacca ttcgccattg caggccttac atttatccac ctaaccttcc tacatgaaac
+      481 cggctcaaac aaccccttag gaatttcatc aaactgtgat aaaatcccat tccacccata
+      541 cttctctact aaagacattc taggtttcat agccatacta acaccactag ccgcactagc
+      601 catattctca ccaaacctcc taggtgaccc agaaaacttt acacctgcaa acccactagt
+      661 aacccctccc catattaaac cagaatgata cttcctattc gcatatgcca tcctacgatc
+      721 aatcccaaat aaactaggag gagttctagc ccttgccgct tcagtcctaa tcctattcct
+      781 agttccattc ctccacaaat caaaacaacg aacaataact ttccgccccc tatcccaact
+      841 cttattttga atcctagtaa ctaacctctt tatcctaacg tgagtaggga gccaaccagt
+      901 tgaacatccc ttcattatca tcggacaatt agcctcactc acctatttca tgacactcct
+      961 cattctattc ccaattgtcg gagccttaga aaacaagata ctc
+//
+
+LOCUS       EF190594                1064 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA P2245 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190594
+VERSION     EF190594.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1064)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1064)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1064
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA P2245"
+                     /db_xref="taxon:326918"
+     gene            <1..1041
+                     /gene="cytb"
+     CDS             <1..1041
+                     /gene="cytb"
+                     /codon_start=1
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88794.1"
+                     /translation="GSLLGICLMAQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGW
+                     LIRNLHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPW
+                     GQMSFWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLT
+                     FIHLTFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLG
+                     DPENFTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHK
+                     SKQRTMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFP
+                     IVGALENKMLNL"
+ORIGIN      
+        1 ggatccctcc taggcatctg cctcatggca caaatcatca caggtctcct aatagcaata
+       61 cactatacag cagacactac cctagccttc acatccgtag cccatacatg ccgaaacgtc
+      121 caattcggtt gactgatccg caacctccac gcaaacggag cctcaatatt cttcatctgt
+      181 atctacctcc acatcggacg aggcttctac tacggttctt acctcttcaa agaaacttga
+      241 aatacaggaa ttatcctcct attaacactc atagcaacag ctttcgtcgg ctacgtccta
+      301 ccatgaggcc aaatatcatt ttgaggcgct acagtcatca ccaatctatt ctcagcaatt
+      361 ccttacattg gacaaacact tgtagaatga gcatggggag gattttcagt agacaaccca
+      421 acactaaccc gattctttgc tctacacttc ctcctaccat tcgccattgc aggccttaca
+      481 tttatccacc taaccttcct acatgaaacc ggctcaaaca accccttagg aatttcatca
+      541 aactgtgata aaatcccatt ccacccatac ttctctacca aagacattct aggtttcata
+      601 gccatactaa caccactagc cgcactagcc atattctcac caaacctctt aggtgaccca
+      661 gaaaacttta cacctgcaaa cccactagta actcctcccc atatcaaacc agaatggtac
+      721 ttcctattcg catatgccat cctacgatca atcccaaata aactaggagg agttctagcc
+      781 ctcgccgctt cggtcctaat cctattccta gttccattcc tccacaaatc aaaacaacga
+      841 acaataactt tccgccccct atcccaactc ttattttgaa tcctagtaac taacctcttt
+      901 atcctaacgt gagtagggag ccaaccagtt gaacatccct tcattatcat cggacaatta
+      961 gcctcactca cctatttcat gacactcctc atcctattcc caattgtcgg agccttagaa
+     1021 aacaagatac tcaatctcta aacactctaa tagtttattt aaac
+//
+
+LOCUS       EF190595                1033 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA P2249 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190595
+VERSION     EF190595.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1033)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1033)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1033
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA P2249"
+                     /db_xref="taxon:326918"
+     gene            <1..1033
+                     /gene="cytb"
+     CDS             <1..1033
+                     /gene="cytb"
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88795.1"
+                     /translation="LGICLMAQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIR
+                     NLHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQM
+                     SFWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIH
+                     LTFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPE
+                     NFTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQ
+                     RTMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVG
+                     ALENKMLNL"
+ORIGIN      
+        1 cctaggcatc tgcctcatgg cacaaatcat cacaggtctc ctaatagcaa tacactatac
+       61 agcagacact accctagcct tcacatccgt agcccataca tgccgaaacg tccaattcgg
+      121 ttgactgatc cgcaacctcc acgcaaacgg agcctcaata ttcttcatct gtatctacct
+      181 ccacatcgga cgaggcttct actacggttc ttacctcttc aaagaaactt gaaatacagg
+      241 aattatcctc ctattaacac tcatagcaac agctttcgtc ggctacgtcc taccatgagg
+      301 ccaaatatca ttttgaggcg ctacagtcat caccaatcta ttctcagcaa ttccttacat
+      361 tggacaaaca cttgtagaat gagcatgggg aggattttca gtagacaacc caacactaac
+      421 ccgattcttt gctctacact tcctcctacc attcgccatt gcaggcctta catttatcca
+      481 cctaaccttc ctacatgaaa ccggctcaaa caacccctta ggaatttcat caaactgtga
+      541 taaaatccca ttccacccat acttctctac caaagacatt ctaggtttca tagccatact
+      601 aacaccacta gccgcactag ccatattctc accaaacctc ttaggtgacc cagaaaactt
+      661 tacacctgca aacccactag taactcctcc ccatatcaaa ccagaatggt acttcctatt
+      721 cgcatatgcc atcctacgat caatcccaaa taaactagga ggagttctag ccctcgccgc
+      781 ttcggtccta atcctattcc tagttccatt cctccacaaa tcaaaacaac gaacaataac
+      841 tttccgcccc ctatcccaac tcttattttg aatcctagta actaacctct ttatcctaac
+      901 gtgagtaggg agccaaccag ttgaacatcc cttcattatc atcggacaat tagcctcact
+      961 cacctatttc atgacactcc tcatcctatt cccaattgtc ggagccttag aaaacaagat
+     1021 actcaatctc taa
+//
+
+LOCUS       EF190596                1045 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA P2258 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190596
+VERSION     EF190596.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1045)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1045)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1045
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA P2258"
+                     /db_xref="taxon:326918"
+     gene            <1..1031
+                     /gene="cytb"
+     CDS             <1..1031
+                     /gene="cytb"
+                     /codon_start=3
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88796.1"
+                     /translation="GICLMAQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRN
+                     LHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMS
+                     FWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHL
+                     TFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPEN
+                     FTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQR
+                     TMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGA
+                     LENKMLNL"
+ORIGIN      
+        1 ctggcatctg cctcatggca caaatcatca caggtctcct aatagcaata cactatacag
+       61 cagacactac cctagccttc acatccgtag cccatacatg ccgaaacgtc caattcggtt
+      121 gactgatccg taacctccac gcaaacggag cctcaatatt cttcatctgt atctacctcc
+      181 acatcggacg aggcttctac tacggttctt acctcttcaa agaaacttga aatacaggaa
+      241 ttatcctcct attaacactc atagcaacag ctttcgtcgg ctacgtccta ccatgaggcc
+      301 aaatatcatt ttgaggcgct acagtcatca ccaatctatt ctcagcaatt ccttacattg
+      361 gacaaacact tgtagaatga gcatgaggag gattttcagt agacaaccca acactaaccc
+      421 gattctttgc tctacacttc ctcctaccat tcgccattgc aggccttaca tttatccacc
+      481 taaccttcct acatgaaacc ggctcaaaca accccttagg aatttcatca aactgtgata
+      541 aaatcccatt ccacccatac ttctctacca aagacattct aggtttcata gccatactaa
+      601 caccactagc cgcactagcc atattctcac caaacctctt aggtgaccca gaaaacttta
+      661 cacctgcaaa cccactagta actcctcccc atatcaaacc agaatgatac ttcctattcg
+      721 catatgccat cctacgatca atcccaaata aactaggagg agttctagcc cttgccgctt
+      781 cagtcctaat cctattccta gttccattcc tccacaagtc aaaacaacga acaataactt
+      841 tccgccccct atcccaactc ttattttgaa tcctagtaac taacctcttt atcctaacgt
+      901 gagtagggag ccaaccagtt gaacatccct tcattatcat cggacaatta gcctcactca
+      961 cctatttcat gacactcctc atcctattcc caattgtcgg agccttagaa aacaagatac
+     1021 tcaatctcta aacactctaa tagtt
+//
+
+LOCUS       EF190597                1029 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA PP2267 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190597
+VERSION     EF190597.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1029)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1029)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1029
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA PP2267"
+                     /db_xref="taxon:326918"
+     gene            <1..1015
+                     /gene="cytb"
+     CDS             <1..1015
+                     /gene="cytb"
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88797.1"
+                     /translation="AQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRNLHANG
+                     ASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSFWGAT
+                     VITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLTFLHE
+                     TGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENFTPAN
+                     PLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRTMTFR
+                     PLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGALENKM
+                     LNL"
+ORIGIN      
+        1 ggcacaaatc atcacaggtc tcctaatagc aatacactat acagcagaca ctaccctagc
+       61 cttcacatcc gtagcccata catgccgaaa cgtccaattc ggttgactga tccgtaacct
+      121 ccacgcaaac ggagcctcaa tattcttcat ctgtatctac ctccacatcg gacgaggctt
+      181 ctactacggt tcttacctct tcaaagaaac ttgaaataca ggaattatcc tcctattaac
+      241 actcatagca acagctttcg tcggctacgt cctaccatga ggccaaatat cattttgagg
+      301 cgctacagtc atcaccaatc tattctcagc aattccttac attggacaaa cacttgtaga
+      361 atgagcatga ggaggatttt cagtagacaa cccaacacta acccgattct ttgctctaca
+      421 cttcctccta ccattcgcca ttgcaggcct tacatttatc cacctaacct tcctacatga
+      481 aaccggctca aacaacccct taggaatttc atcaaactgt gataaaatcc cattccaccc
+      541 atacttctct accaaagaca ttctaggttt catagccata ctaacaccac tagccgcact
+      601 agccatattc tcaccaaacc tcttaggtga cccagaaaac tttacacctg caaacccact
+      661 agtaactcct ccccatatca aaccagaatg atacttccta ttcgcatatg ccatcctacg
+      721 atcaatccca aataaactag gaggagttct agcccttgcc gcttcagtcc taatcctatt
+      781 cctagttcca ttcctccaca agtcaaaaca acgaacaata actttccgcc ccctatccca
+      841 actcttattt tgaatcctag taactaacct ctttatccta acgtgagtag ggagccaacc
+      901 agttgaacat cccttcatta tcatcggaca attagcctca ctcacctatt tcatgacact
+      961 cctcatccta ttcccaattg tcggagcctt agaaaacaag atactcaatc tctaaacact
+     1021 ctaatagtt
+//
+
+LOCUS       EF190598                1011 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA P652 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190598
+VERSION     EF190598.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1011)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1011)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1011
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA P652"
+                     /db_xref="taxon:326918"
+     gene            <1..>1011
+                     /gene="cytb"
+     CDS             <1..>1011
+                     /gene="cytb"
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88798.1"
+                     /translation="AQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRNLHANG
+                     ASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSFWGAT
+                     VITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLTFLHE
+                     TGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENFTPAN
+                     PLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRTMTFR
+                     PLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLXLFPIVGALENKM
+                     LNL"
+ORIGIN      
+        1 ggcacaaatc atcacaggtc tcctaatagc aatacactat acagcagaca ctaccctagc
+       61 ctttacatcc gtagcccata catgccgaaa cgtccaattc ggttgactga tccgcaacct
+      121 ccacgcaaac ggagcctcaa tattctttat ctgtatctac ctccacatcg gacgaggttt
+      181 ctactatggt tcatacctct tcaaagaaac ttgaaataca ggaattatcc tcctattaac
+      241 actcatagca acagctttcg tcggctacgt cctaccatga ggccaaatat cattttgagg
+      301 tgctacagtc atcaccaatc tattctcagc aattccttac attggacaaa cacttgtaga
+      361 atgagcatgg ggaggatttt cagtagacaa cccaacacta actcgattct ttgctctaca
+      421 cttcctccta ccattcgcca ttgcaggcct tacatttatc cacctaacct tcctacatga
+      481 aaccggctca aacaacccct taggaatttc atcaaactgt gataaaatcc cattccaccc
+      541 atacttctct actaaagaca ttctaggttt catagccata ctaacaccac tagccgcact
+      601 agccatattc tcaccaaacc tcctaggtga cccagaaaac tttacacctg caaacccact
+      661 agtaacccct ccccatatca aaccagaatg atacttccta ttcgcatatg ccatcctacg
+      721 atcaatccca aataaactag gaggagttct agcccttgcc gcttcagtcc taatcctatt
+      781 cctagttcca ttcctccaca aatcaaaaca acgaacaata actttccgcc ccctatccca
+      841 actcttattt tgaatcctag taactaacct ctttatccta acgtgagtag ggagccaacc
+      901 agttgaacat cccttcatta tcatcggaca attagcctca ctcacctatt tcatgacact
+      961 cctcatntta ttcccaattg tcggagcctt agaaaacaag atactcaatc t
+//
+
+LOCUS       EF190599                1009 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA P937 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190599
+VERSION     EF190599.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1009)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1009)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1009
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA P937"
+                     /db_xref="taxon:326918"
+     gene            <1..>1009
+                     /gene="cytb"
+     CDS             <1..>1009
+                     /gene="cytb"
+                     /codon_start=3
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88799.1"
+                     /translation="QIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRNLHANGA
+                     SMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSFWGATV
+                     ITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLTFLHET
+                     GSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENFTPANP
+                     LVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRTMTFRP
+                     LSQLLFWILVTNLFILTWVGSQPVXHPFIIIGQLASLTYFMTLLILFPIVGALENKML
+                     NL"
+ORIGIN      
+        1 cacaaatcat cacaggtctc ctaatagcaa tacactatac agcagacact accctagcct
+       61 ttacatccgt agcccataca tgccgaaacg tccaattcgg ttgactgatc cgcaacctcc
+      121 acgcaaacgg agcctcaata ttctttatct gtatctacct ccacatcgga cgaggtttct
+      181 actatggttc atacctcttc aaagaaactt gaaatacagg aattatcctc ctattaacac
+      241 tcatagcaac agctttcgtc ggctacgtcc taccatgagg ccaaatatca ttttgaggtg
+      301 ctacagtcat caccaatcta ttctcagcaa ttccttacat tggacaaaca cttgtagaat
+      361 gagcatgggg aggattttca gtagacaacc caacactaac ccgattcttt gctctacact
+      421 tcctcctacc attcgccatt gcaggcctta catttatcca cctaaccttc ctacatgaaa
+      481 ccggctcaaa caacccctta ggaatttcat caaactgtga taaaatccca ttccacccat
+      541 acttctctac taaagacatt ctaggtttca tagccatact aacaccacta gccgcactag
+      601 ccatattctc accaaacctc ctaggtgacc cagaaaactt tacacctgca aacccactag
+      661 taacccctcc ccatattaaa ccagaatgat acttcctatt cgcatatgcc atcctacgat
+      721 caatcccaaa taaactagga ggagttctag cccttgccgc ttcagtccta atcctattcc
+      781 tagttccatt cctccacaaa tcaaaacaac gaacaataac tttccgcccc ctatcccaac
+      841 tcttattttg aatcctagta actaacctct ttatcctaac gtgagtaggg agccaaccag
+      901 ttgnacatcc cttcattatc atcggacaat tagcctcact cacctatttc atgacactcc
+      961 tcattctatt cccaattgtc ggagccttag aaaacaagat actcaatct
+//
+
+LOCUS       EF190600                1023 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA P994 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190600
+VERSION     EF190600.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1023)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1023)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1023
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA P994"
+                     /db_xref="taxon:326918"
+     gene            <1..>1023
+                     /gene="cytb"
+     CDS             <1..>1023
+                     /gene="cytb"
+                     /codon_start=3
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88800.1"
+                     /translation="ICLMAQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRNL
+                     HANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSF
+                     WGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLT
+                     FLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENF
+                     TPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRT
+                     MTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGAL
+                     ENKMLN"
+ORIGIN      
+        1 gcatctgcct catggcacaa atcatcacag gtctcctaat agcaatacac tatacagcag
+       61 acactaccct agcctttaca tccgtagccc atacatgccg aaacgtccaa ttcggttgac
+      121 tgatccgcaa cctccacgca aacggagcct caatattctt tatctgtatc tacctccaca
+      181 tcggacgagg tttctactat ggttcatacc tcttcaaaga aacttgaaat acaggaatta
+      241 tcctcctatt aacactcata gcaacagctt tcgtcggcta cgtcctacca tgaggccaaa
+      301 tatcattttg aggtgctaca gtcatcacca atctattctc agcaattcct tacattggac
+      361 aaacacttgt agaatgagca tggggaggat tttcagtaga caacccaaca ctaacccgat
+      421 tctttgctct acacttcctc ctaccattcg ccattgcagg ccttacattt atccacctaa
+      481 ccttcctaca tgaaaccggc tcaaacaacc ccttaggaat ttcatcaaac tgtgataaaa
+      541 tcccattcca cccatacttc tctactaaag acattctagg tttcatagcc atactaacac
+      601 cactagccgc actagccata ttctcaccaa acctcctagg tgacccagaa aactttacac
+      661 ctgcaaaccc actagtaacc cctccccata ttaaaccaga atgatacttc ctattcgcat
+      721 atgccatcct acgatcaatc ccaaataaac taggaggagt tctagccctt gccgcttcag
+      781 tcctaatcct attcctagtt ccattcctcc acaaatcaaa acaacgaaca ataactttcc
+      841 gccccctatc ccaactctta ttttgaatcc tagtaactaa cctctttatc ctaacgtgag
+      901 tagggagcca accagttgaa catcccttca ttatcatcgg acaattagcc tcactcacct
+      961 atttcatgac actcctcatt ctattcccaa ttgtcggagc cttagaaaac aagatactca
+     1021 atc
+//
+
+LOCUS       EF190601                1046 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus atlanticus voucher FMNH 399195 cytochrome b
+            (cytb) gene, partial cds; mitochondrial.
+ACCESSION   EF190601
+VERSION     EF190601.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus atlanticus
+  ORGANISM  Xiphorhynchus fuscus atlanticus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1046)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1046)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1046
+                     /organism="Xiphorhynchus fuscus atlanticus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /sub_species="atlanticus"
+                     /specimen_voucher="FMNH 399195"
+                     /db_xref="taxon:436321"
+     gene            <1..1032
+                     /gene="cytb"
+     CDS             <1..1032
+                     /gene="cytb"
+                     /codon_start=1
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88801.1"
+                     /translation="PGICLMAQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIR
+                     NLHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQM
+                     SFWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIH
+                     LTFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPE
+                     NFTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQ
+                     RTMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVG
+                     ALENKMLNL"
+ORIGIN      
+        1 cctggcatct gcctcatggc acaaatcatc acgggtctcc taatagcaat acactataca
+       61 gcagacacta ccctagcctt cacatccgta gcccatacat gccgaaacgt ccaattcggc
+      121 tgactgatcc gcaacctcca cgcaaacgga gcctcaatat tcttcatctg tatctacctc
+      181 cacatcggac gaggcttcta ctacggctct tacctcttca aagaaacttg aaatacagga
+      241 attatcctcc tattaaccct catagcaaca gctttcgtcg gctatgtcct accatgaggc
+      301 caaatatcat tttgaggtgc tacagtcatc accaatctat tttcagcaat tccttacatc
+      361 ggacaaacac ttgtagaatg agcatgggga ggattttcag tagacaaccc aacactaacc
+      421 cgattctttg ccctacactt cctcctacca ttcgccattg caggccttac atttatccac
+      481 ctgaccttcc tacatgaaac cggctcaaac aaccccttag gtatttcatc aaactgcgat
+      541 aaaattccat tccacccata cttctctact aaagacattc taggttttat agccatactg
+      601 acaccactag ccgcactagc catattctca ccaaacctct taggtgaccc agaaaacttt
+      661 acacctgcaa acccactagt aacccctccc cacatcaaac cagaatgata cttcctattc
+      721 gcatacgcta tcctacgatc aatcccaaat aaactaggag gagttctagc ccttgccgct
+      781 tcagtcctaa tcctattcct agtcccattc ctccacaaat caaaacaacg aacgataact
+      841 ttccgccccc tatcccaact cttattttga atcctagtaa ctaacctctt tatcctcacg
+      901 tgagtaggaa gccaaccagt tgaacatccc ttcattatca tcggacaatt agcctcactc
+      961 acctatttca tgacactcct catcctattc ccaattgtcg gagccttaga aaataagata
+     1021 ctcaatctct aaacactcta atagtt
+//
+
+LOCUS       EF190602                1045 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA P2876 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190602
+VERSION     EF190602.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1045)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1045)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1045
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA P2876"
+                     /db_xref="taxon:326918"
+     gene            <1..1031
+                     /gene="cytb"
+     CDS             <1..1031
+                     /gene="cytb"
+                     /codon_start=3
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88802.1"
+                     /translation="GICLMAQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRN
+                     LHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMS
+                     FWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHL
+                     TFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPEN
+                     FTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQR
+                     TMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGA
+                     LENKMLNL"
+ORIGIN      
+        1 ctggcatctg cctcatggca caaatcatca caggtctcct aatagcaata cactatacag
+       61 cagacactac cctagccttc acatccgtag cccatacatg ccgaaacgtc caattcggtt
+      121 gactgatccg taacctccac gcaaacggag cctcaatatt cttcatctgt atctacctcc
+      181 acatcggacg aggcttctac tacggttctt acctcttcaa agaaacttga aatacaggaa
+      241 ttatcctcct attaacactc atagcaacag ctttcgtcgg ctacgtccta ccatgaggcc
+      301 aaatatcatt ttgaggcgct acagtcatca ccaatctatt ctcagcaatt ccttacattg
+      361 gacaaacact tgtagaatga gcatgaggag gattttcagt agacaaccca acactaaccc
+      421 gattctttgc tctacacttc ctcctaccat tcgccattgc aggccttaca tttatccacc
+      481 taaccttcct acatgaaacc ggctcaaaca accccttagg aatttcatca aactgtgata
+      541 aaatcccatt ccacccatac ttctctacca aagacattct aggtttcata gccatactaa
+      601 caccactagc cgcactagcc atattctcac caaacctcct aggtgaccca gaaaacttta
+      661 cacctgcaaa cccactagta actcctcccc atatcaaacc agaatgatac ttcctattcg
+      721 catatgccat cctacgatca atcccaaata aactaggagg agttctagcc ctcgccgctt
+      781 cagtcctaat cctattccta gttccattcc tccacaagtc aaaacaacga acaataactt
+      841 tccgccccct atcccaactc ttattttgaa tcctagtaac taacctcttt atcctaacgt
+      901 gagtagggag ccaaccagtt gaacatccct tcattatcat cggacaatta gcctcactca
+      961 cctatttcat gacactcctc atcctattcc caattgtcgg agccttagaa aacaagatac
+     1021 tcaatctcta aacactctaa tagtt
+//
+
+LOCUS       EF190603                1053 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA P2877 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190603
+VERSION     EF190603.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1053)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1053)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1053
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA P2877"
+                     /db_xref="taxon:326918"
+     gene            <1..1031
+                     /gene="cytb"
+     CDS             <1..1031
+                     /gene="cytb"
+                     /codon_start=3
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88803.1"
+                     /translation="GICLMAQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRN
+                     LHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMS
+                     FWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHL
+                     TFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPEN
+                     FTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQR
+                     TMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGA
+                     LENKMLNL"
+ORIGIN      
+        1 ctggcatctg cctcatggca caaatcatca caggtctcct aatagcaata cactatacag
+       61 cagacactac cctagccttc acatccgtag cccatacatg ccgaaacgtc caattcggct
+      121 gactgatccg taacctccac gcaaacggag cctcaatatt cttcatctgt atctacctcc
+      181 acatcggacg aggcttctac tacggttctt acctcttcaa agaaacttga aatacaggaa
+      241 ttatcctcct attaacactc atagcaacag ctttcgtcgg ctacgtccta ccatgaggcc
+      301 aaatatcatt ttgaggcgct acagtcatca ccaatctatt ctcagcaatt ccttacattg
+      361 gacaaacact tgtagaatga gcatgaggag gattttcagt agacaaccca acactaaccc
+      421 gattctttgc tctacacttc ctcctaccat tcgccattgc aggccttaca tttatccacc
+      481 taaccttcct acatgaaacc ggctcaaaca accccttagg aatttcatca aactgtgata
+      541 aaatcccatt ccacccatac ttctctacca aagacattct aggtttcata gccatactaa
+      601 caccactagc cgcactagcc atattctcac caaacctctt aggtgaccca gaaaacttta
+      661 cacctgcaaa cccactagta actcctcccc atatcaaacc agaatgatac ttcctattcg
+      721 catatgccat cctacgatca atcccaaata aactaggagg agttctagcc ctcgccgctt
+      781 cagtcctaat cctattccta gttccattcc tccacaagtc aaaacaacga acaataactt
+      841 tccgccccct atcccaactc ttattttgaa tcctagtaac taacctcttt atcctaacgt
+      901 gagtagggag ccaaccagtt gaacatccct tcattatcat cggacaatta gcctcactca
+      961 cctatttcat gacactcctc atcctattcc caattgtcgg agccctagaa aacaagatac
+     1021 tcaatctcta aacactctaa tagtttatta aaa
+//
+
+LOCUS       EF190604                1043 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher LGEMA P2878 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190604
+VERSION     EF190604.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1043)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1043)
+  AUTHORS   Cabanne,G.S., Sari,E., Santos,F. and Miyaki,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Genetics and Evolutionary Biology,
+            University of Sao Paulo, Rua do Matao 277, Sao Paulo, Brazil
+FEATURES             Location/Qualifiers
+     source          1..1043
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="LGEMA P2878"
+                     /db_xref="taxon:326918"
+     gene            <1..1030
+                     /gene="cytb"
+     CDS             <1..1030
+                     /gene="cytb"
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP88804.1"
+                     /translation="GICLMAQIITGLLMAMHYTADTTLAFTSVAHTCRNVQFGWLIRN
+                     LHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMS
+                     FWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHL
+                     TFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPEN
+                     FTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQR
+                     TMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGA
+                     LENKMLNL"
+ORIGIN      
+        1 tggcatctgc ctcatggcac aaatcatcac aggtctccta atagcaatac actatacagc
+       61 agacactacc ctagccttca catccgtagc ccatacatgc cgaaatgtcc aattcggttg
+      121 actgatccgc aacctccacg caaacggagc ctcaatattc ttcatctgta tctacctcca
+      181 catcggacga ggcttctact acggttctta cctcttcaaa gaaacttgaa atacaggaat
+      241 tatcctccta ttaacactca tagcaacagc tttcgtcggc tacgtcctac catgaggcca
+      301 aatatcattt tgaggtgcta cagtcatcac caatctattc tcagcaattc cttacattgg
+      361 acaaacgctt gtagaatgag catgaggagg attttcagta gacaacccaa cactaacccg
+      421 attctttgct ctacacttcc tcctaccatt cgccattgca ggccttacat ttatccacct
+      481 aaccttccta catgaaaccg gctcaaacaa ccccttagga atttcatcaa actgtgataa
+      541 aatcccattc cacccatact tctctactaa agacattcta ggtttcatag ccatactaac
+      601 accactagcc gcactagcca tattctcacc aaacctctta ggtgacccag aaaactttac
+      661 acctgcaaac ccactagtaa cccctcccca tatcaaacca gaatgatact tcctattcgc
+      721 atatgccatc ctacgatcaa tcccaaataa actaggagga gttctagccc ttgccgcttc
+      781 agtcctaatc ctattcctag ttccattcct ccacaaatca aaacaacgaa caataacttt
+      841 ccgcccccta tcccaactct tattttgaat cctagtaact aacctcttta tcctaacgtg
+      901 agtaggaagc caaccagttg agcatccctt cattatcatc ggacaattag cctcactcac
+      961 ctatttcatg acactcctca tcctattccc aattgtcgga gccttagaaa acaagatact
+     1021 caatctctaa acactctaat agt
+//
+
+LOCUS       AY089819                1010 bp    DNA     linear   VRT 24-JUL-2016
+DEFINITION  Lepidocolaptes fuscus cytochrome b (cytb) gene, partial cds;
+            mitochondrial gene for mitochondrial product.
+ACCESSION   AY089819
+VERSION     AY089819.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1010)
+  AUTHORS   Aleixo,A.
+  TITLE     Molecular systematics and the role of the 'Varzea'-'Terra-firme'
+            ecotone in the diversification of Xiphorhynchus woodcreepers (Aves:
+            Dendrocolaptidae)
+  JOURNAL   Auk 119 (3), 621-640 (2002)
+REFERENCE   2  (bases 1 to 1010)
+  AUTHORS   Aleixo,A.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (13-MAR-2002) Biological Sciences and Museum of Natural
+            Science, Louisiana State University, 119 Foster Hall, Baton Rouge,
+            LA 70803-3216, USA
+FEATURES             Location/Qualifiers
+     source          1..1010
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /isolate="LSUMNS B35576"
+                     /specimen_voucher="Museu Paraense Emilio Goeldi AA 568"
+                     /db_xref="taxon:326918"
+                     /geo_loc_name="Brazil"
+     gene            <1..1010
+                     /gene="cytb"
+     CDS             <1..1010
+                     /gene="cytb"
+                     /codon_start=3
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="AAM00084.1"
+                     /translation="IITGLLMAMHYTADTTXAFTSXAHTCRNVQFGWLIRNLHANGAS
+                     MFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAFVGYVLPWGQMSFWGATVI
+                     TNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLPFAIAGLTFIHLTFLHETG
+                     SNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAMFSPNLLGDPENFTPANPL
+                     VTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILFLVPFLHKSKQRTMTFRPL
+                     SQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFMTLLILFPIVGALENKMLN
+                     L"
+ORIGIN      
+        1 aaatcatcac aggtctccta atagcaatac actatacagc agacactaca ntagccttca
+       61 catccgnagc ccatacatgc cgaaacgtcc aattcggttg actgatccgt aacctccacg
+      121 caaacggagc ctcaatattc ttcatctgta tctacctcca catcggacga ggcttctact
+      181 acggttctta cctcttcaaa gaaacttgaa atacaggaat tatcctccta ttaacactca
+      241 tagcaacagc tttcgtcggc tacgtcctac catgaggcca aatatcattt tgaggcgcta
+      301 cagtcatcac caatctattc tcagcaattc cttacattgg acaaacactt gtagaatgag
+      361 catgaggagg attttcagta gacaacccaa cactaacccg attctttgct ctacacttcc
+      421 tcctaccatt cgccattgca ggccttacat ttatccacct aaccttccta catgaaaccg
+      481 gctcaaacaa ccccttagga atttcatcaa actgtgataa aatcccattc cacccatact
+      541 tctctaccaa agacattcta ggtttcatag ccatactaac accactagcc gcactagcca
+      601 tattctcacc aaacctctta ggtgacccag aaaactttac acctgcaaac ccactagtaa
+      661 ctcctcccca tatcaaacca gaatgatact tcctattcgc atatgccatc ctacgatcaa
+      721 tcccaaataa actaggagga gttctagccc tcgccgcttc agtcctaatc ctattcctag
+      781 ttccattcct ccacaagtca aaacaacgaa caataacttt ccgcccccta tcccaactct
+      841 tattttgaat cctagtaact aacctcttta tcctaacgtg agtagggagc caaccagttg
+      901 aacatccctt cattatcatc ggacaattag cctcactcac ctatttcatg acactcctca
+      961 tcctattccc aattgtcgga gccttagaaa acaagatact caatctctaa
+//
+
+LOCUS       EF190577                1097 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher B0822 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190577
+VERSION     EF190577.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1097)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1097)
+  AUTHORS   Sari,E. and Santos,F.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Departamento de Biologia Geral,
+            Universidade Federal de Minas Gerais, Belo Horizonte, Minas Gerais,
+            Brazil
+FEATURES             Location/Qualifiers
+     source          1..1097
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="B0822"
+                     /db_xref="taxon:326918"
+     gene            <1..1066
+                     /gene="cytb"
+     CDS             <1..1066
+                     /gene="cytb"
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP64739.1"
+                     /translation="HISAWWNFGSLLGICLMAQIITGLLMAMHYTADTTLAFTSVAHT
+                     CRNVQFGWLIRNLHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATA
+                     FVGYVLPWGQMSFWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLL
+                     PFAIAGLTFIHLTFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALA
+                     MFSPNLLGDPENFTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLIL
+                     FLVPFLHKSKQRTMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYF
+                     MTLLILFPIVGALENKMLNL"
+ORIGIN      
+        1 ccacatctca gcatgatgaa actttggatc cctcctaggc atctgcctca tggcacaaat
+       61 catcacaggt ctcctaatag caatacacta tacagcagac actaccctag ccttcacatc
+      121 cgtagcccat acatgccgaa acgtccaatt cggttgactg atccgtaacc tccacgcaaa
+      181 cggagcctca atattcttca tctgtatcta cctccacatc ggacgaggct tctactacgg
+      241 ttcttacctc ttcaaagaaa cttgaaatac aggaattatc ctcctattaa cactcatagc
+      301 aacagctttc gtcggctacg tcctaccatg aggccaaata tcattttgag gcgctacagt
+      361 catcaccaat ctattctcag caattcctta cattggacaa acacttgtag aatgagcatg
+      421 aggaggattt tcagtagaca acccaacact aacccgattc tttgctctac acttcctcct
+      481 accattcgcc attgcaggcc ttacatttat ccacctaacc ttcctacatg aaaccggctc
+      541 aaacaacccc ttaggaattt catcaaactg tgataaaatc ccattccacc catacttctc
+      601 taccaaagac attctaggtt tcatagccat actaacacca ctagccgcac tagccatatt
+      661 ctcaccaaac ctcttaggtg acccagaaaa ctttacacct gcaaacccac tagtaactcc
+      721 tccccatatc aaaccagaat gatacttcct attcgcatat gccatcctac gatcaatccc
+      781 aaataaacta ggaggagttc tagccctcgc cgcttcagtc ctaatcctat tcctagttcc
+      841 attcctccac aagtcaaaac aacgaacaat aactttccgc cccctatccc aactcttatt
+      901 ttgaatccta gtaactaacc tctttatcct aacgtgagta gggagccaac cagttgaaca
+      961 tcccttcatt atcatcggac aattagcctc actcacctat ttcatgacac tcctcatcct
+     1021 attcccaatt gtcggagcct tagaaaacaa gatactcaat ctctaaacac tctaatagtt
+     1081 tatttaaaac actggtc
+//
+
+LOCUS       EF190578                1106 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher B0908 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190578
+VERSION     EF190578.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1106)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1106)
+  AUTHORS   Sari,E. and Santos,F.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Departamento de Biologia Geral,
+            Universidade Federal de Minas Gerais, Belo Horizonte, Minas Gerais,
+            Brazil
+FEATURES             Location/Qualifiers
+     source          1..1106
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="B0908"
+                     /db_xref="taxon:326918"
+     gene            <1..1063
+                     /gene="cytb"
+     CDS             <1..1063
+                     /gene="cytb"
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP64740.1"
+                     /translation="ISAWWNFGSLLGICLMAQIITGLLMAMHYTADTTLAFTSVAHTC
+                     RNVQFGWLIRNLHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAF
+                     VGYVLPWGQMSFWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLP
+                     FAIAGLTFIHLTFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAM
+                     FSPNLLGDPENFTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILF
+                     LVPFLHKSKQRTMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFM
+                     TLLILFPIVGALENKMLNL"
+ORIGIN      
+        1 catctcagca tgatgaaact ttggatccct cctaggcatc tgcctcatgg cacaaatcat
+       61 cacaggtctc ctaatagcaa tacactatac agcagacact accctagcct tcacatccgt
+      121 agcccataca tgccgaaatg tccaattcgg ttgactgatc cgcaacctcc acgcaaacgg
+      181 agcctcaata ttcttcatct gtatctacct ccacatcgga cgaggcttct actacggttc
+      241 ttacctcttc aaagaaactt gaaatacagg aattatcctc ctattaacac tcatagcaac
+      301 agctttcgtc ggctacgtcc taccatgagg ccaaatatca ttttgaggtg ctacagtcat
+      361 caccaatcta ttctcagcaa ttccttacat tggacaaacg cttgtagaat gagcatgggg
+      421 aggattttca gtagacaacc caacactaac ccgattcttt gctctacact tcctcctacc
+      481 attcgccatt gcaggcctta catttatcca cctaaccttc ctacatgaaa ccggctcaaa
+      541 caacccctta ggaatttcat caaactgtga taaaatccca ttccacccat acttctctac
+      601 taaagacatt ctaggtttca tagccatact aacaccacta gccgcactag ccatattctc
+      661 accaaacctc ttaggtgacc cagaaaactt tacacctgca aacccactag taacccctcc
+      721 ccatatcaaa ccagaatgat acttcctatt cgcatatgcc atcctacgat caatcccaaa
+      781 taaactagga ggagttctag cccttgccgc ttcagtccta atcctattcc tagttccatt
+      841 cctccacaaa tcaaaacaac gaacaataac tttccgcccc ctatcccaac tcttattttg
+      901 aatcctagta actaacctct ttatcctaac gtgagtagga agccaaccag ttgaacatcc
+      961 cttcattatc atcggacaat tagcctcact cacctatttc atgacactcc tcatcctatt
+     1021 cccaattgtc ggagccttag aaaacaagat actcaatctc taaacactct aatagtttat
+     1081 ttaaaacact ggtcttgtaa accaaa
+//
+
+LOCUS       EF190579                1096 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher B0909 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190579
+VERSION     EF190579.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1096)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1096)
+  AUTHORS   Sari,E. and Santos,F.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Departamento de Biologia Geral,
+            Universidade Federal de Minas Gerais, Belo Horizonte, Minas Gerais,
+            Brazil
+FEATURES             Location/Qualifiers
+     source          1..1096
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="B0909"
+                     /db_xref="taxon:326918"
+     gene            <1..1063
+                     /gene="cytb"
+     CDS             <1..1063
+                     /gene="cytb"
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP64741.1"
+                     /translation="ISAWWNFGSLLGICLMAQIITGLLMAMHYTADTTLAFTSVAHTC
+                     RNVQFGWLIRNLHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAF
+                     VGYVLPWGQMSFWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLP
+                     FAIAGLTFIHLTFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAM
+                     FSPNLLGDPENFTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILF
+                     LVPFLHKSKQRTMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFM
+                     TLLILFPIVGALENKMLNL"
+ORIGIN      
+        1 catctcagca tgatgaaact ttggatccct cctaggcatc tgcctcatgg cacaaatcat
+       61 cacaggtctc ctaatagcaa tacactatac agcagacact accctagcct tcacatccgt
+      121 agcccataca tgccgaaatg tccaattcgg ttgactgatc cgcaacctcc acgcaaacgg
+      181 agcctcaata ttcttcatct gtatctacct ccacatcgga cgaggcttct actacggttc
+      241 ttacctcttc aaagaaactt gaaatacagg aattatcctc ctattaacac tcatagcaac
+      301 agctttcgtc ggctacgtcc taccatgagg ccaaatatca ttttgaggtg ctacagtcat
+      361 caccaatcta ttctcagcaa ttccttacat tggacaaacg cttgtagaat gagcatgagg
+      421 aggattttca gtagacaacc caacactaac ccgattcttt gctctacact tcctcctacc
+      481 attcgccatt gcaggcctta catttatcca cctaaccttc ctacatgaaa ccggctcaaa
+      541 caacccctta ggaatttcat caaactgtga taaaatccca ttccacccat acttctctac
+      601 taaagacatt ctaggtttca tagccatact aacaccacta gccgcactag ccatattctc
+      661 accaaacctc ttaggtgacc cagaaaactt tacacctgca aacccactag taacccctcc
+      721 ccatatcaaa ccagaatgat acttcctatt cgcatatgcc atcctacgat caatcccaaa
+      781 taaactagga ggagttctag cccttgccgc ttcagtccta atcctattcc tagttccatt
+      841 cctccacaaa tcaaaacaac gaacaataac tttccgcccc ctatcccaac tcttattttg
+      901 aatcctagta actaacctct ttatcctaac gtgagtagga agccaaccag ttgaacatcc
+      961 cttcattatc atcggacaat tagcctcact cacctatttc atgacactcc tcatcctatt
+     1021 cccaattgtc ggagccttag aaaacaagat actcaatctc taaacactct aatagtttat
+     1081 ttaaaacact ggtctt
+//
+
+LOCUS       EF190580                1108 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher B0911 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190580
+VERSION     EF190580.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1108)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1108)
+  AUTHORS   Sari,E. and Santos,F.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Departamento de Biologia Geral,
+            Universidade Federal de Minas Gerais, Belo Horizonte, Minas Gerais,
+            Brazil
+FEATURES             Location/Qualifiers
+     source          1..1108
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="B0911"
+                     /db_xref="taxon:326918"
+     gene            <1..1063
+                     /gene="cytb"
+     CDS             <1..1063
+                     /gene="cytb"
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP64742.1"
+                     /translation="ISAWWNFGSLLGICLMAQIITGLLMAMHYTADTTLAFTSVAHTC
+                     RNVQFGWLIRNLHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATAF
+                     VGYVLPWGQMSFWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLLP
+                     FAIAGLTFIHLTFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALAM
+                     FSPNLLGDPENFTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLILF
+                     LVPFLHKSKQRTMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYFM
+                     TLLILFPIVGALENKMLNL"
+ORIGIN      
+        1 catctcagca tgatgaaact ttggatccct cctaggcatc tgcctcatgg cacaaatcat
+       61 cacaggtctc ctaatagcaa tacactatac agcagacact accctagcct tcacatccgt
+      121 agcccataca tgccgaaacg tccaattcgg ttgactgatc cgtaacctcc acgcaaacgg
+      181 agcctcaata ttcttcatct gtatctacct ccacatcgga cgaggcttct actacggttc
+      241 ttacctcttc aaagaaactt gaaatacagg aattatcctc ctattaacac tcatagcaac
+      301 agctttcgtc ggctacgtcc taccatgagg ccaaatatca ttttgaggcg ctacagtcat
+      361 caccaatcta ttctcagcaa ttccttacat tggacaaaca cttgtagaat gagcatgagg
+      421 aggattttca gtagacaacc caacactaac ccgattcttt gctctacact tcctcctacc
+      481 attcgccatt gcaggcctta catttatcca cctaaccttc ctacatgaaa ccggctcaaa
+      541 caacccctta ggaatttcat caaactgtga taaaatccca ttccacccat acttctctac
+      601 caaagacatt ctaggtttca tagccatact aacaccacta gccgcactag ccatattctc
+      661 accaaacctc ctaggtgacc cagaaaactt tacacctgca aacccactag taactcctcc
+      721 ccatatcaaa ccagaatgat acttcctatt cgcatatgcc atcctacgat caatcccaaa
+      781 taaactagga ggagttctag ccctcgccgc ttcagtccta atcctattcc tagttccatt
+      841 cctccacaag tcaaaacaac gaacaataac tttccgcccc ctatcccaac tcttattttg
+      901 aatcctagta actaacctct ttatcctaac gtgagtaggg agccaaccag ttgaacatcc
+      961 cttcattatc atcggacaat tagcctcact cacctatttc atgacactcc tcatcctatt
+     1021 cccaattgtc ggagccttag aaaacaagat actcaatctc taaacactct aatagtttat
+     1081 ttaaaacact ggtcttgtaa accaaaaa
+//
+
+LOCUS       EF190581                1111 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher B0913 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190581
+VERSION     EF190581.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1111)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1111)
+  AUTHORS   Sari,E. and Santos,F.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Departamento de Biologia Geral,
+            Universidade Federal de Minas Gerais, Belo Horizonte, Minas Gerais,
+            Brazil
+FEATURES             Location/Qualifiers
+     source          1..1111
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="B0913"
+                     /db_xref="taxon:326918"
+     gene            <1..1066
+                     /gene="cytb"
+     CDS             <1..1066
+                     /gene="cytb"
+                     /codon_start=2
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP64743.1"
+                     /translation="HISAWWNFGSLLGICLMAQIITGLLMAMHYTADTTLAFTSVAHT
+                     CRNVQFGWLIRNLHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATA
+                     FVGYVLPWGQMSFWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLL
+                     PFAIAGLTFIHLTFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALA
+                     MFSPNLLGDPENFTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLIL
+                     FLVPFLHKSKQRTMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYF
+                     MTLLILFPIVGALENKMLNL"
+ORIGIN      
+        1 ccacatctca gcatgatgaa actttggatc cctcctaggc atctgcctca tggcacaaat
+       61 catcacaggt ctcctaatag caatacacta tacagcagac actaccctag ccttcacatc
+      121 cgtagcccat acatgccgaa acgtccaatt cggttgactg atccgtaacc tccacgcaaa
+      181 cggagcctca atattcttca tctgtatcta cctccacatc ggacgaggct tctactacgg
+      241 ttcttacctc ttcaaagaaa cttgaaatac aggaattatc ctcctattaa cactcatagc
+      301 aacagctttc gtcggctacg tcctaccatg aggccaaata tcattttgag gcgctacagt
+      361 catcaccaat ctattctcag caattcctta cattggacaa acacttgtag aatgagcatg
+      421 aggaggattt tcagtagaca acccaacact aacccgattc tttgctctac acttcctcct
+      481 accattcgcc attgcaggcc ttacatttat ccacctaacc ttcctacatg aaaccggctc
+      541 aaacaacccc ttaggaattt catcaaactg tgataaaatc ccattccacc catacttctc
+      601 taccaaagac attctaggtt tcatagccat actaacacca ctagccgcac tagccatatt
+      661 ctcaccaaac ctcttaggtg acccagaaaa ctttacacct gcaaacccac tagtaactcc
+      721 tccccatatc aaaccagaat gatacttcct attcgcatat gccatcctac gatcaatccc
+      781 aaataaacta ggaggagttc tagccctcgc cgcttcagtc ctaatcctat tcctagttcc
+      841 attcctccac aagtcaaaac aacgaacaat aactttccgc cccctatccc aactcttatt
+      901 ttgaatccta gtaactaacc tctttatcct aacgtgagta gggagccaac cagttgaaca
+      961 tcccttcatt atcatcggac aattagcctc actcacctat ttcatgacac tcctcatcct
+     1021 attcccaatt gtcggagcct tagaaaacaa gatactcaat ctctaaacac tctaatagtt
+     1081 tatttaaaac actggtcttg taaaccaaaa a
+//
+
+LOCUS       EF190582                1110 bp    DNA     linear   VRT 23-JUL-2016
+DEFINITION  Xiphorhynchus fuscus voucher B0918 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   EF190582
+VERSION     EF190582.1
+KEYWORDS    .
+SOURCE      mitochondrion Xiphorhynchus fuscus
+  ORGANISM  Xiphorhynchus fuscus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Archelosauria; Archosauria; Dinosauria; Saurischia; Theropoda;
+            Coelurosauria; Aves; Neognathae; Passeriformes; Dendrocolaptidae;
+            Xiphorhynchus.
+REFERENCE   1  (bases 1 to 1110)
+  AUTHORS   Cabanne,G.S., d'Horta,F.M., Sari,E.H., Santos,F.R. and Miyaki,C.Y.
+  TITLE     Nuclear and mitochondrial phylogeography of the Atlantic forest
+            endemic Xiphorhynchus fuscus (Aves: Dendrocolaptidae): biogeography
+            and systematics implications
+  JOURNAL   Mol. Phylogenet. Evol. 49 (3), 760-773 (2008)
+   PUBMED   18849002
+REFERENCE   2  (bases 1 to 1110)
+  AUTHORS   Sari,E. and Santos,F.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (18-DEC-2006) Departamento de Biologia Geral,
+            Universidade Federal de Minas Gerais, Belo Horizonte, Minas Gerais,
+            Brazil
+FEATURES             Location/Qualifiers
+     source          1..1110
+                     /organism="Xiphorhynchus fuscus"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="B0918"
+                     /db_xref="taxon:326918"
+     gene            <1..1065
+                     /gene="cytb"
+     CDS             <1..1065
+                     /gene="cytb"
+                     /codon_start=1
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="ABP64744.1"
+                     /translation="HISAWWNFGSLLGICLMAQIITGLLMAMHYTADTTLAFTSVAHT
+                     CRNVQFGWLIRNLHANGASMFFICIYLHIGRGFYYGSYLFKETWNTGIILLLTLMATA
+                     FVGYVLPWGQMSFWGATVITNLFSAIPYIGQTLVEWAWGGFSVDNPTLTRFFALHFLL
+                     PFAIAGLTFIHLTFLHETGSNNPLGISSNCDKIPFHPYFSTKDILGFMAMLTPLAALA
+                     MFSPNLLGDPENFTPANPLVTPPHIKPEWYFLFAYAILRSIPNKLGGVLALAASVLIL
+                     FLVPFLHKSKQRTMTFRPLSQLLFWILVTNLFILTWVGSQPVEHPFIIIGQLASLTYF
+                     MTLLILFPIVGALENKMLNL"
+ORIGIN      
+        1 cacatctcag catgatgaaa ctttggatcc ctcctaggca tctgcctcat ggcacaaatc
+       61 atcacaggtc tcctaatagc aatacactat acagcagaca ctaccctagc cttcacatcc
+      121 gtagcccata catgccgaaa cgtccaattc ggttgactga tccgtaacct ccacgcaaac
+      181 ggagcctcaa tattcttcat ctgtatctac ctccacatcg gacgaggctt ctactacggt
+      241 tcttacctct tcaaagaaac ttgaaataca ggaattatcc tcctattaac actcatagca
+      301 acagctttcg tcggctacgt cctaccatga ggccaaatat cattttgagg cgctacagtc
+      361 atcaccaatc tattctcagc aattccttac attggacaaa cacttgtaga atgagcatga
+      421 ggaggatttt cagtagacaa cccaacacta acccgattct ttgctctaca cttcctccta
+      481 ccattcgcca ttgcaggcct tacatttatc cacctaacct tcctacatga aaccggctca
+      541 aacaacccct taggaatttc atcaaactgt gataaaatcc cattccaccc atacttctct
+      601 accaaagaca ttctaggttt catagccata ctaacaccac tagccgcact agccatattc
+      661 tcaccaaacc tcttaggtga cccagaaaac tttacacctg caaacccact agtaactcct
+      721 ccccatatca aaccagaatg atacttccta ttcgcatatg ccatcctacg atcaatccca
+      781 aataaactag gaggagttct agccctcgcc gcttcagtcc taatcctatt cctagttcca
+      841 ttcctccaca agtcaaaaca acgaacaata actttccgcc ccctatccca actcttattt
+      901 tgaatcctag taactaacct ctttatccta acgtgagtag ggagccaacc agttgaacat
+      961 cccttcatta tcatcggaca attagcctca ctcacctatt tcatgacact cctcatccta
+     1021 ttcccaattg tcggagccct agaaaacaag atactcaatc tctaaacact ctaatagttt
+     1081 atttaaaaca ctggtcttgt aaaccaaaaa
+//
+

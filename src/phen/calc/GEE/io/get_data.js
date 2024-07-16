@@ -134,6 +134,9 @@ exports.getNIRvData = function(maskLowBRDFAlbQual,
       var NIRvImg = img.normalizedDifference(
         ['Nadir_Reflectance_Band2', 'Nadir_Reflectance_Band1'])
         .subtract(0.08)
+        // NOTE: not dividing by 10000 to scale to [0, 1],
+        //       so raw NIRv values recovered from coefficients
+        //       would need to be rescaled if used without otherwise standardizing/etc
         .multiply(img.select('Nadir_Reflectance_Band2'))
         .rename('NIRv')
         .copyProperties(img, ee.List(['system:time_start']));

@@ -137,7 +137,7 @@ for doy in range(365):
         assert np.nanmin(fit_proj) >= 0
         assert np.nanmax(fit_proj) <= 1
         # mask values outside global Equal Area projection bounds
-        fit_proj = mask_xarr_to_other_xarr_bbox(fit_proj, fit)
+        fit_proj = phf.mask_xarr_to_other_xarr_bbox(fit_proj, fit)
         # plot it
         fig = plt.figure(figsize=(10, 5))
         ax = fig.add_subplot(1, 1, 1)
@@ -198,18 +198,12 @@ for png in pngs:
 cv2.destroyAllWindows()
 video.release()
 
-# compress the full-size video (otherwise it's ~32GB!)
-cmd = "ffmpeg -i VID_SUPP_normalized_NIRv_LSP.avi -vcodec libx265 -crf 28 VID_SUPP_normalized_NIRv_LSP_COMPRESSED.mp4"
+# compress the full-size video (otherwise it's ~3GB)
+cmd = "ffmpeg -i VID_SUPP_normalized_NIRv_LSP.avi -vcodec libx264 -pix_fmt yuv420p VID_SUPP_normalized_NIRv_LSP_COMPRESSED.mp4"
 cwd = os.getcwd()
 os.chdir(data_dir)
 os.system(cmd)
 os.chdir(cwd)
-
-# knit into GIF
-#print('\n\ncompiling GIF...\n\n')
-#giffile = os.path.join(data_dir, "LSP_vid.gif")
-#cmd = "convert -delay 10 -loop 0 $(ls -1 %s/map_img_doy*png | sort -V) %s" % (data_dir, giffile)
-#os.system(cmd)
 
 print('Yeehaw!')
 

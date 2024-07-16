@@ -145,14 +145,14 @@ def map_mask(ax, mask_filename, axlabel, lcMask_mode=None):
                           zorder=0,
                          )
     phf.plot_juris_bounds(ax,
-                          lev0_color='#060606',
+                          lev0_color='none',
                           lev0_linecolor='gray',
                           lev0_linewidth=0.5,
                           lev0_alpha=0.8,
                           lev0_zorder=2,
-                          lev1_color='#060606',
+                          lev1_color='none',
                           lev1_linecolor='gray',
-                          lev1_linewidth=0.3,
+                          lev1_linewidth=0.1,
                           lev1_alpha=0.7,
                           lev1_zorder=1,
                           strip_axes=True,
@@ -183,7 +183,7 @@ if __name__ == '__main__':
                  }
 
     fig = plt.figure(figsize=(8.7, 6))
-    gs = GridSpec(3, 2, figure=fig)
+    gs = GridSpec(3, 4, figure=fig)
     filenames = ['lcMask.tif',
                  'monthPropsMinMask_NIRv.tif',
                  'evennessMask_NIRv.tif',
@@ -193,7 +193,10 @@ if __name__ == '__main__':
 
     for ct, fn in enumerate(filenames):
         print(f"\n\nNOW PROCESSING {fn}...\n\n")
-        ax = fig.add_subplot(gs[ct//2, ct%2])
+        if ct < len(filenames) - 1:
+            ax = fig.add_subplot(gs[ct//2, ((ct%2)*2):((ct%2)*2+2)])
+        else:
+            ax = fig.add_subplot(gs[ct//2, ((ct%2)*2+1):((ct%2)*2+3)])
         label = label_dict[fn.replace('.tif', '')]
         zonal_means = map_mask(ax, fn, label)
         if 'lcMask' in fn:

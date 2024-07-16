@@ -45,19 +45,27 @@ def run_analysis():
     print('\nreading genetic data...')
     gen_dist_filepath = os.path.join(phf.REPO_DIR,
                                      'src/asynch/anal/gen/xiphorhynchus/',
-                                     'all_xiphorhynchus_fuscus_dist.csv',
+                                     'all_xiphorhynchus_fuscus_dist_IAN.csv',
                                     )
     gen_dist = pd.read_csv(gen_dist_filepath)
+    # set first column as index
+    gen_dist.set_index(gen_dist.columns[0], inplace=True)
     # reformat row and col names to reflect just the voucher code
     gen_dist.index = [i.split('.')[0] for i in gen_dist.index]
     gen_dist.columns = [c.split('.')[0] for c in gen_dist.columns]
+    # replace nullified upper half of matrix with symmetric values
+    gen_dist.values[np.triu_indices(len(gen_dist))] = gen_dist.T.values[np.triu_indices(len(gen_dist))]
+    # and replace nullified self-distances with zeros
+    for i in range(len(gen_dist)):
+        gen_dist.iloc[i, i] = 0
     # check voucher IDs on rows and columns are unique and identical
     assert len(np.unique(gen_dist.index)) == len(gen_dist)
     assert len(np.unique(gen_dist.columns)) == len(gen_dist.columns)
     assert np.all(np.array([*gen_dist.index]) == np.array([*gen_dist.columns]))
     # check diagonal is all zeros
     assert np.all([gen_dist.iloc[i, i] == 0 for i in range(gen_dist.shape[0])])
-
+    # check matrix is symmetric
+    assert np.all(gen_dist.T == gen_dist)
     # read CSV with sample voucher codes and locations
     print('\nreading geographic data...')
     geo_filepath = os.path.join(phf.REPO_DIR,
@@ -157,6 +165,7 @@ def run_analysis():
     geo_dist = geo_dist[~missing_lsp].T[~missing_lsp]
     env_dist = env_dist[~missing_lsp].T[~missing_lsp]
     lsp_dist = lsp_dist[~missing_lsp].T[~missing_lsp]
+    # check symmetry and shape of all matrices
     for i, mat in enumerate([gen_dist, geo_dist, env_dist, lsp_dist]):
         assert np.all(mat == mat.T), f"matrix {i} failed!"
         assert np.all(mat.shape == gen_dist.shape), f"matrix {i} failed!"

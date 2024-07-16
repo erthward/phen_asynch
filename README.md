@@ -112,6 +112,19 @@ Each step of the following workflow was executed in the environment indicated *i
 8. *On laptop*, manually assemble each focal-region map figure's .odg file in LibreOffice Draw using the outputs of the previous step, then save a static image (by selecting all, clicking "File" > "Export...", checking the 'Selection' checkbox in the bottom left corner, selecting .png as the file type, clicking "Save", clicking the "Modify resolution" radio-button on the pop-up and setting the resolution to 500 pixels/inch, then clicking the "Modify dimensions" radio button, setting the width to 7 inches and letting the height auto-adjust, then clicking "OK").
 
 
+### map examples of LSP fitted to raw NIRv data:
+1. *On GEE*, run `src/phen/calc/GEE/viz/extract_raw_NIRv_at_CA_sites.js` to extract the raw, 20-year NIRv time series at a transect of 3 California FLUXNET sites with divergent phenologies (**1 task, 1m runtime**).
+2. *On laptop*, run `src/phen/viz/plot_NIRv_raw_and_fitted_at_example_sites.py` to produce a supplemental figure demonstrating the LSP time series fitted to the raw NIRv data for those three sites (**1 task, <5m runtime**).
+
+
+### produce LSP modality map:
+1. *On laptop*, run `python src/phen/anal/mod/map_ann_sem_LSP_modality.py` to calculate the global map of LSP modality, by searching for <=2 peaks to each pixel's fitted, minmax-scaled LSP time series, then calculating the absolute difference between the 2 peaks (or assigning a difference of 1 if only a single peak exists), such that 0s refer to places with 2 exactly equal-height fitted LSP peaks per year, 1s refer to places with only a single peak, and values in between have 2 peaks varying in relative height (**1 task, ~1h runtime**).
+
+
+### produce LSP video:
+1. *On laptop*, run `python src/phen/viz/make_LSP_global_video.py` to produce an mp4 video of one year of global, minmax-scaled LSP variability (**1 task, ~3h runtime**).
+
+
 ### run NPN and SI-x evaluation:
 1. *On laptop*, run `Rscript --vanilla src/phen/eval/NPN_and_SI-x/get_NPN_leaf_data.r` to download, for a wide range of dominant US tree genera and at all NPN sites, both the day of year of first leaf based on NPN ground observations and mean day of year of start of season (SOS) based on MODIS-derived SI-x phenology maps (**1 task, <1h runtime**).
 2. *On laptop*, run `python src/phen/eval/NPN_and_SI-x/compare_NIRv_LSP_to_NPN_first_leaf.py` to evaluate SOS estimates derived from our NIRv LSP data against both the NPN first-leaf and SI-x SOS datasets (**1 task, <1m runtime**).

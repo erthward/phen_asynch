@@ -164,6 +164,7 @@ def run_analysis():
     geo_dist = geo_dist[~missing_lsp].T[~missing_lsp]
     env_dist = env_dist[~missing_lsp].T[~missing_lsp]
     lsp_dist = lsp_dist[~missing_lsp].T[~missing_lsp]
+    # check symmetry and shape of all matrices
     for i, mat in enumerate([gen_dist, geo_dist, env_dist, lsp_dist]):
         assert np.all(mat == mat.T), f"matrix {i} failed!"
         assert np.all(mat.shape == gen_dist.shape), f"matrix {i} failed!"

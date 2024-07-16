@@ -450,7 +450,7 @@ if __name__ == '__main__':
             # finish plot formatting
             fig_main.subplots_adjust(left=0.05,
                                      right = 0.95,
-                                     bottom=0.03,
+                                     bottom=0.04,
                                      top=0.98,
                                      hspace=0.8,
                                      wspace=0.0
