@@ -93,7 +93,7 @@ if splitpath(pwd())[2] == "home"
     const BASE_DATA_DIR = "/media/deth/SLAB/diss/3-phn/GEE_outputs/"
 # ... or else get path on Savio
 else
-    const BASE_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_outputs/"
+    const BASE_DATA_DIR = "/global/scratch/users/drewhart/seasonality/quick_GEE_outputs/"
 end
 
 """
@@ -153,6 +153,17 @@ minimum number of neighbors needed for a pixel's asynchrony to be calculated
 and for its result to be included in the output dataset
 """
 const MIN_NUM_NEIGHS = 30
+
+"""
+whether or not to fit interecepts in the asynchrony-calculating regressions
+"""
+const FIT_INTERCEPT = true
+
+"""
+α of the regression slopes
+(i.e., max slope P-value to consider significant)
+"""
+const ALPHA = 0.01
 
 
 #-----------------
@@ -849,12 +860,14 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
     end
     if num_neighs ≥ MIN_NUM_NEIGHS
         # get the slope of the overall regression of Euclidean ts dists on geo dist
-        # NOTE: just setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
-        res_ts = run_linear_regression(geo_dists, ts_dists, fit_intercept=false)
-        # extract both results into vars
-        asynch_ts = res_ts["slope"]
+        # NOTE: setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
+        res_ts = run_linear_regression(geo_dists, ts_dists, fit_intercept=FIT_INTERCEPT)
+        # extract both R2 and Pval into vars
         R2_ts = res_ts["R2"]
         Pval_ts = res_ts["Pval"]
+        # extract slope (i.e., asynchrony metric),
+        # and use Pval to determine if it is indistinguishable from zero
+        asynch_ts = res_ts["slope"] * Int(Pval_ts < ALPHA)
         # extract sample size (i.e. number of neighbors) for this focal pixel,
         # checking that there was no issue with uneven numbers of results
         @assert(length(geo_dists) == length(ts_dists)), ("Lengths of " *

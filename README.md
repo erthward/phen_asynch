@@ -118,7 +118,7 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ### produce LSP modality map:
-1. *On laptop*, run `python src/phen/anal/mod/map_ann_sem_LSP_modality.py` to calculate the global map of LSP modality, by searching for <=2 peaks to each pixel's fitted, minmax-scaled LSP time series, then calculating the absolute difference between the 2 peaks (or assigning a difference of 1 if only a single peak exists), such that 0s refer to places with 2 exactly equal-height fitted LSP peaks per year, 1s refer to places with only a single peak, and values in between have 2 peaks varying in relative height (**1 task, ~1h runtime**).
+1. *On laptop*, run `python src/phen/eval/modality/map_ann_sem_LSP_modality.py` to calculate the global map of LSP modality, by searching for <=2 peaks to each pixel's fitted, minmax-scaled LSP time series, then calculating the absolute difference between the 2 peaks (or assigning a difference of 1 if only a single peak exists), such that 0s refer to places with 2 exactly equal-height fitted LSP peaks per year, 1s refer to places with only a single peak, and values in between have 2 peaks varying in relative height (**1 task, ~1h runtime**).
 
 
 ### produce LSP video:
