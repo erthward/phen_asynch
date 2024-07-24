@@ -32,7 +32,7 @@ do
       echo
       echo "Prepping data for var ${var}, neigh_rad ${neigh_rad}..."
       echo
-      Rscript --vanilla /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/anal/drivers/prep_data/prep_phen_asynch_rf_data.r $var $neigh_rad > ch3_rf_data_prep_${var}_${neigh_rad}.Rout 
+      Rscript --vanilla /global/home/users/drewhart/seasonality/seasonal_asynchrony/src/asynch/anal/drivers/prep_data/prep_phen_asynch_rf_data.r $var $neigh_rad > ch3_rf_data_prep_${var}_${neigh_rad}.Rout 
       for coords_as_covars in y n
       do
         echo
@@ -40,7 +40,7 @@ do
         echo
         echo "Running random forest model for var ${var}, neigh_rad ${neigh_rad}, coord_as_covars ${coords_as_covars}..."
         echo
-         Rscript --vanilla /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/anal/drivers/run_rf/run_phen_asynch_rf.r $var $neigh_rad $coords_as_covars > ch3_rf_${var}_${neigh_rad}_${coords_as_covars}.Rout 
+         Rscript --vanilla /global/home/users/drewhart/seasonality/seasonal_asynchrony/src/asynch/anal/drivers/run_rf/run_phen_asynch_rf.r $var $neigh_rad $coords_as_covars > ch3_rf_${var}_${neigh_rad}_${coords_as_covars}.Rout 
       done
  done
 done

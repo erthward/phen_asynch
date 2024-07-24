@@ -20,4 +20,4 @@
 module load python/3.7
 
 # run the error-rasterization script
-python /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/anal/drivers/summ_results/rasterize_err.py > rast_err.pyout
+python /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/src/anal/drivers/summ_results/rasterize_err.py > rast_err.pyout

@@ -19,5 +19,5 @@
 
 module load gdal python/3.7
 
-python /global/home/users/drewhart/seasonality/seasonal_asynchrony/phen/evaluation/compare_NIRv_and_SIF_maps/compare_NIRv_SIF_fitted_phenology.py
+python /global/home/users/drewhart/seasonality/seasonal_asynchrony/src/phen/eval/compare_NIRv_and_SIF_maps/compare_NIRv_SIF_fitted_phenology.py
 

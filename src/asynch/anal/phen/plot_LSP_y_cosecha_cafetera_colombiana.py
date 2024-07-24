@@ -48,9 +48,10 @@ gdf = pd.concat(gdfs)
 gdf = gdf.reset_index()
 
 
-# plot regions' median LSP curves
+# plot regions' median or mean LSP curves
 fig = plt.figure(figsize=(5, 8))
 ax = fig.add_subplot(2, 1, 2)
+mid_fn = np.median
 # NOTE: numerical doy range associated with the major and minor seasons,
 #       adjusted down by 1 to account for January 1st being doy 0
 season_xlims = {'MAMJ': [59, 180],
@@ -78,26 +79,26 @@ for i, color in enumerate(np.unique(gdf['color'])):
            f"in {color} cluster are missing LSP data...\n"))
     lsp_ts = lsp_ts[keep, :]
     all_lsp.append(lsp_ts)
-    med = np.median(lsp_ts, axis=0)
+    mid = mid_fn(lsp_ts, axis=0)
     pctile_05 = np.percentile(lsp_ts, 5, axis=0)
     pctile_95 = np.percentile(lsp_ts, 95, axis=0)
-    ax.plot(range(len(med)),
-            med,
+    ax.plot(range(len(mid)),
+            mid,
             linestyle='-',
             color='k',
             alpha=1,
             zorder=0,
             linewidth=0.5,
            )
-    ax.plot(range(len(med)),
-            med,
+    ax.plot(range(len(mid)),
+            mid,
             linestyle='-',
             color=color,
             alpha=0.8,
             zorder=1,
             linewidth=3,
            )
-    ax.plot(range(len(med)),
+    ax.plot(range(len(mid)),
             pctile_05,
             linestyle='--',
             linewidth=0.5,
@@ -105,7 +106,7 @@ for i, color in enumerate(np.unique(gdf['color'])):
             alpha=0.7,
             zorder=1,
            )
-    ax.plot(range(len(med)),
+    ax.plot(range(len(mid)),
             pctile_95,
             linestyle='--',
             linewidth=0.5,
@@ -192,7 +193,7 @@ lsp_gdf = gdf.loc[all_keep, ['geometry', 'color']]
 all_lsp = np.vstack(all_lsp)
 for i in range(365):
     lsp_gdf.loc[:, f'doy{i}'] = all_lsp[:, i]
-# scree plot suggested k=3 is best
+# scree plot suggests k=3 is best
 np.random.seed(1)
 lsp_clusts = KMeans(n_clusters=3).fit(lsp_gdf.iloc[:, 2:].values)
 lsp_gdf.loc[:, 'clust'] = lsp_clusts.labels_

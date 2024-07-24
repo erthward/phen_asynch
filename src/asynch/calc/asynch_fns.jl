@@ -60,13 +60,10 @@ using Distributed
 using Statistics
 using StatsBase
 using Distances
-#using GeoArrays
 using TFRecord
 using ArchGDAL
 using Printf
-#using Images
 using Colors
-#using Plots
 using Dates
 using JSON
 using Glob
@@ -93,7 +90,7 @@ if splitpath(pwd())[2] == "home"
     const BASE_DATA_DIR = "/media/deth/SLAB/diss/3-phn/GEE_outputs/"
 # ... or else get path on Savio
 else
-    const BASE_DATA_DIR = "/global/scratch/users/drewhart/seasonality/quick_GEE_outputs/"
+    const BASE_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_outputs/"
 end
 
 """
@@ -157,13 +154,13 @@ const MIN_NUM_NEIGHS = 30
 """
 whether or not to fit interecepts in the asynchrony-calculating regressions
 """
-const FIT_INTERCEPT = true
+const FIT_INTERCEPT = false
 
 """
 α of the regression slopes
 (i.e., max slope P-value to consider significant)
 """
-const ALPHA = 0.01
+const ALPHA = 0.05
 
 
 #-----------------

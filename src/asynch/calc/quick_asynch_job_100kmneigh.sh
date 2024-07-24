@@ -28,7 +28,7 @@ do
    do
       echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
       echo "NOW PROCESSING ${var} FOR NEIGH RAD ${neigh_rad} METERS..."
-      julia -p 32 /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/calculation/calc_asynch.jl --neigh_rad $neigh_rad --var $var > quick_ch3_asynch_job_${var}_${neigh_rad}.jlout
+      julia -p 32 /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/src/calc/calc_asynch.jl --neigh_rad $neigh_rad --var $var > quick_ch3_asynch_job_${var}_${neigh_rad}.jlout
       echo "FINISHED PROCESSING ${var} FOR NEIGH RAD ${neigh_rad} METERS."
    done
 done
