@@ -46,13 +46,13 @@ vars = ['NIRv', 'SIF', 'tmmn', 'tmmx', 'pr', 'def', 'cloud']
 asynch_cmap = palettable.scientific.sequential.LaJolla_20_r.mpl_colormap
 
 cbar_axlab_dict = {'NIRv main': 'LSP asynchrony',
-                   'NIRv': '$NIR_{V}\ asynch\ (\Delta NIR_{V}/\Delta m)$',
-                   'SIF': '$SIF\  asynch\ (\Delta (mW m^{-2} sr^{-1} nm^{-1})/\Delta m)$',
-                   'tmmn': '$tmp_{min}\ asynch\ (\Delta ^{\circ} C/\Delta m)$',
-                   'tmmx': '$tmp_{max}\ asynch\ (\Delta ^{\circ} C/\Delta m)$',
-                   'pr': '$ppt\ asynch\ (\Delta mm/\Delta m)$',
-                   'def': '$cwd\ asynch\ (\Delta mm/\Delta m)$',
-                   'cloud': '$cloud\ asynch\ (\Delta \%\ cover/\Delta m)$',
+                   'NIRv': '$NIR_{V}\ asynch\ (\Delta \sigma_{NIR_{V}}/\Delta m)$',
+                   'SIF': '$SIF\  asynch\ (\Delta \sigma_{mW m^{-2} sr^{-1} nm^{-1}})/\Delta m)$',
+                   'tmmn': '$tmp_{min}\ asynch\ (\Delta \sigma_{^{\circ} C}/\Delta m)$',
+                   'tmmx': '$tmp_{max}\ asynch\ (\Delta \sigma_{^{\circ} C}/\Delta m)$',
+                   'pr': '$ppt\ asynch\ (\Delta \sigma_{mm}/\Delta m)$',
+                   'def': '$cwd\ asynch\ (\Delta \sigma_{mm}/\Delta m)$',
+                   'cloud': '$cloud\ asynch\ (\Delta \sigma_{\%\ cover}/\Delta m)$',
 
                   }
 

@@ -154,13 +154,13 @@ const MIN_NUM_NEIGHS = 30
 """
 whether or not to fit interecepts in the asynchrony-calculating regressions
 """
-const FIT_INTERCEPT = false
+const FIT_INTERCEPT = true
 
 """
 α of the regression slopes
 (i.e., max slope P-value to consider significant)
 """
-const ALPHA = 0.05
+const ALPHA = 0.01
 
 
 #-----------------
@@ -672,6 +672,8 @@ function get_inpatches_outpatches(infilepath::String, inbands::Array{String,1},
         # create the output arrays, to be filled in (start as all NaNs),
         # but specify the same sizes on dims 1 and 2 and new output size on dim 3
         # (dim 3 is size 4 because it holds layers for the asynch metric, its R^2, its P-value, and its n)
+        # NOTE: 4 in the next line dictates the number of output bands
+        #       (one each for the asynch value, R2, P-value, and n)
         outpatches[i] = similar(patch, size(patch)[1], size(patch)[2], 4) * NaN
     end
     return (inpatches, sort(outpatches))
@@ -858,13 +860,13 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
     if num_neighs ≥ MIN_NUM_NEIGHS
         # get the slope of the overall regression of Euclidean ts dists on geo dist
         # NOTE: setting fit_intercept to false fits ts_dist to 0 at geo_dist=0
-        res_ts = run_linear_regression(geo_dists, ts_dists, fit_intercept=FIT_INTERCEPT)
+        result = run_linear_regression(geo_dists, ts_dists, fit_intercept=FIT_INTERCEPT)
         # extract both R2 and Pval into vars
-        R2_ts = res_ts["R2"]
-        Pval_ts = res_ts["Pval"]
+        R2 = result["R2"]
+        Pval = result["Pval"]
         # extract slope (i.e., asynchrony metric),
         # and use Pval to determine if it is indistinguishable from zero
-        asynch_ts = res_ts["slope"] * Int(Pval_ts < ALPHA)
+        asynch = result["slope"] * Int(Pval < ALPHA)
         # extract sample size (i.e. number of neighbors) for this focal pixel,
         # checking that there was no issue with uneven numbers of results
         @assert(length(geo_dists) == length(ts_dists)), ("Lengths of " *
@@ -874,7 +876,7 @@ function calc_asynch_one_pixel!(i::Int64, j::Int64,
                                                                        "not equal!")
 
         # update the output patch with the new values
-        outpatch[i, j, :] = [asynch_ts, R2_ts, Pval_ts, convert(Float32, num_neighs)]
+        outpatch[i, j, :] = [asynch, R2, Pval, convert(Float32, num_neighs)]
 
     # if we don't have at least the minimum number of neighbors
     # then just add NaNs to the outpatch, except for the neighbor count
