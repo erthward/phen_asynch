@@ -99,7 +99,7 @@ def map_r2(ax, r2_filename, axlabel,
                           crs=r2.rio.crs.to_epsg(),
                           strip_axes=True,
                          )
-    ax.text(-175, -55, axlabel, size=6)
+    ax.text(-165, -75, axlabel, size=9, clip_on=False)
 
 
 if __name__ == '__main__':
@@ -144,12 +144,12 @@ if __name__ == '__main__':
                cbar_kwargs=cbar_kwargs,
               )
     fig.axes[-1].set_xlabel('$R^2$', fontdict={'fontsize': 10})
-    fig.subplots_adjust(left=0,
-                        right=1,
+    fig.subplots_adjust(left=0.05,
+                        right=0.95,
                         bottom=0.01,
                         top=0.99,
                         hspace=0,
-                        wspace=0,
+                        wspace=0.2,
                        )
     fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_SUPP_harm_reg_R2_maps.png'), dpi=500)
 

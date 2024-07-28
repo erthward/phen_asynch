@@ -39,9 +39,6 @@ for neigh_rad_i, neigh_rad in enumerate(['50', '100', '150']):
                               np.nanpercentile(diff_scale, 99.99))))
 
     ax = fig.add_subplot(gs[neigh_rad_i, :2])
-    phf.plot_juris_bounds(crs=diff_scale.rio.crs.to_epsg(),
-                          strip_axes=False,
-                         )
     diff_scale.plot.imshow(ax=ax,
                            cmap='coolwarm_r',
                            vmin=-max_abs_val,
@@ -58,6 +55,11 @@ for neigh_rad_i, neigh_rad in enumerate(['50', '100', '150']):
     ax.set_yticks(())
     ax.set_title('neigh_rad = %s km' % neigh_rad,
                  fontdict={'fontsize': 14})
+    phf.plot_juris_bounds(ax=ax,
+                          crs=diff_scale.rio.crs.to_epsg(),
+                          strip_axes=False,
+                         )
+
 
     # scatter samples against one another and fit SLR
     ax = fig.add_subplot(gs[neigh_rad_i, 3])

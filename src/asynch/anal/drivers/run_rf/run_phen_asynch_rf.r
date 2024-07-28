@@ -326,7 +326,7 @@ ntree = 300
 replace = F
 rf.sample.fraction = 0.8
 mtry = 5
-min.node.size = 3
+min.node.size = 1
 
 cat('\nSplitting input data into training and test subsets...\n')
 # and choose data subset based on output above
@@ -459,7 +459,7 @@ write.csv(permut_imp, paste0(data.dir, 'rf_permut_importance_',
 # ... and with SHAP values
 shap <- fastshap::explain(rf_final, X = df[, 2:ncol(df)], pred_wrapper = pfun, nsim = 10)
 shap_imp <- data.frame(
-  Variable = names(shap),
+  Variable = names(rf_final$variable.importance),
   Importance = apply(shap, MARGIN = 2, FUN = function(x) sum(abs(x)))
 )
 write.csv(shap_imp, paste0(data.dir, 'rf_SHAP_importance_',
@@ -515,6 +515,10 @@ write.csv(shap_full, paste0(data.dir, 'rf_SHAP_vals_',
                             coords.as.covars, 'COORDS_',
                             asynch.var, '_',
                             as.character(neigh.rad), 'km.csv'), row.names=F)
+# NOTE: cbinding the unprojected lat, lon coordinates first makes sure that,
+#       when this is read into pandas to be rasterized, these columns stay as 'x' and 'y',
+#       whereas the second 'x' and 'y' columns become 'x.1' and 'y.1',
+#       and thus there is no confusion as to which columns should be used as the EPSG:4326 cell coordinates
 shap_full_w_coords = cbind(df_full_unproj[, c('x', 'y')], shap_full)
 write.csv(shap_full_w_coords, paste0(data.dir, 'rf_SHAP_vals_w_coords_',
                                      coords.as.covars, 'COORDS_',
