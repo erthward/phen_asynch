@@ -1,5 +1,5 @@
 # CHRIS PACIOREK'S WORKAROUND TO FIX THE rgdal/sp/sf ISSUE I RAN INTO:
-Sys.setenv(GDAL_DATA = "/global/home/groups/consultsw/sl-7.x86_64/modules/gdal/2.2.3/share/gdal")
+#Sys.setenv(GDAL_DATA = "/global/home/groups/consultsw/sl-7.x86_64/modules/gdal/2.2.3/share/gdal")
 
 library(rgdal)                # GDAL bindings
 library(sp)                   # spatial data
@@ -8,7 +8,6 @@ library(sf)                   # newer spatial data
 library(maps)                 # countries map data
 library(rsample)              # function for stratified random sampling
 library(ranger)               # faster RFs
-library(spatialRF)            # toolkit for running RFs on spatial data
 library(Boruta)               # feature selection w/ boruta algo (i.e., shadow features)
 library(fastshap)             # SHAP values
 library(vip)                  # var importance plots
@@ -402,14 +401,14 @@ if (F){
 ###########################
 
 # filter covariates using correlation and variance inflation factor (VIF) thresholds
-predictor.var.names = spatialRF::auto_cor(
-         x = trn,
-         cor.threshold = 0.75,
-)  %>% spatialRF::auto_vif(
-         vif.threshold=5,
-)
-
-# ...NONE COLLINEAR!
+#predictor.var.names = spatialRF::auto_cor(
+#         x = trn,
+#         cor.threshold = 0.75,
+#)  %>% spatialRF::auto_vif(
+#         vif.threshold=5,
+#)
+#
+## ...NONE COLLINEAR!
 
 
 ###########################################

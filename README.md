@@ -179,7 +179,7 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ### run analysis of the climate-dependence of phenological asynchrony:
-1. *On laptop*, run `python src/asynch/anal/clim_dep/compare_phen_clim_geog_dist.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce the analysis summary figure (NOTE: analysis saves results for each paramater-combination as it runs, so can be stopped and restarted if necessary and will pick up where it left off.) (**1 task, ~26h runtime**).
+1. *On laptop*, run `python src/asynch/anal/isoclim/compare_phen_clim_geog_dist.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce the analysis summary figure (NOTE: analysis saves results for each paramater-combination as it runs, so can be stopped and restarted if necessary and will pick up where it left off.) (**1 task, ~26h runtime**).
 
 
 ### run iNaturalist flowering-phenology analysis:
@@ -262,7 +262,7 @@ Each step of the following workflow was executed in the environment indicated *i
     - haversine
     - eofs 1.4.0
     - scipy 1.4.1
-    - sklearn 0.21.3
+    - scikit-learn 0.21.3
     - matplotlib 3.1.1
   - R 4.0.3
     - dplyr 1.0.8
@@ -273,7 +273,6 @@ Each step of the following workflow was executed in the environment indicated *i
     - maps 3.4.0
     - rsample  0.1.1
     - ranger 0.13.1
-    - spatialRF 1.1.4
     - Boruta 7.0.0
     - fastshap 0.0.7
     - vip 0.3.2
