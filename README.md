@@ -90,7 +90,7 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ### mosaic and store all results:
-1. *On Savio*, run `sbatch src/asynch/calc/mosaic_job.sh` to mosaic the regression coefficient, regression $R^2$, and asynchrony-result files for all LSP and climate variables and for all three asynchrony neighborhoods (50 km, 100 km, 150 km), producing a set of GeoTIFF outputs for downstream plotting and analysis (**1 job, ~45m runtime**).
+1. *On Savio*, run `sbatch src/asynch/calc/mosaic_job.sh` to mosaic the regression coefficient, regression $R^2$, and asynchrony-result files for all LSP and climate variables and for all three asynchrony neighborhoods (50 km, 100 km, 150 km), producing a set of GeoTIFF outputs for downstream plotting and analysis (**1 job, ~30m runtime**).
 2. *On Savio*, run `bash src/asynch/calc/ul_mosaicked_results_from_savio_to_bdrive.sh` to copy all mosaicked results from Savio back up to Google Drive (**1 task, ~15m runtime**)
 3. *On laptop*, run `bash src/asynch/calc/dl_mosaicked_results_from_bdrive.sh` to then also copy those results down to their intended location on laptop external hard drive (**1 task, ~1h runtime**).
 
@@ -130,7 +130,7 @@ Each step of the following workflow was executed in the environment indicated *i
 2. *On laptop*, run `python src/phen/eval/NPN_and_SI-x/compare_NIRv_LSP_to_NPN_first_leaf.py` to evaluate SOS estimates derived from our NIRv LSP data against both the NPN first-leaf and SI-x SOS datasets (**1 task, <1m runtime**).
 
 
-### run NIRv-SIF asynchrony comparison:
+### run NIRv-SIF LSP comparison:
 1. *On Savio*, run `sbatch src/phen/eval/compare_NIRv_and_SIF_maps/ch3_phen_comparison_job.sh` to calculate a global map of $R^2$ values between the fitted annual NIRv-based and SIF-based LSP patterns (**1 task, ~12h runtime**).
 2. *On Savio*, run `bash src/phen/eval/compare_NIRv_and_SIF_maps/ul_NIRv_SIF_phen_comparison_results_to_bdrive.sh` to upload the resulting GeoTIFF to Google Drive (**1 task, ~1m runtime**).
 3. *On laptop*, run `bash src/phen/eval/compare_NIRv_and_SIF_maps/dl_NIRv_SIF_phen_comparison_results_from_bdrive.sh` to download the GeoTIFF to the necessary local directory (**1 task, ~1m runtime**).
@@ -149,7 +149,7 @@ Each step of the following workflow was executed in the environment indicated *i
 1. *On laptop*, run `python src/asynch/eval/calc_asynch_r2s_btwn_neighborhood_radii.py` to produce Table S2, containing R2s for all neighborhood radius comparisons and for all variables for which we produced asynchrony maps (**1 task, <1m runtime**).
 
 
-### run asynchrony NIRv-SIF comparison:
+### run NIRv-SIF asynchrony comparison:
 1. *On laptop*, run `python src/asynch/eval/NIRv_SIF_comp/compare_SIF_and_NIRv_asynch.py` to compare the two datasets' phenological asynchrony maps across all three neighborhood radii (50 km, 100 km, 150 km) (**1 task, <5m runtime**).
 
 
@@ -178,7 +178,7 @@ Each step of the following workflow was executed in the environment indicated *i
 10. *On laptop*, run `bash src/asynch/anal/drivers/make_figs/make_all_asynch_analysis_figs.sh` to produce the main asynch figure (global map, as well as map summarizing the predominance of the two top-importance covariates), as well as the supplemental figures showing the random forest error map and the map of SHAP-value predominance across all random forest covariates (**1 task, <10m runtime**).
 
 
-### run analysis of the climate-dependence of phenological asynchrony:
+### run analysis of isoclimatic phenological asynchrony:
 1. *On laptop*, run `python src/asynch/anal/isoclim/compare_phen_clim_geog_dist.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce the analysis summary figure (NOTE: analysis saves results for each paramater-combination as it runs, so can be stopped and restarted if necessary and will pick up where it left off.) (**1 task, ~26h runtime**).
 
 
