@@ -22,4 +22,4 @@ stdbuf -i0 -o0 -e0 command
 #module load python/3.7
 conda activate asynch
 
-python /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/src/calc/mosaic_all_results.py > mosaic_all_results.pyout
+python /global/home/users/drewhart/seasonality/seasonal_asynchrony/src/asynch/calc/mosaic_all_results.py > mosaic_all_results.pyout
