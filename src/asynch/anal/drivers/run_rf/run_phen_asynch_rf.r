@@ -458,8 +458,14 @@ write.csv(permut_imp, paste0(data.dir, 'rf_permut_importance_',
                              as.character(neigh.rad), 'km.csv'), row.names=T)
 # ... and with SHAP values
 shap <- fastshap::explain(rf_final, X = df[, 2:ncol(df)], pred_wrapper = pfun, nsim = 10)
+# NOTE: at some point variable names stopped being reported correctlyin shap importance object,
+#       so manually fixing those
+variables = names(rf_final$variable.importance)
+if (coords.as.covars == 'n'){
+   variables = c(variables, 'x', 'y')
+}
 shap_imp <- data.frame(
-  Variable = names(rf_final$variable.importance),
+  Variable = variables,
   Importance = apply(shap, MARGIN = 2, FUN = function(x) sum(abs(x)))
 )
 write.csv(shap_imp, paste0(data.dir, 'rf_SHAP_importance_',

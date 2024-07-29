@@ -133,6 +133,8 @@ if os.path.isfile('clim_dep_all_MMRR_results_%ikmrad.shp' % neigh_rad):
                                     'geo_dist(p': 'geo_dist(p)',
                                     'F-statisti': 'F-statistic',
                                     'mean_clim_': 'mean_clim_dist',
+                                    'n_polys_dr': 'n_polys_dropped',
+                                    'n_polys_al': 'n_polys_alpha_adjusted',
                                    })
     full_loop_vals = deepcopy(loop_vals)
     needed_loop_vals = []
@@ -418,15 +420,15 @@ if remaining_n_loop_vals > 0:
         MMRR_res_df['minsamp'] = dbscan_minsamp
         MMRR_res_df['alpha'] = alpha
 
-        # add the polygons as a column
-        MMRR_res_df['geometry'] = polys
-
         # add some performance metrics
         MMRR_res_df['n_polys_dropped'] = n_polys_dropped
         MMRR_res_df['n_polys_alpha_adjusted'] = n_polys_alpha_adjusted
         end_time = time.time()
         runtime = end_time-start_time
         MMRR_res_df['runtime'] = runtime
+
+        # add the polygons as a column
+        MMRR_res_df['geometry'] = polys
 
         # convert to a GeoDataFrame
         MMRR_res_gdf = gpd.GeoDataFrame(MMRR_res_df, geometry='geometry', crs=4326)
@@ -688,5 +690,5 @@ fig.subplots_adjust(top=0.92,
                     hspace=0.3,
                    )
 
-fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_seas_dist_vs_clim_dist.png'), dpi=700)
+fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_isoclim_asynch.png'), dpi=700)
 
