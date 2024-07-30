@@ -17,6 +17,5 @@
 #
 ## Command(s) to run:
 
-module load python/3.7
 # run the SHAP-rasterization script
-python /global/home/users/drewhart/seasonality/seasonal_asynchrony/asynch/src/anal/drivers/summ_results/rasterize_SHAP_vals.py > rast_shap.pyout
+python /global/home/users/drewhart/seasonality/seasonal_asynchrony/src/asynch/anal/drivers/summ_results/rasterize_SHAP_vals.py > rast_shap.pyout

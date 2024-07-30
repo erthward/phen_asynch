@@ -22,11 +22,12 @@ assert coeffs.rio.crs == crs
 
 # load asynchrony
 neigh = 100
-asynch = rxr.open_rasterio(phf.asynch_files[neigh], masked=True)
+asynch = rxr.open_rasterio(phf.ASYNCH_FILES[neigh], masked=True)
 assert asynch.rio.crs == crs
 
 # load the raw EOFS
 eofs = rxr.open_rasterio(phf.EOFS_FILE, masked=True)
+eofs = eofs.rio.set_crs(crs)
 assert eofs.rio.crs == crs
 
 # load the scaled, ITCZ-folded EOFs, for data viz of phen significant MMRR results
@@ -37,7 +38,7 @@ eofs_prepped = eofs_prepped.rio.reproject_match(coeffs)
 # stack them all and write to file
 # NOTE: EOFs, asynch, then coeffs must be ordered the same in both of next 2 lines!
 band_names = ([f'EOF{i}' for i in range(len(eofs))] +
-              [f'EOF{i}_folded' for i in range(len(eofs_prepped))] +
+              [f'EOF{i}_FOR_VIZ' for i in range(len(eofs_prepped))] +
               [*asynch.long_name] +
               [*coeffs.long_name]
              )
@@ -52,7 +53,7 @@ output_filepath = os.path.join(phf.EXTERNAL_DATA_DIR,
                               )
 output_ds = xr.Dataset()
 for band_name in band_names:
-    output_ds[band_name] = output.sel({'band':band_name})
+    output_ds[band_name] = output.sel({'band': band_name})
 output_ds.rio.to_raster(output_filepath)
 
 
