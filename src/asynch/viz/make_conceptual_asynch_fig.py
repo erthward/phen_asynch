@@ -273,9 +273,13 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             reduction = 1
             ys = [y - reduction for y in ys]
             y = np.array(ys).T
-            X = np.array(xs).T
-            mod = sm.OLS(y, X, hasconst=False).fit()
+            X = np.array(xs).reshape((len(xs),1))
+            # add intercept column
+            X = np.hstack((np.ones((X.shape[0], 1)), X))
+            mod = sm.OLS(y, X, hasconst=True).fit()
             pred_xs = np.linspace(0.9*np.min(xs), 1.1*np.max(xs), 10)
+            # add intercept column
+            pred_xs = np.hstack((np.ones((len(pred_xs), 1)), pred_xs.reshape((-1, 1))))
             preds = mod.predict(pred_xs)
             ax3.scatter(xs, ys, c='k', s=scat_markersize,
                         alpha=scat_markeralpha)
@@ -286,10 +290,10 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
             # cover the (0,0) point, to avoid confusion
             ax3.scatter(0, 0, c='white', s=2*scat_markersize, edgecolor='white')
             if asynch == 'low':
-                ax3.set_ylim((min_seas_dist, max_seas_dist))
+                ax3.set_ylim((0, max_seas_dist))
             else:
-                ax3.set_ylim((min_seas_dist, max_seas_dist))
-            ax3.plot(pred_xs, preds, '-k')
+                ax3.set_ylim((0, max_seas_dist))
+            ax3.plot(pred_xs[:, 1], preds, '-k')
             # make sure origin is bottom-left corner
             ax3.set_xlim(0, ax3.get_xlim()[1])
 

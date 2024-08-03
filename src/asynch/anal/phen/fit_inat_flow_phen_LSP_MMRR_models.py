@@ -51,9 +51,6 @@ MMRR_nperm = 14999
 # common equal-area projection to use
 crs = 8857
 
-# neighborhood size of asynchrony map to use
-asynch_neigh_rad = 100
-
 # whether to use the strict-masked (i.e., ag-removed) coefficients file for
 # extracting fitted LSP patterns at flower observation localities
 strict_coeffs = True
@@ -67,9 +64,6 @@ hex_data_dir = phf.EXTERNAL_INAT_DATA_DIR
 
 # directory with downloaded iNat observation datasets
 obs_data_dir = os.path.join(hex_data_dir, 'obs_data')
-
-# load asynchrony map
-asynch = rxr.open_rasterio(phf.ASYNCH_FILES[asynch_neigh_rad])[0]
 
 # load bioclim nodata value
 bioclim_nodata_val = rio.open(phf.BIOCLIM_INFILEPATHS[0]).nodata
@@ -166,16 +160,7 @@ if not os.path.isfile(os.path.join(hex_data_dir, peaks_hex_filename)):
     for c in new_cols.keys():
         if c.startswith('prop'):
             assert np.nanmin(h3_gdf[c]) >= 0 and np.nanmax(h3_gdf[c]) <= 1
-    # merge asynch values onto the hex gdf
-    assert asynch.rio.crs.wkt == h3_gdf.crs
-    zon_stats = rasterstats.zonal_stats(vectors=h3_gdf['geometry'],
-                                        raster=asynch.values,
-                                        affine=asynch.rio.transform(),
-                                        nodata=-9999,
-                                        stats=['mean', 'median'],
-                                       )
-    h3_gdf['mean_asynch'] = [zs['mean'] for zs in zon_stats]
-    h3_gdf['medn_asynch'] = [zs['median'] for zs in zon_stats]
+    # write it out
     h3_gdf.to_file(os.path.join(hex_data_dir, peaks_hex_filename))
 else:
     print("\n\treading hex-summarized phenology peak results from file...\n")

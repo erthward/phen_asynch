@@ -60,113 +60,88 @@ radar_width_shrink_factor=0.9
 # plotting font sizes
 section_lab_fontsize=25
 cbar_lab_fontsize = 12
-title_fontsize = 19
+title_fontsize = 16
 taxon_fontsize = 14
 axlabel_fontsize = 10
 
 # configure figure and axes sizes
-figsize = (16.5, 17)
-gridspec_dims = (165, 160)
-modality_map_slices = (slice(0, 55),
-                       slice(5, 81),
+figsize = (14, 9)
+gridspec_dims = (170, 186)
+modality_map_slices = (slice(0, 80),
+                       slice(9, 95),
                       )
-modality_map_colorbar_slices = (slice(10, 40),
-                                slice(6, 8),
+modality_map_colorbar_slices = (slice(15, 55),
+                                slice(8, 10),
                                )
-sw_rgb_map_slices = (slice(54, 74),
-                     slice(23, 53),
-                    )
-sw_scat_map_slices = [(slice(54, 74),
-                       slice(50, 80),
-                      ),
-                     ]
-sw_ts_slices = [(slice(76, 86),
-                 slice(50, 80),
-                ),
-               ]
-sw_photo_slices = [(slice(57, 85),
-                      slice(2, 27),
+sw_photo_slices = [(slice(85, 110),
+                      slice(10, 35),
                      )
                     ]
-andes_rgb_map_slices = (slice(94, 114),
-                        slice(28, 58),
-                       )
-andes_scat_map_slices = [(slice(94, 114),
-                          slice(50, 80),
-                         ),
-                        ]
-andes_ts_slices = [(slice(116, 126),
-                    slice(50, 80),
-                   ),
-                  ]
-andes_photo_slices = [(slice(99, 127),
-                         slice(2, 27),
-                        )
-                       ]
-zaf_rgb_map_slices = (slice(132, 152),
-                      slice(23, 53),
+sw_rgb_map_slices = (slice(80, 110),
+                     slice(35, 65),
+                    )
+sw_scat_map_slices = [(slice(80, 110),
+                       slice(65, 95),
+                      ),
+                     ]
+sw_ts_slices = [(slice(110, 120),
+                 slice(65, 95),
+                ),
+               ]
+zaf_photo_slices = [(slice(136, 170),
+                     slice(0, 44),
+                    )
+                   ]
+zaf_rgb_map_slices = (slice(130, 160),
+                      slice(35, 65),
                      )
-zaf_scat_map_slices = [(slice(134, 154),
-                        slice(50, 80),
+zaf_scat_map_slices = [(slice(130, 160),
+                        slice(65, 95),
                        ),
                       ]
-zaf_ts_slices = [(slice(155, 165),
-                  slice(50, 80),
+zaf_ts_slices = [(slice(160, 170),
+                  slice(65, 95),
                  ),
                 ]
-zaf_photo_slices = [(slice(142, 165),
-                       slice(0, 30),
-                      )
-                     ]
-e_brz_rgb_map_slices = (slice(0, 34),
-                        slice(101, 131),
+e_brz_rgb_map_slices = (slice(0, 44),
+                        slice(132, 172),
                        )
-e_brz_genclust_map_slices = [(slice(60, 95),
-                              slice(97, 127),
-                             ),
-                             (slice(118, 153),
-                              slice(97, 127),
-                             ),
-                            ]
-e_brz_genclust_ts_slices = [(slice(97, 107),
-                             slice(97, 127),
-                            ),
-                            (slice(155, 165),
-                             slice(97, 127),
-                            ),
-                           ]
-e_brz_lspclust_map_slices = [(slice(60, 95),
-                              slice(130, 160),
-                             ),
-                             (slice(118, 153),
-                              slice(130, 160),
-                             ),
-                            ]
-e_brz_lspclust_ts_slices = [(slice(97, 107),
-                             slice(131, 162),
-                            ),
-                            (slice(155, 165),
-                             slice(130, 160),
-                            ),
-                           ]
-e_brz_scat_map_slices = [(slice(0, 34),
-                          slice(130, 160),
-                         ),
-                        ]
-e_brz_ts_slices = [(slice(36, 46),
-                    slice(130, 160),
-                   ),
-                  ]
-e_brz_photo_slices = [(slice(10, 40),
-                       slice(83, 103),
+e_brz_photo_slices = [(slice(53, 83),
+                       slice(100, 125),
                       ),
-                      (slice(64, 83),
-                       slice(83, 102),
-                      ),
-                      (slice(127, 151),
-                       slice(80, 105),
+                      (slice(120, 155),
+                       slice(100, 125),
                       ),
                      ]
+
+e_brz_genclust_map_slices = [(slice(45, 89),
+                              slice(116, 156),
+                             ),
+                             (slice(116, 160),
+                              slice(116, 156),
+                             ),
+                            ]
+e_brz_genclust_ts_slices = [(slice(89, 99),
+                             slice(121, 151),
+                            ),
+                            (slice(160, 170),
+                             slice(121, 151),
+                            ),
+                           ]
+e_brz_lspclust_map_slices = [(slice(45, 89),
+                              slice(151, 191),
+                             ),
+                             (slice(116, 160),
+                              slice(151, 191),
+                             ),
+                            ]
+e_brz_lspclust_ts_slices = [(slice(89, 99),
+                             slice(156, 186),
+                            ),
+                            (slice(160, 170),
+                             slice(156, 186),
+                            ),
+                           ]
 
 # common equal-area projection to use
 crs = 8857
@@ -216,7 +191,6 @@ inat_h3_gdf = gpd.read_file(os.path.join(inat_hex_data_dir, peaks_hex_filename))
 inat_h3_gdf['prop_non1peak_signif'] = (inat_h3_gdf['prop_0peak_signif'] +
                                   inat_h3_gdf['prop_2pluspeak_signif'])
 cmap='viridis'
-# plot results for trees, non-trees, and all taxa combined
 res_cols = ['prop_non1peak_signif',
             'prop_0peak_signif',
             'prop_2pluspeak_signif',
@@ -294,6 +268,8 @@ for i, res_col in enumerate(res_cols):
     # get rid of axis border in main figure
     if i == 3:
         ax.axis('off')
+    # set equal aspect ratio
+    ax.set_aspect('equal')
 
 # save the supplemental figure
 fig_supp.subplots_adjust(top=0.96,
@@ -524,7 +500,6 @@ inat_mmrr_filt_adeq_n = inat_mmrr_filt[inat_mmrr_filt['n'] >=min_n_inat_samps_fo
 # set cluster colors
 clust_colors=np.array(['#2d5098', # blue
                        '#ca1957', # red
-                       '#ffc107', # yellow
                       ])
 
 def plot_taxon_photo(ax, name):
@@ -544,6 +519,34 @@ def plot_taxon_photo(ax, name):
     ax.set_ylabel('')
     ax.set_xticks(())
     ax.set_yticks(())
+
+
+def plot_map_bbox(map_xlims,
+                  map_ylims,
+                  ax,
+                  alpha=0.8,
+                  linewidth=0.5,
+                  label=None,
+                  labelxpad=0.1,
+                  labelypad=0.1,
+                  size=12,
+                 ):
+    """
+    adds the bounding box indicated by the given x- and y-lims to the given
+    axes
+    """
+    xs = np.array(map_xlims)[[0, 0, 1, 1, 0]]
+    ys = np.array(map_ylims)[[0, 1, 1, 0, 0]]
+    ax.plot(xs, ys, '-k', alpha=alpha, linewidth=linewidth)
+    if label is not None:
+        assert labelxpad is not None
+        assert labelypad is not None
+        ax.text(map_xlims[0] + labelxpad * (np.abs(np.diff(map_xlims))),
+                map_ylims[0] + labelypad * (np.abs(np.diff(map_ylims))),
+                label,
+                weight='bold',
+                size=size,
+               )
 
 
 def plot_focal_inat_taxa(mmrr_res_gdf,
@@ -639,16 +642,16 @@ def plot_focal_inat_taxa(mmrr_res_gdf,
         ct+=1
 
 
-# . . . . . . . . . . . . 
-# plot example taxa in SW
-# . . . . . . . . . . . . 
+# . . . . . . . . . . . . .
+# plot example taxon in SW
+# . . . . . . . . . . . . .
 # set taxa and their K values (based on manual inspection of scree plots)
 sw_taxa_clust_Ks = {'Xanthisma spinulosum': 2,
                     #'Allionia incarnata': 2,
                    }
 # set up axes objects and params for plotting
 map_xlims = [-115, -105]
-map_ylims = [23, 38]
+map_ylims = [24.66, 38]
 ax_rgb_map = fig.add_subplot(gs[sw_rgb_map_slices[0],
                                 sw_rgb_map_slices[1]])
 scatter_map_axs = [fig.add_subplot(gs[sw_scat_map_slices[i][0],
@@ -671,48 +674,30 @@ plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
                      save_scree_plot=False,
                     )
 [ax.set_ylabel('scaled LSP',
+               labelpad=7,
                fontdict={'fontsize': axlabel_fontsize},
              ) for ax in ts_axs]
+ax_rgb_map.set_aspect('equal')
+[ax.set_aspect('equal') for ax in scatter_map_axs]
 
-
-# . . . . . . . . . . . . . . 
-# plot example taxa in Andes
-# . . . . . . . . . . . . . . 
-# set taxa and their K values (based on manual inspection of scree plots)
-andes_taxa_clust_Ks = {'Lycianthes lycioides': 2,
-                       #'Guzmania monostachia': 2,
-                      }
-# set up axes objects and params for plotting
-map_xlims = [-83.5, -67]
-map_ylims = [-21, 8]
-ax_rgb_map = fig.add_subplot(gs[andes_rgb_map_slices[0],
-                                andes_rgb_map_slices[1]])
-scatter_map_axs = [fig.add_subplot(gs[andes_scat_map_slices[i][0],
-                                      andes_scat_map_slices[i][1]]) for i in range(len(andes_taxa_clust_Ks))]
-ts_axs = [fig.add_subplot(gs[andes_ts_slices[i][0],
-                             andes_ts_slices[i][1]]) for i in range(len(andes_taxa_clust_Ks))]
-photo_axs = [fig.add_subplot(gs[andes_photo_slices[i][0],
-                                andes_photo_slices[i][1]]) for i in range(len(sw_taxa_clust_Ks))]
-plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
-                     taxa=andes_taxa_clust_Ks,
-                     ax_rgb_map=ax_rgb_map,
-                     scatter_map_axs=scatter_map_axs,
-                     ts_axs=ts_axs,
-                     photo_axs=photo_axs,
-                     flow_obs_axs=None,
-                     map_xlims=map_xlims,
-                     map_ylims=map_ylims,
-                     radar_alpha=radar_alpha,
-                     radar_width_shrink_factor=radar_width_shrink_factor,
-                     save_scree_plot=False,
-                    )
-[ax.set_ylabel('scaled LSP',
-               fontdict={'fontsize': axlabel_fontsize},
-             ) for ax in ts_axs]
-
+# add black box to global map to indicate region
+map_lims_df = pd.DataFrame({'geometry':[Point(*lims) for
+                                lims in zip(map_xlims, map_ylims)],
+                            'idx': range(2)})
+map_lims_gdf = gpd.GeoDataFrame(map_lims_df, geometry='geometry', crs=4326)
+map_lims_proj_coords = map_lims_gdf.to_crs(crs).get_coordinates().values
+map_xlims = map_lims_proj_coords[:, 0]
+map_ylims = map_lims_proj_coords[:, 1]
+plot_map_bbox(map_xlims,
+              map_ylims,
+              ax=fig.axes[0],
+              label='B.',
+              labelxpad=-.5,
+              labelypad=0.7,
+             )
 
 # . . . . . . . . . . . . . . . .
-# plot example taxa in S. Africa
+# plot example taxon in S. Africa
 # . . . . . . . . . . . . . . . .
 # set taxa and their K values (based on manual inspection of scree plots)
 zaf_taxa_clust_Ks = {'Satyrium parviflorum': 2,
@@ -743,141 +728,27 @@ plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
                      save_scree_plot=False,
                     )
 [ax.set_ylabel('scaled LSP',
+               labelpad=7,
                fontdict={'fontsize': axlabel_fontsize},
              ) for ax in ts_axs]
+ax_rgb_map.set_aspect('equal')
+[ax.set_aspect('equal') for ax in scatter_map_axs]
 
-
-# . . . . . . . . . . . . . . . .
-# plot example taxa in E. Brazil
-# . . . . . . . . . . . . . . . .
-#
-
-# find and plot top candidate taxa in Eastern Brazil
-# (need to be taxa with adequate and fairly balanced sampling across the
-# climatic/LSP gradient described in Thomé et al. 2021 and in our paper)
-countries = gpd.read_file(phf.ADM0_BOUNDS).to_crs(crs).loc[:, ['adm0_a3', 'geometry']]
-subnational = gpd.read_file(phf.SELECT_ADM1_BOUNDS).to_crs(crs)
-ne_brz = subnational[(subnational['NAME_1'].isin(['Maranhão',
-                                                  'Tocantins',
-                                                  'Piauí',
-                                                  'Ceará',
-                                                  'RioGrandedoNorte',
-                                                  'Paraíba',
-                                                  'Pernambuco',
-                                                  'Alagoas',
-                                                  'Sergipe',
-                                                  'Bahia',
-                                                 ])) &
-                     (subnational['COUNTRY'] == 'Brazil')].dissolve()
-se_brz = subnational[(subnational['NAME_1'].isin(['Goiás',
-                                                  'DistritoFederal',
-                                                  'MinasGerais',
-                                                  'EspíritoSanto',
-                                                  'RiodeJaneiro',
-                                                  'SãoPaulo',
-                                                  'Paraná',
-                                                  'SantaCatarina',
-                                                  'RioGrandedoSul',
-                                                 ])) &
-                    (subnational['COUNTRY'] == 'Brazil')].dissolve()
-ne_brz_taxa = ne_brz.loc[:, ['geometry',
-                             'COUNTRY']].sjoin(inat_mmrr_filt_adeq_n.to_crs(crs))
-se_brz_taxa = se_brz.loc[:, ['geometry',
-                             'COUNTRY']].sjoin(inat_mmrr_filt_adeq_n.to_crs(crs))
-# get intersecting observation counts for each taxon with
-# LSP-coefficient value <=0.05
-total_obs_counts = {}
-ne_brz_obs_cts = {}
-se_brz_obs_cts = {}
-for i, row in ne_brz_taxa.iterrows():
-    if row['lsp_p']<=0.05:
-        tid = row['tid']
-        name = row['name']
-        obs_fn = f"TID_{tid}_{name.replace(' ', '_')}.json"
-        obs = gpd.read_file(os.path.join(inat_obs_data_dir, obs_fn))
-        ct = len(ne_brz.sjoin(obs.to_crs(ne_brz.crs)))
-        assert len(obs) >= ct
-        print((f"\nTID {tid}: {name} has {len(obs)} total observations and "
-               f"{ct} observations within the northeastern Brazil region.\n")
+# add black box to global map to indicate region
+map_lims_df = pd.DataFrame({'geometry':[Point(*lims) for
+                                lims in zip(map_xlims, map_ylims)],
+                            'idx': range(2)})
+map_lims_gdf = gpd.GeoDataFrame(map_lims_df, geometry='geometry', crs=4326)
+map_lims_proj_coords = map_lims_gdf.to_crs(crs).get_coordinates().values
+map_xlims = map_lims_proj_coords[:, 0]
+map_ylims = map_lims_proj_coords[:, 1]
+plot_map_bbox(map_xlims,
+              map_ylims,
+              ax=fig.axes[0],
+              label='C.',
+              labelxpad=1.3,
+              labelypad=0.2,
              )
-        ne_brz_obs_cts[tid] = ct
-    total_obs_counts[tid] = len(obs)
-for i, row in se_brz_taxa.iterrows():
-    if row['lsp_p']<=0.05:
-        tid = row['tid']
-        name = row['name']
-        obs_fn = f"TID_{tid}_{name.replace(' ', '_')}.json"
-        obs = gpd.read_file(os.path.join(inat_obs_data_dir, obs_fn))
-        ct = len(se_brz.sjoin(obs.to_crs(se_brz.crs)))
-        assert len(obs) >= ct
-        print((f"\nTID {tid}: {name} has {len(obs)} total observations and "
-               f"{ct} observations within the southeastern Brazil region.\n")
-             )
-        se_brz_obs_cts[tid] = ct
-    if tid in total_obs_counts:
-        assert len(obs) == total_obs_counts[tid]
-    else:
-        total_obs_counts[tid] = len(obs)
-# get ratios or proportions of total observations
-# (to find taxa with most even sampling across the region)
-ne_se_brz_obs_prop_ratios = {}
-for tid, total_ct in total_obs_counts.items():
-    if tid in ne_brz_obs_cts and tid in se_brz_obs_cts:
-        ne_prop = ne_brz_obs_cts[tid]/total_ct
-        se_prop = se_brz_obs_cts[tid]/total_ct
-        props = sorted([ne_prop, se_prop])
-        ratio = props[0]/props[1]
-        ne_se_brz_obs_prop_ratios[tid] = ratio
-# get taxa that have samples across the eastern Brazil region, along with their
-# sampling ratios and total sample counts in the region
-e_brz_taxa = ne_brz_taxa[ne_brz_taxa['tid'].isin(ne_se_brz_obs_prop_ratios)]
-e_brz_taxa.loc[:, 'reg_obs_prop_ratio'] = [ne_se_brz_obs_prop_ratios[tid] for
-                                           tid in e_brz_taxa['tid'].values]
-e_brz_taxa.loc[:, 'reg_obs_ct'] = [ne_brz_obs_cts[tid] + se_brz_obs_cts[tid] for
-                                           tid in e_brz_taxa['tid'].values]
-# subset to only those with minimum required number of samples,
-# then order by sample proportion ratio and take most evenly sampled taxon
-e_brz_taxa = e_brz_taxa[e_brz_taxa['reg_obs_ct'] >= min_n_inat_samps_for_demo_plots]
-e_brz_taxa = e_brz_taxa.sort_values(by='reg_obs_prop_ratio', ascending=False)
-
-print('\nplotting the following taxa in eastern Brazil:\n')
-for i, row in e_brz_taxa.iterrows():
-    print((f"\t{row['name']} (TID: {row['tid']}) "
-           f"(β_LSP P-value: {np.round(row['lsp_p'], 5)}\n\n"))
-
-# K values for the taxa (from manual inspection of their LSP-cluster scree plots)
-e_brz_taxa_clust_Ks = {'Pleroma heteromallum': 2,
-                       #'Marsypianthes chamaedrys': 3,
-                      }
-# set map bounding box
-e_brz_map_xlims = [-53.8, -34]
-e_brz_map_ylims = [-31.5, -2.8]
-
-# now plot them to the right of the landscape genetics results that will be
-# plotted in the last section of this script
-# NOTE: skipping the RGB map bc it will be plotted in the landgen section, below
-scatter_map_axs = [fig.add_subplot(gs[e_brz_scat_map_slices[i][0],
-                                      e_brz_scat_map_slices[i][1]]) for i in range(len(e_brz_taxa_clust_Ks))]
-ts_axs = [fig.add_subplot(gs[e_brz_ts_slices[i][0],
-                             e_brz_ts_slices[i][1]]) for i in range(len(e_brz_taxa_clust_Ks))]
-photo_axs = [fig.add_subplot(gs[e_brz_photo_slices[i][0],
-                                e_brz_photo_slices[i][1]]) for i in range(len(sw_taxa_clust_Ks))]
-plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
-                     taxa=e_brz_taxa_clust_Ks,
-                     ax_rgb_map=None,
-                     scatter_map_axs=scatter_map_axs,
-                     ts_axs=ts_axs,
-                     photo_axs=photo_axs,
-                     flow_obs_axs=None,
-                     map_xlims=e_brz_map_xlims,
-                     map_ylims=e_brz_map_ylims,
-                     radar_alpha=radar_alpha,
-                     radar_width_shrink_factor=radar_width_shrink_factor,
-                     save_scree_plot=False,
-                    )
-[ax.set_ylabel('scaled LSP',
-               fontdict={'fontsize': axlabel_fontsize},
-             ) for ax in ts_axs]
 
 
 #------------------------------------------------------------------------------
@@ -885,6 +756,8 @@ plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
 #------------------------------------------------------------------------------
 
 # set map bounding box
+e_brz_map_xlims = [-48, -34]
+e_brz_map_ylims = [-24.3, -2.8]
 map_lims_df = pd.DataFrame({'geometry':[Point(*lims) for
                                 lims in zip(e_brz_map_xlims, e_brz_map_ylims)],
                             'idx': range(2)})
@@ -894,14 +767,36 @@ map_xlims = map_lims_proj_coords[:, 0]
 map_ylims = map_lims_proj_coords[:, 1]
 ax_rgb_map = fig.add_subplot(gs[e_brz_rgb_map_slices[0],
                                 e_brz_rgb_map_slices[1]])
+# read in the unfolded EOFs file
+# (NOTE: avoids the 'color smuding' artefact caused by folding the EOFS across
+# the ITCZ, which isn't an issue in most other focal/regional maps, but
+# is a concern here)
+eofs = rxr.open_rasterio(phf.EOFS_FILE)[:3].rio.set_crs(4326)
+for i in range(3):
+    eofs[i] = (eofs[i] - np.nanmin(eofs[i]))/(np.nanmax(eofs[i])-np.nanmin(eofs[i]))
+    # NOTE: flip the colors, so that the majority of the region (aside from the
+    # area near the ITCZ) has the same color scheme as that which appears in the
+    # global RGB map
+    eofs[i] = 1 - eofs[i]
+eofs = eofs.rio.reproject(8857)
 eofs.plot.imshow(ax=ax_rgb_map)
-ax_rgb_map.set_xlim(map_xlims)
-ax_rgb_map.set_ylim(map_ylims)
 phf.plot_juris_bounds(ax_rgb_map,
                       crs=crs,
                       strip_axes=True,
                       reset_axlims=False,
                      )
+ax_rgb_map.set_aspect('equal')
+ax_rgb_map.set_xlim(map_xlims)
+ax_rgb_map.set_ylim(map_ylims)
+
+# add black box to global map to indicate region
+plot_map_bbox(map_xlims,
+              map_ylims,
+              ax=fig.axes[0],
+              label='D.',
+              labelxpad=1.3,
+              labelypad=0.7,
+             )
 
 # analyze and plot Rhinella granulosa data
 rg_gen_dist, rg_pts = rg.run_analysis()
@@ -928,17 +823,15 @@ phf.plot_popgen_LSP_comparison(gen_dist_mat=rg_gen_dist,
                                neigh_dist_lsp_fill_tol=neigh_dist_lsp_fill_tol,
                               )
 # add photo
-ax_rg_photo = fig.add_subplot(gs[e_brz_photo_slices[1][0],
-                                 e_brz_photo_slices[1][1]])
+ax_rg_photo = fig.add_subplot(gs[e_brz_photo_slices[0][0],
+                                 e_brz_photo_slices[0][1]])
 plot_taxon_photo(ax_rg_photo, 'Rhinella granulosa')
 # set title and labels last 
 ax_rg_genclust_map.set_title('')
 ax_rg_genclust_ts.set_ylabel('scaled LSP',
+                             labelpad=7,
                               fontdict={'fontsize': axlabel_fontsize},
                              )
-#ax_rg_lspclust_ts.set_ylabel('scaled LSP',
-#                              fontdict={'fontsize': axlabel_fontsize},
-#                             )
 
 # analyze and plot Xiphorhynchus fuscus data
 xf_gen_dist, xf_pts = xf.run_analysis()
@@ -965,17 +858,19 @@ phf.plot_popgen_LSP_comparison(gen_dist_mat=xf_gen_dist,
                                neigh_dist_lsp_fill_tol=neigh_dist_lsp_fill_tol,
                               )
 # add photo
-ax_xf_photo = fig.add_subplot(gs[e_brz_photo_slices[2][0],
-                                 e_brz_photo_slices[2][1]])
+ax_xf_photo = fig.add_subplot(gs[e_brz_photo_slices[1][0],
+                                 e_brz_photo_slices[1][1]])
 plot_taxon_photo(ax_xf_photo, 'Xiphorhynchus fuscus')
 # set title and labels last
 ax_xf_genclust_map.set_title('')
 ax_xf_genclust_ts.set_ylabel('scaled LSP',
+                             labelpad=7,
                               fontdict={'fontsize': axlabel_fontsize},
                              )
-#ax_xf_lspclust_ts.set_ylabel('scaled LSP',
-#                              fontdict={'fontsize': axlabel_fontsize},
-#                             )
+# force all map axes to equal aspect ratios
+for ax in [ax_rg_genclust_map, ax_rg_lspclust_map,
+           ax_xf_genclust_map, ax_xf_lspclust_map]:
+    ax.set_aspect('equal')
 # add single giant transparent axes over top of everything, then use that to
 # add section labels and dividers
 ax_meta = fig.add_subplot(gs[:, :])
@@ -986,128 +881,98 @@ ax_meta.set_yticks(())
 ax_meta.set_xlabel('')
 ax_meta.set_ylabel('')
 ax_meta.set_title('')
-ax_meta.text(0.01,
-             0.98,
+ax_meta.text(0.02,
+             0.97,
              'A.',
              weight='bold',
              size=section_lab_fontsize,
              clip_on=False,
             )
-ax_meta.text(0.01,
-             0.67,
+ax_meta.text(0.02,
+             0.53,
              'B.',
              weight='bold',
              size=section_lab_fontsize,
              clip_on=False,
             )
-ax_meta.text(0.01,
-             0.42,
+ax_meta.text(0.02,
+             0.22,
              'C.',
              weight='bold',
              size=section_lab_fontsize,
              clip_on=False,
             )
-ax_meta.text(0.01,
-             0.17,
+ax_meta.text(0.55,
+             0.78,
              'D.',
              weight='bold',
              size=section_lab_fontsize,
              clip_on=False,
             )
-ax_meta.text(0.52,
-             0.98,
-             'E.',
-             weight='bold',
-             size=section_lab_fontsize,
-             clip_on=False,
-            )
-ax_meta.text(0.52,
-             0.67,
-             'F.',
-             weight='bold',
-             size=section_lab_fontsize,
-             clip_on=False,
-            )
-ax_meta.text(0.62,
-             0.66,
-             'genetic clusters',
+ax_meta.text(0.73,
+             0.75,
+             'genetic\nclusters',
+             ha='center',
              rotation=0,
              size=title_fontsize,
             )
-ax_meta.text(0.84,
-             0.66,
-             'LSP clusters',
+ax_meta.text(0.91,
+             0.75,
+             'LSP\nclusters',
+             ha='center',
              rotation=0,
              size=title_fontsize,
             )
-ax_meta.text(0.02,
-             0.635,
+ax_meta.text(0.12,
+             0.51,
              [*sw_taxa_clust_Ks][0].replace(' ', '\n'),
+             ha='center',
              fontdict={'fontsize': taxon_fontsize,
                        'style': 'italic',
                       },
             )
-ax_meta.text(0.02,
-             0.385,
-             [*andes_taxa_clust_Ks][0].replace(' ', '\n'),
-             fontdict={'fontsize': taxon_fontsize,
-                       'style': 'italic',
-                      },
-            )
-ax_meta.text(0.05,
-             0.15,
+ax_meta.text(0.12,
+             0.21,
              [*zaf_taxa_clust_Ks][0].replace(' ', '\n'),
+             ha='center',
              fontdict={'fontsize': taxon_fontsize,
                        'style': 'italic',
                       },
             )
-ax_meta.text(0.52,
-             0.94,
-             [*e_brz_taxa_clust_Ks][0].replace(' ', '\n'),
-             fontdict={'fontsize': taxon_fontsize,
-                       'style': 'italic',
-                      },
-            )
-ax_meta.text(0.525,
-             0.62,
+ax_meta.text(0.61,
+             0.73,
              'Rhinella\ngranulosa',
+             ha='center',
              fontdict={'fontsize': taxon_fontsize,
                        'style': 'italic',
                       },
             )
-ax_meta.text(0.53,
-             0.24,
+ax_meta.text(0.61,
+             0.31,
              'Xiphorhynchus\nfuscus',
+             ha='center',
              fontdict={'fontsize': taxon_fontsize,
                        'style': 'italic',
                       },
             )
-ax_meta.plot([0.51, 0.51],
-             [-0.1, 1.2],
+ax_meta.plot([0.54, 0.54],
+             [-0.2, 1.2],
              linewidth=0.3,
              color='black',
              alpha=0.4,
              clip_on=False,
              zorder=0,
             )
-ax_meta.plot([-0.2, 1.2],
-             [0.70, 0.70],
+ax_meta.plot([-0.2, 0.54],
+             [0.57, 0.57],
              linewidth=0.3,
              color='black',
              alpha=0.4,
              clip_on=False,
              zorder=0,
             )
-ax_meta.plot([-0.2, 0.51],
-             [0.45, 0.45],
-             linewidth=0.3,
-             color='black',
-             alpha=0.4,
-             clip_on=False,
-             zorder=0,
-            )
-ax_meta.plot([-0.2, 0.51],
-             [0.21, 0.21],
+ax_meta.plot([-0.2, 0.54],
+             [0.26, 0.26],
              linewidth=0.3,
              color='black',
              alpha=0.4,

@@ -522,6 +522,16 @@ def convert_clock_ang_to_quadrant_ang(ang):
     return ang_out
 
 
+def set_upper_ylim(ax, uplim=6924000):
+    '''
+    set the Axes object's upper y-axis limit
+    (defaults to 6,924,000, which is approximately 60
+    degrees latitude in the Equal Earth projection we're using for most maps
+    )
+    '''
+    ax.set_ylim(top=uplim, bottom=None)
+
+
 def plot_juris_bounds(ax=None,
                       lev0=True,
                       lev0_color='none',
@@ -538,7 +548,7 @@ def plot_juris_bounds(ax=None,
                       lev1_zorder=1,
                       crs=8857,
                       strip_axes=True,
-                      reset_axlims=False
+                      reset_axlims=False,
                      ):
     '''
     plot jurisdictional boundaries on the given axes,
@@ -577,6 +587,8 @@ def plot_juris_bounds(ax=None,
                   zorder=lev1_zorder,
                   ax=ax,
                  )
+    # make sure maps have equal aspect ratio
+    ax.set_aspect('equal')
     if strip_axes:
         strip_axes_labels_and_ticks(ax)
     if return_ax:
@@ -585,7 +597,6 @@ def plot_juris_bounds(ax=None,
         if not reset_axlims:
             ax.set_xlim(xlim)
             ax.set_ylim(ylim)
-
 
 
 def plot_flowerdate_LSP_comparison(flower_obs,

@@ -59,7 +59,7 @@ neigh_rad = 100
 include_coords = 'y'
 
 # asynch percentile threshold below which to drop pixels from summary map
-asynch_thresh = 75
+asynch_thresh = 85
 
 # process the data raw, or read in processed files?
 if what_to_plot == 'main':
@@ -213,7 +213,7 @@ def map_asynch(fig, cbar_axlab,
     rast_proj.attrs['long_name'] = ''
     rast_proj.plot.imshow(ax=ax,
                      cmap=asynch_cmap,
-                     vmin=np.nanpercentile(rast_proj, 1),
+                     vmin=0,
                      vmax=np.nanpercentile(rast_proj, 99),
                      add_colorbar=True,
                      cbar_ax=cax,
@@ -228,6 +228,8 @@ def map_asynch(fig, cbar_axlab,
     # NOTE: chopping off western edge because the equal earth projection
     #       makes NZ appear twice
     ax.set_xlim(0.95 * ax.get_xlim()[0], ax.get_xlim()[1])
+    # crop at top of LSP map
+    phf.set_upper_ylim(ax)
     ax.set_xlabel('')
     ax.set_ylabel('')
     ax.set_xticks(())
@@ -282,6 +284,8 @@ def map_predom(ax, predom,
         # NOTE: chopping off western edge because the equal earth projection
         #       makes NZ appear twice
         ax.set_xlim(0.95 * ax.get_xlim()[0], ax.get_xlim()[1])
+    # crop at top of LSP map
+    phf.set_upper_ylim(ax)
     # make manual colorbar
     if which_covars == 'all':
         polys = []
@@ -466,7 +470,7 @@ if __name__ == '__main__':
                                      )
 
             fig_main.savefig(os.path.join(phf.FIGS_DIR,
-                                          'FIG_asynch_and_rf_results.png'), dpi=500)
+                                          'FIG_asynch_and_drivers.png'), dpi=500)
 
             del fig_main
 
@@ -554,6 +558,8 @@ if __name__ == '__main__':
         # trim to the raster's bounds
         ax.set_xlim(rast.rio.bounds()[::2])
         ax.set_ylim(rast.rio.bounds()[1::2])
+        # crop at top of LSP map
+        phf.set_upper_ylim(ax)
 
         # adjust subplots and save
         fig_err.subplots_adjust(bottom=0.08,

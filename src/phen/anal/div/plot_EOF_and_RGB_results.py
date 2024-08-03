@@ -115,14 +115,14 @@ pc_df.columns = [re.search('(?<=EOF)\d', c).group() for c in pc_df.columns]
 
 # define focal region bounding bboxes
 reg_bboxes = {
-              'QLD': [1.32e7, -1.375e6, 1.373e7, -2.45e6], # far N. Queensland
+              'QLD': [1.32e7, -1.375e6, 1.373e7, -2.45e6],# far N. Queensland
               'Am': [-5.47e6, 3.1e5, -4.6e6, -0.6e6],     # mouth of Amazon
               'Ba': [-1.06e7, 4.5e6, -0.985e7, 2.87e6],   # Baja
               'GB': [-1.01e7, 5.5e6, -0.94e7, 4.6e6],     # Great Basin
               'Mad':[3.94e6, -1.4e6, 4.84e6, -3.3e6],     # Madagascar
               'Fl': [-7.525e6, 3.53e6, -7.25e6, 3.13e6],  # South Florida
-              'SAf':[1.57e6, -4.1e6, 2.1e6, -4.34e6],     # S. Africa cape
-              'WAu':[1.009e7, -3.959e6, 1.092e7, -4.364e6],  # SW Australia
+              'SAf':[1.5643e6, -3.9183e6, 2.2022e6, -4.3398e6],     # S. Africa cape
+              'WAu':[1.0094e7, -3.919e6, 1.1004e7, -4.374e6],  # SW Australia
               'IT': [0.55e6, 5.62e6, 1.2e6, 5.35e6],      # Po Valley, Italy
               'CB': [-8.9e6, 5.95e6, -6.95e6, 3.6e6],     # US Corn Belt
              }
@@ -131,7 +131,7 @@ reg_bboxes = {
 # NOTE: K VALUES WERE DETERMINED BY MANUAL INSPECTION OF SCREE PLOTS
 #       USING THE run_clust_analysis FN WITH plot_scree=True
 reg_K_vals = {
-              'QLD': 4,
+              'QLD': 3,
               'Am':  3,
               'Ba':  4,
               'GB':  3,
@@ -139,8 +139,8 @@ reg_K_vals = {
               'Fl':  3,
               'SAf': 4,
               'WAu': 4,
-              'IT':  4,
-              'CB':  5,
+              'IT':  3,
+              'CB':  3,
              }
 
 
@@ -290,6 +290,8 @@ if what_to_plot == 'eof_summ_fig':
         ax_map.text(0.92*ax_map.get_xlim()[0], 0.92*ax_map.get_ylim()[0],
                     'EOF %i:\n%0.2f%%' % (i+1, eofs_pcts[i]),
                     fontdict={'fontsize': 38})
+        ax_map.set_aspect('equal')
+        phf.set_upper_ylim(ax_map)
         # plot PC time series
         ax_pc.plot(pc_df.loc[:, str(i)], linewidth=2, color='black')
         ax_pc.set_xlabel('day of year', fontdict={'fontsize': 20})
@@ -347,6 +349,8 @@ if what_to_plot == 'raw_rgb_maps':
                               reset_axlims=False,
                              )
         ax.set_ylim(eofs_for_map.rio.bounds()[1::2])
+        ax.set_aspect('equal')
+        phf.set_upper_ylim(ax)
     fig_untrans.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98,
                                 hspace=0.05)
     if save_it:
@@ -382,6 +386,8 @@ if what_to_plot == 'main_rgb_map':
                           strip_axes=True,
                          )
     ax.set_ylim(eofs_wt_sum_for_map.rio.bounds()[1::2])
+    ax.set_aspect('equal')
+    phf.set_upper_ylim(ax)
     ax.spines['bottom'].set_color('black')
     ax.spines['top'].set_color('black')
     ax.spines['right'].set_color('black')
@@ -393,8 +399,7 @@ if what_to_plot == 'main_rgb_map':
                           bottom=0.04,
                           top=0.98)
     if save_it:
-        fig_1.savefig(os.path.join(phf.FIGS_DIR, 'FIG_%s_RGB_EOF_map%s.png' %
-                                   (dataset, mask_filename_ext)),
+        fig_1.savefig(os.path.join(phf.FIGS_DIR, 'FIG_LSP_RGB_map.png'),
                       dpi=700)
 
 
@@ -518,6 +523,8 @@ if what_to_plot == 'reg_figs':
             ax_scree.plot(range(1, k_max+1), wcss)
             ax_scree.set_title(reg, fontdict={'fontsize': 24})
             fig_scree.show()
+            input('Press <Enter> to close plot.')
+            plt.close(fig_scree)
             return
         # else just run clustering for the given value of k
         else:
@@ -730,6 +737,7 @@ if what_to_plot == 'reg_figs':
         phf.plot_juris_bounds(ax_reg, lev0_alpha=0.8, strip_axes=True)
         ax_reg.set_xlim(bbox[0], bbox[2])
         ax_reg.set_ylim(bbox[3], bbox[1])
+        ax_reg.set_aspect('equal')
         # subset the focal region's data and run clustering
         eofs_wt_sum_foc = eofs_wt_sum_for_map.sel(x=slice(bbox[0], bbox[2]),
                                                   y=slice(bbox[1], bbox[3]),
@@ -751,6 +759,7 @@ if what_to_plot == 'reg_figs':
                                           k=K,
                                           ax_lines=ax_lines,
                                           batch_size=40,
+                                          plot_scree=False,
                                           seed=123456)
         # add lineplot labels
         add_phen_labs(ax_lines, reg)
