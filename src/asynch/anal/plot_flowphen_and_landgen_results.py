@@ -32,12 +32,16 @@ import phen_helper_fns as phf
 from MMRR import MMRR
 
 sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
-                    'seasonal_asynchrony/src/asynch/anal/gen/xiphorhynchus/'))
-import test_xiphorhynchus_fuscus as xf
+                    'seasonal_asynchrony/src/asynch/anal/phen/'))
+import comparar_LSP_y_cosecha_cafetera_colombiana as cafe
 
 sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
                     'seasonal_asynchrony/src/asynch/anal/gen/rhinella/'))
 import test_rhinella_granulosa as rg
+
+sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
+                    'seasonal_asynchrony/src/asynch/anal/gen/xiphorhynchus/'))
+import test_xiphorhynchus_fuscus as xf
 
 
 #------------------------------------------------------------------------------
@@ -58,90 +62,93 @@ radar_alpha=0.5
 radar_width_shrink_factor=0.9
 
 # plotting font sizes
-section_lab_fontsize=25
+section_lab_fontsize=20
 cbar_lab_fontsize = 12
 title_fontsize = 16
 taxon_fontsize = 14
 axlabel_fontsize = 10
 
 # configure figure and axes sizes
-figsize = (14, 9)
-gridspec_dims = (170, 186)
-modality_map_slices = (slice(0, 80),
-                       slice(9, 95),
-                      )
-modality_map_colorbar_slices = (slice(15, 55),
-                                slice(8, 10),
-                               )
-sw_photo_slices = [(slice(85, 110),
-                      slice(10, 35),
+figsize = (14.5, 7)
+gridspec_dims = (100, 205)
+sw_cont_map_slices = (slice(3, 18),
+                     slice(0, 15),
+                    )
+sw_photo_slices = [(slice(15, 30),
+                    slice(5, 20),
                      )
                     ]
-sw_rgb_map_slices = (slice(80, 110),
-                     slice(35, 65),
-                    )
-sw_scat_map_slices = [(slice(80, 110),
-                       slice(65, 95),
+sw_scat_map_slices = [(slice(5, 35),
+                       slice(20, 50),
                       ),
                      ]
-sw_ts_slices = [(slice(110, 120),
-                 slice(65, 95),
+sw_ts_slices = [(slice(35, 45),
+                 slice(20, 50),
                 ),
                ]
-zaf_photo_slices = [(slice(136, 170),
-                     slice(0, 44),
+zaf_cont_map_slices = (slice(50, 65),
+                      slice(0, 15),
+                     )
+zaf_photo_slices = [(slice(65, 80),
+                     slice(5, 20),
                     )
                    ]
-zaf_rgb_map_slices = (slice(130, 160),
-                      slice(35, 65),
-                     )
-zaf_scat_map_slices = [(slice(130, 160),
-                        slice(65, 95),
+zaf_scat_map_slices = [(slice(55, 85),
+                        slice(20, 50),
                        ),
                       ]
-zaf_ts_slices = [(slice(160, 170),
-                  slice(65, 95),
+zaf_ts_slices = [(slice(85, 95),
+                  slice(20, 50),
                  ),
                 ]
-e_brz_rgb_map_slices = (slice(0, 44),
-                        slice(132, 172),
+e_brz_cont_map_slices = (slice(3, 18),
+                        slice(60, 75),
                        )
-e_brz_photo_slices = [(slice(53, 83),
-                       slice(100, 125),
+e_brz_photo_slices = [(slice(22, 37),
+                       slice(50, 65),
                       ),
-                      (slice(120, 155),
-                       slice(100, 125),
+                      (slice(72, 87),
+                       slice(50, 65),
                       ),
                      ]
-
-e_brz_genclust_map_slices = [(slice(45, 89),
-                              slice(116, 156),
+e_brz_genclust_map_slices = [(slice(10, 40),
+                              slice(65, 95),
                              ),
-                             (slice(116, 160),
-                              slice(116, 156),
-                             ),
-                            ]
-e_brz_genclust_ts_slices = [(slice(89, 99),
-                             slice(121, 151),
-                            ),
-                            (slice(160, 170),
-                             slice(121, 151),
-                            ),
-                           ]
-e_brz_lspclust_map_slices = [(slice(45, 89),
-                              slice(151, 191),
-                             ),
-                             (slice(116, 160),
-                              slice(151, 191),
+                             (slice(60, 90),
+                              slice(65, 95),
                              ),
                             ]
-e_brz_lspclust_ts_slices = [(slice(89, 99),
-                             slice(156, 186),
+e_brz_genclust_ts_slices = [(slice(40, 50),
+                              slice(65, 95),
+                             ),
+                             (slice(90, 100),
+                              slice(65, 95),
+                             ),
+                            ]
+e_brz_lspclust_map_slices = [(slice(10, 40),
+                             slice(95, 125),
                             ),
-                            (slice(160, 170),
-                             slice(156, 186),
+                            (slice(60, 90),
+                             slice(95, 125),
                             ),
                            ]
+e_brz_lspclust_ts_slices = [(slice(40, 50),
+                             slice(95, 125),
+                            ),
+                            (slice(90, 100),
+                             slice(90, 125),
+                            ),
+                           ]
+cafe_cont_map_slices = (slice(3, 18),
+                       slice(130, 145),
+                      )
+cafe_photo_slices = (slice(4, 19),
+                     slice(140, 155),
+                    )
+cafe_rgb_map_slices = (slice(20, 100),
+                       slice(130, 160),
+                      )
+cafe_ts_slices = [(slice(18+(19*i),37+(19*i)), slice(165, 205)) for i in range(4)]
 
 # common equal-area projection to use
 crs = 8857
@@ -162,14 +169,6 @@ inat_hex_data_dir = phf.EXTERNAL_INAT_DATA_DIR
 
 # directory with downloaded iNat observation datasets
 inat_obs_data_dir = os.path.join(inat_hex_data_dir, 'obs_data')
-
-# load the scaled, ITCZ-folded EOFs, for data viz of phen significant MMRR results
-eofs = rxr.open_rasterio(phf.EOFS_PREPPED_FILE)[:3]
-if strict_coeffs:
-    strict_coeffs_xarr = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
-                                                        coeffs_file),
-                                           masked=True)[0].rio.reproject(crs)
-    eofs = eofs.where(pd.notnull(strict_coeffs_xarr), np.nan)
 
 
 #------------------------------------------------------------------------------
@@ -194,7 +193,6 @@ cmap='viridis'
 res_cols = ['prop_non1peak_signif',
             'prop_0peak_signif',
             'prop_2pluspeak_signif',
-            'prop_non1peak_signif',
            ]
 label_dict = {'prop_non1peak_signif': 'non-unimodal',
               'prop_0peak_signif': 'no significant peaks',
@@ -203,22 +201,13 @@ label_dict = {'prop_non1peak_signif': 'non-unimodal',
 for i, res_col in enumerate(res_cols):
     gs_supp_imin = 5*i
     gs_supp_imax = 5*i+5+(1*(i==2))
-    if i == 3:
-        ax = fig.add_subplot(gs[modality_map_slices[0], modality_map_slices[1]])
-    else:
-        ax = fig_supp.add_subplot(gs_supp[gs_supp_imin:gs_supp_imax, 0])
+    ax = fig_supp.add_subplot(gs_supp[gs_supp_imin:gs_supp_imax, 0])
     # add bottom axes for a colorbar
-    if i >= 2:
-        if i == 2:
-            position = 'bottom'
-            pad = 0.2
-            divider = make_axes_locatable(ax)
-            cax = divider.append_axes(position, size='7%', pad=pad)
-        else:
-            position = 'left'
-            pad = 0.08
-            cax = fig.add_subplot(gs[modality_map_colorbar_slices[0],
-                                 modality_map_colorbar_slices[1]])
+    if i == 2:
+        position = 'bottom'
+        pad = 0.2
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes(position, size='7%', pad=pad)
     # transform to equal-area projection and plot
     inat_h3_gdf.to_crs(crs).plot(res_col,
                                  cmap=cmap,
@@ -241,33 +230,20 @@ for i, res_col in enumerate(res_cols):
                           strip_axes=True,
                           reset_axlims=False,
                          )
-    if i < 3:
-        ax.set_title(label_dict[res_col], fontdict={'fontsize':18})
-    if i  >= 2:
+    ax.set_title(label_dict[res_col], fontdict={'fontsize':18})
+    if i  == 2:
         scalcmap = plt.cm.ScalarMappable(cmap=cmap,
                                          norm=plt.Normalize(vmin=0, vmax=1),
                                         )
-        if i == 2:
-            orientation = 'horizontal'
-        else:
-            orientation = 'vertical'
+        orientation = 'horizontal'
         plt.colorbar(scalcmap, cax=cax, orientation=orientation)
         ticks = np.linspace(0, 1, 5)
         cax.set_xlabel('proportion\nnon-unimodal\ntaxa',
                        fontdict={'fontsize': cbar_lab_fontsize},
                       )
-        if i == 3:
-            cax.set_yticks(ticks, ['%0.2f' % t for t in ticks], size=9)
-            cax.set_xticks(())
-            cax.yaxis.tick_left()
-            cax.yaxis.set_label_position('left')
-        else:
-            cax.set_xticks(ticks, ['%0.2f' % t for t in ticks], size=9)
-            cax.set_ylabel('')
-            cax.set_yticks(())
-    # get rid of axis border in main figure
-    if i == 3:
-        ax.axis('off')
+        cax.set_xticks(ticks, ['%0.2f' % t for t in ticks], size=9)
+        cax.set_ylabel('')
+        cax.set_yticks(())
     # set equal aspect ratio
     ax.set_aspect('equal')
 
@@ -491,7 +467,7 @@ else:
 
 
 #------------------------------------------------------------------------------
-# plot demonstrative taxa
+# plot demonstrative iNaturalist taxa
 #------------------------------------------------------------------------------
 
 # drop small sample sizes (i.e., where too many LSP pixels were masked out)
@@ -504,7 +480,8 @@ clust_colors=np.array(['#2d5098', # blue
 
 def plot_taxon_photo(ax, name):
     """
-    plot a photo of the taxon, taken from among the available CC BY-NC photos
+    plot a photo of the taxon, taken from
+    the available CC BY and CC BY-NC photos on iNaturalist
     """
     filename = name.replace(' ', '_') + '.jpg'
     filepath = os.path.join(phf.EXTERNAL_INAT_DATA_DIR,
@@ -549,15 +526,62 @@ def plot_map_bbox(map_xlims,
                )
 
 
+def get_projected_maplims(map_xlims, map_ylims, crs):
+    '''
+    return the map x- and y-limits, provided in unproject lat-lon
+    as equivalent coordinates in the indicated crs
+    '''
+    map_lims_df = pd.DataFrame({'geometry':[Point(*lims) for lims in zip(map_xlims,
+                                                                        map_ylims)],
+                               'idx': range(2)})
+    map_lims_gdf = gpd.GeoDataFrame(map_lims_df, geometry='geometry', crs=4326)
+    map_lims_proj_coords = map_lims_gdf.to_crs(crs).get_coordinates().values
+    map_xlims_proj = map_lims_proj_coords[:, 0]
+    map_ylims_proj = map_lims_proj_coords[:, 1]
+    return map_xlims_proj, map_ylims_proj
+
+
+def plot_continental_reference_map(ax,
+                                   map_xlims,
+                                   map_ylims,
+                                   box_xlims,
+                                   box_ylims,
+                                   crs=crs,
+                                  ):
+    '''
+    plot a continental-scale map of black jurisdictional bounds,
+    as a reference map for a regional analysis
+    '''
+    ax.set_xlim(map_xlims)
+    ax.set_ylim(map_ylims)
+    ax.set_aspect('equal')
+    phf.plot_juris_bounds(ax,
+                          crs=crs,
+                          strip_axes=True,
+                          reset_axlims=False,
+                          lev0_linewidth=0.2,
+                          lev1_linewidth=0.05,
+                         )
+    ax.set_axis_off()
+    plot_map_bbox(box_xlims,
+                  box_ylims,
+                  ax=ax,
+                  label=None,
+                  linewidth=2,
+                 )
+
+
 def plot_focal_inat_taxa(mmrr_res_gdf,
                          taxa,
-                         ax_rgb_map,
+                         ax_cont_map,
                          scatter_map_axs,
                          ts_axs,
                          photo_axs,
                          flow_obs_axs,
                          map_xlims,
                          map_ylims,
+                         cont_map_xlims,
+                         cont_map_ylims,
                          flow_obs_plot_type='stack',
                          radar_alpha=0.5,
                          radar_width_shrink_factor=0.9,
@@ -569,22 +593,22 @@ def plot_focal_inat_taxa(mmrr_res_gdf,
     """
     assert len(taxa) == len(scatter_map_axs) == len(ts_axs)
     assert flow_obs_axs is None or len(taxa) == len(flow_obs_axs)
-    map_lims_df = pd.DataFrame({'geometry':[Point(*lims) for lims in zip(map_xlims,
-                                                                        map_ylims)],
-                               'idx': range(2)})
-    map_lims_gdf = gpd.GeoDataFrame(map_lims_df, geometry='geometry', crs=4326)
-    map_lims_proj_coords = map_lims_gdf.to_crs(crs).get_coordinates().values
-    map_xlims_proj = map_lims_proj_coords[:, 0]
-    map_ylims_proj = map_lims_proj_coords[:, 1]
-    if ax_rgb_map is not None:
-        eofs.plot.imshow(ax=ax_rgb_map)
-        ax_rgb_map.set_xlim(map_xlims_proj)
-        ax_rgb_map.set_ylim(map_ylims_proj)
-        phf.plot_juris_bounds(ax_rgb_map,
-                              crs=crs,
-                              strip_axes=True,
-                              reset_axlims=False,
-                             )
+    # reproject the given map lims to the required CRS
+    (map_xlims_proj,
+     map_ylims_proj) = get_projected_maplims(map_xlims, map_ylims, crs)
+    (cont_map_xlims_proj,
+     cont_map_ylims_proj) = get_projected_maplims(cont_map_xlims,
+                                                  cont_map_ylims,
+                                                  crs,
+                                                 )
+    if ax_cont_map is not None:
+        plot_continental_reference_map(ax_cont_map,
+                                       cont_map_xlims_proj,
+                                       cont_map_ylims_proj,
+                                       map_xlims_proj,
+                                       map_ylims_proj,
+                                       crs=crs,
+                                      )
     ct = 0
     for taxon, K in taxa.items():
         tax_dict = mmrr_res_gdf[mmrr_res_gdf['name'] == taxon].iloc[0,:]
@@ -642,18 +666,18 @@ def plot_focal_inat_taxa(mmrr_res_gdf,
         ct+=1
 
 
-# . . . . . . . . . . . . .
-# plot example taxon in SW
-# . . . . . . . . . . . . .
+# . . . . . . . . . . . . . . . . . . . .
+# plot example taxon in SW USA and Mexico
+# . . . . . . . . . . . . . . . . . . . .
 # set taxa and their K values (based on manual inspection of scree plots)
-sw_taxa_clust_Ks = {'Xanthisma spinulosum': 2,
-                    #'Allionia incarnata': 2,
-                   }
+sw_taxa_clust_Ks = {'Xanthisma spinulosum': 2}
 # set up axes objects and params for plotting
 map_xlims = [-115, -105]
 map_ylims = [24.66, 38]
-ax_rgb_map = fig.add_subplot(gs[sw_rgb_map_slices[0],
-                                sw_rgb_map_slices[1]])
+cont_map_xlims = [-135, -60]
+cont_map_ylims = [17, 52]
+ax_cont_map = fig.add_subplot(gs[sw_cont_map_slices[0],
+                                sw_cont_map_slices[1]])
 scatter_map_axs = [fig.add_subplot(gs[sw_scat_map_slices[i][0],
                                       sw_scat_map_slices[i][1]]) for i in range(len(sw_taxa_clust_Ks))]
 ts_axs = [fig.add_subplot(gs[sw_ts_slices[i][0],
@@ -662,13 +686,15 @@ photo_axs = [fig.add_subplot(gs[sw_photo_slices[i][0],
                                 sw_photo_slices[i][1]]) for i in range(len(sw_taxa_clust_Ks))]
 plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
                      taxa=sw_taxa_clust_Ks,
-                     ax_rgb_map=ax_rgb_map,
+                     ax_cont_map=ax_cont_map,
                      scatter_map_axs=scatter_map_axs,
                      ts_axs=ts_axs,
                      photo_axs=photo_axs,
                      flow_obs_axs=None,
                      map_xlims=map_xlims,
                      map_ylims=map_ylims,
+                     cont_map_xlims=cont_map_xlims,
+                     cont_map_ylims=cont_map_ylims,
                      radar_alpha=radar_alpha,
                      radar_width_shrink_factor=radar_width_shrink_factor,
                      save_scree_plot=False,
@@ -677,37 +703,21 @@ plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
                labelpad=7,
                fontdict={'fontsize': axlabel_fontsize},
              ) for ax in ts_axs]
-ax_rgb_map.set_aspect('equal')
 [ax.set_aspect('equal') for ax in scatter_map_axs]
 
-# add black box to global map to indicate region
-map_lims_df = pd.DataFrame({'geometry':[Point(*lims) for
-                                lims in zip(map_xlims, map_ylims)],
-                            'idx': range(2)})
-map_lims_gdf = gpd.GeoDataFrame(map_lims_df, geometry='geometry', crs=4326)
-map_lims_proj_coords = map_lims_gdf.to_crs(crs).get_coordinates().values
-map_xlims = map_lims_proj_coords[:, 0]
-map_ylims = map_lims_proj_coords[:, 1]
-plot_map_bbox(map_xlims,
-              map_ylims,
-              ax=fig.axes[0],
-              label='B.',
-              labelxpad=-.5,
-              labelypad=0.7,
-             )
 
 # . . . . . . . . . . . . . . . .
 # plot example taxon in S. Africa
 # . . . . . . . . . . . . . . . .
 # set taxa and their K values (based on manual inspection of scree plots)
-zaf_taxa_clust_Ks = {'Satyrium parviflorum': 2,
-                     #'Pelargonium sidoides': 2,
-                    }
+zaf_taxa_clust_Ks = {'Satyrium parviflorum': 2}
 # set map bounding box
 map_xlims = [17, 31]
 map_ylims = [-35.5, -22]
-ax_rgb_map = fig.add_subplot(gs[zaf_rgb_map_slices[0],
-                                zaf_rgb_map_slices[1]])
+cont_map_xlims = [-20, 59]
+cont_map_ylims = [-39, 39]
+ax_cont_map = fig.add_subplot(gs[zaf_cont_map_slices[0],
+                                zaf_cont_map_slices[1]])
 scatter_map_axs = [fig.add_subplot(gs[zaf_scat_map_slices[i][0],
                                       zaf_scat_map_slices[i][1]]) for i in range(len(zaf_taxa_clust_Ks))]
 ts_axs = [fig.add_subplot(gs[zaf_ts_slices[i][0],
@@ -716,13 +726,15 @@ photo_axs = [fig.add_subplot(gs[zaf_photo_slices[i][0],
                                 zaf_photo_slices[i][1]]) for i in range(len(sw_taxa_clust_Ks))]
 plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
                      taxa=zaf_taxa_clust_Ks,
-                     ax_rgb_map=ax_rgb_map,
+                     ax_cont_map=ax_cont_map,
                      scatter_map_axs=scatter_map_axs,
                      ts_axs=ts_axs,
                      photo_axs=photo_axs,
                      flow_obs_axs=None,
                      map_xlims=map_xlims,
                      map_ylims=map_ylims,
+                     cont_map_xlims=cont_map_xlims,
+                     cont_map_ylims=cont_map_ylims,
                      radar_alpha=radar_alpha,
                      radar_width_shrink_factor=radar_width_shrink_factor,
                      save_scree_plot=False,
@@ -731,24 +743,44 @@ plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
                labelpad=7,
                fontdict={'fontsize': axlabel_fontsize},
              ) for ax in ts_axs]
-ax_rgb_map.set_aspect('equal')
 [ax.set_aspect('equal') for ax in scatter_map_axs]
 
-# add black box to global map to indicate region
-map_lims_df = pd.DataFrame({'geometry':[Point(*lims) for
-                                lims in zip(map_xlims, map_ylims)],
-                            'idx': range(2)})
-map_lims_gdf = gpd.GeoDataFrame(map_lims_df, geometry='geometry', crs=4326)
-map_lims_proj_coords = map_lims_gdf.to_crs(crs).get_coordinates().values
-map_xlims = map_lims_proj_coords[:, 0]
-map_ylims = map_lims_proj_coords[:, 1]
-plot_map_bbox(map_xlims,
-              map_ylims,
-              ax=fig.axes[0],
-              label='C.',
-              labelxpad=1.3,
-              labelypad=0.2,
-             )
+
+#---------------------------------------------
+# run coffee-harvest analysis and plot results
+#---------------------------------------------
+
+# set up axgs
+# add black box to bigger regional map to indicate focal region
+map_xlims = [-7.45e6, -6.863e6]
+map_ylims = [1.38e5, 1.46e6]
+SAm_cont_map_xlims = [-7.816e6, -3.180e6]
+SAm_cont_map_ylims = [-6.815e6, 1.828e6]
+ts_axs = [fig.add_subplot(gs[cafe_ts_slices[i][0],
+                             cafe_ts_slices[i][1]]) for i in range(len(cafe_ts_slices))]
+rgb_map_ax = fig.add_subplot(gs[cafe_rgb_map_slices[0],
+                                cafe_rgb_map_slices[1]])
+# run and plot the analysis
+cafe.run_analysis(rgb_map_ax,
+                  ts_axs,
+                  map_xlims,
+                  map_ylims,
+                 )
+# add map of bigger region
+ax_cont_map = fig.add_subplot(gs[cafe_cont_map_slices[0],
+                                cafe_cont_map_slices[1]])
+plot_continental_reference_map(ax_cont_map,
+                               SAm_cont_map_xlims,
+                               SAm_cont_map_ylims,
+                               map_xlims,
+                               map_ylims,
+                               crs=crs,
+                              )
+# add photo of species
+ax_photo = fig.add_subplot(gs[cafe_photo_slices[0],
+                              cafe_photo_slices[1],
+                             ])
+plot_taxon_photo(ax_photo, 'Coffea arabica')
 
 
 #------------------------------------------------------------------------------
@@ -756,47 +788,24 @@ plot_map_bbox(map_xlims,
 #------------------------------------------------------------------------------
 
 # set map bounding box
-e_brz_map_xlims = [-48, -34]
-e_brz_map_ylims = [-24.3, -2.8]
+map_xlims = [-48, -34]
+map_ylims = [-24.3, -2.8]
 map_lims_df = pd.DataFrame({'geometry':[Point(*lims) for
-                                lims in zip(e_brz_map_xlims, e_brz_map_ylims)],
+                                lims in zip(map_xlims, map_ylims)],
                             'idx': range(2)})
 map_lims_gdf = gpd.GeoDataFrame(map_lims_df, geometry='geometry', crs=4326)
 map_lims_proj_coords = map_lims_gdf.to_crs(crs).get_coordinates().values
 map_xlims = map_lims_proj_coords[:, 0]
 map_ylims = map_lims_proj_coords[:, 1]
-ax_rgb_map = fig.add_subplot(gs[e_brz_rgb_map_slices[0],
-                                e_brz_rgb_map_slices[1]])
-# read in the unfolded EOFs file
-# (NOTE: avoids the 'color smuding' artefact caused by folding the EOFS across
-# the ITCZ, which isn't an issue in most other focal/regional maps, but
-# is a concern here)
-eofs = rxr.open_rasterio(phf.EOFS_FILE)[:3].rio.set_crs(4326)
-for i in range(3):
-    eofs[i] = (eofs[i] - np.nanmin(eofs[i]))/(np.nanmax(eofs[i])-np.nanmin(eofs[i]))
-    # NOTE: flip the colors, so that the majority of the region (aside from the
-    # area near the ITCZ) has the same color scheme as that which appears in the
-    # global RGB map
-    eofs[i] = 1 - eofs[i]
-eofs = eofs.rio.reproject(8857)
-eofs.plot.imshow(ax=ax_rgb_map)
-phf.plot_juris_bounds(ax_rgb_map,
-                      crs=crs,
-                      strip_axes=True,
-                      reset_axlims=False,
-                     )
-ax_rgb_map.set_aspect('equal')
-ax_rgb_map.set_xlim(map_xlims)
-ax_rgb_map.set_ylim(map_ylims)
-
-# add black box to global map to indicate region
-plot_map_bbox(map_xlims,
-              map_ylims,
-              ax=fig.axes[0],
-              label='D.',
-              labelxpad=1.3,
-              labelypad=0.7,
-             )
+ax_cont_map = fig.add_subplot(gs[e_brz_cont_map_slices[0],
+                                e_brz_cont_map_slices[1]])
+plot_continental_reference_map(ax_cont_map,
+                               SAm_cont_map_xlims,
+                               SAm_cont_map_ylims,
+                               map_xlims,
+                               map_ylims,
+                               crs=crs,
+                              )
 
 # analyze and plot Rhinella granulosa data
 rg_gen_dist, rg_pts = rg.run_analysis()
@@ -871,8 +880,10 @@ ax_xf_genclust_ts.set_ylabel('scaled LSP',
 for ax in [ax_rg_genclust_map, ax_rg_lspclust_map,
            ax_xf_genclust_map, ax_xf_lspclust_map]:
     ax.set_aspect('equal')
-# add single giant transparent axes over top of everything, then use that to
-# add section labels and dividers
+
+
+# add a single, giant transparent axes over top of everything,
+# then use that to add section labels and dividers, etc
 ax_meta = fig.add_subplot(gs[:, :])
 ax_meta.patch.set_alpha(0)
 ax_meta.axis('off')
@@ -883,79 +894,80 @@ ax_meta.set_ylabel('')
 ax_meta.set_title('')
 ax_meta.text(0.02,
              0.97,
-             'A.',
+             'A. flowering phenology',
              weight='bold',
              size=section_lab_fontsize,
              clip_on=False,
             )
-ax_meta.text(0.02,
-             0.53,
-             'B.',
+ax_meta.text(0.31,
+             0.97,
+             'B. genetic isolation',
              weight='bold',
              size=section_lab_fontsize,
              clip_on=False,
             )
-ax_meta.text(0.02,
-             0.22,
-             'C.',
+ax_meta.text(0.63,
+             0.97,
+             'C. fruiting phenology',
              weight='bold',
              size=section_lab_fontsize,
              clip_on=False,
             )
-ax_meta.text(0.55,
-             0.78,
-             'D.',
-             weight='bold',
-             size=section_lab_fontsize,
-             clip_on=False,
-            )
-ax_meta.text(0.73,
-             0.75,
+ax_meta.text(0.35,
+             0.90,
              'genetic\nclusters',
              ha='center',
              rotation=0,
              size=title_fontsize,
             )
-ax_meta.text(0.91,
-             0.75,
+ax_meta.text(0.45,
+             0.90,
              'LSP\nclusters',
              ha='center',
              rotation=0,
              size=title_fontsize,
             )
-ax_meta.text(0.12,
-             0.51,
+ax_meta.text(0.06,
+             0.66,
              [*sw_taxa_clust_Ks][0].replace(' ', '\n'),
              ha='center',
              fontdict={'fontsize': taxon_fontsize,
                        'style': 'italic',
                       },
             )
-ax_meta.text(0.12,
-             0.21,
+ax_meta.text(0.05,
+             0.17,
              [*zaf_taxa_clust_Ks][0].replace(' ', '\n'),
              ha='center',
              fontdict={'fontsize': taxon_fontsize,
                        'style': 'italic',
                       },
             )
-ax_meta.text(0.61,
-             0.73,
+ax_meta.text(0.30,
+             0.66,
              'Rhinella\ngranulosa',
              ha='center',
              fontdict={'fontsize': taxon_fontsize,
                        'style': 'italic',
                       },
             )
-ax_meta.text(0.61,
-             0.31,
+ax_meta.text(0.30,
+             0.17,
              'Xiphorhynchus\nfuscus',
              ha='center',
              fontdict={'fontsize': taxon_fontsize,
                        'style': 'italic',
                       },
             )
-ax_meta.plot([0.54, 0.54],
+ax_meta.text(0.80,
+             0.80,
+             'Coffea\narabica',
+             ha='center',
+             fontdict={'fontsize': taxon_fontsize,
+                       'style': 'italic',
+                      },
+            )
+ax_meta.plot([0.26, 0.26],
              [-0.2, 1.2],
              linewidth=0.3,
              color='black',
@@ -963,16 +975,8 @@ ax_meta.plot([0.54, 0.54],
              clip_on=False,
              zorder=0,
             )
-ax_meta.plot([-0.2, 0.54],
-             [0.57, 0.57],
-             linewidth=0.3,
-             color='black',
-             alpha=0.4,
-             clip_on=False,
-             zorder=0,
-            )
-ax_meta.plot([-0.2, 0.54],
-             [0.26, 0.26],
+ax_meta.plot([0.59, 0.59],
+             [-0.2, 1.2],
              linewidth=0.3,
              color='black',
              alpha=0.4,

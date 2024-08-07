@@ -59,7 +59,8 @@ for neigh_rad_i, neigh_rad in enumerate(['50', '100', '150']):
                           crs=diff_scale.rio.crs.to_epsg(),
                           strip_axes=False,
                          )
-
+    # truncate to match northern extent of NIRv dataset
+    phf.set_upper_ylim(ax, uplim=60)
 
     # scatter samples against one another and fit SLR
     ax = fig.add_subplot(gs[neigh_rad_i, 3])

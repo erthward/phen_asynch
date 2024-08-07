@@ -548,18 +548,11 @@ if __name__ == '__main__':
                               crs=rast.rio.crs,
                               strip_axes=True,
                              )
-        # format axes
-        #ax.set_xlim(rast.rio.bounds()[0::2])
-        #ax.set_ylim(rast.rio.bounds()[1::2])
-        # NOTE: chopping off western edge because the equal earth projection
-        #       makes NZ appear twice
-        #ax.set_xlim(0.95 * ax.get_xlim()[0], ax.get_xlim()[1])
-
         # trim to the raster's bounds
         ax.set_xlim(rast.rio.bounds()[::2])
         ax.set_ylim(rast.rio.bounds()[1::2])
         # crop at top of LSP map
-        phf.set_upper_ylim(ax)
+        phf.set_upper_ylim(ax, uplim=60)
 
         # adjust subplots and save
         fig_err.subplots_adjust(bottom=0.08,

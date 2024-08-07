@@ -52,12 +52,8 @@ phf.plot_juris_bounds(ax,
                      )
 ax.set_xlim(r2s.rio.bounds()[::2])
 ax.set_ylim(r2s.rio.bounds()[1::2])
-ax.text(1.14 * r2s.rio.bounds()[0],
-        0.96 * r2s.rio.bounds()[3],
-        'A.',
-        weight='bold',
-        size=20,
-       )
+# truncate northern extent to match that of LSP dataset
+phf.set_upper_ylim(ax, uplim=60)
 cax.set_xlabel('')
 cax.text(0.49, 1.25, '$R^2$', size=16)
 

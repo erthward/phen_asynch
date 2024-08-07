@@ -177,6 +177,6 @@ phf.plot_juris_bounds(ax,
                       strip_axes=True,
                       crs=8857,
                      )
-
+phf.set_upper_ylim(ax)
 fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_SUPP_NIRv_LSP_ann_sem_seasonality.png'), dpi=600)
 
