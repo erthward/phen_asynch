@@ -153,15 +153,14 @@ def run_analysis(rgb_map_ax,
         ax.set_ylim(-2.5, 2)
         ax.set_yticks(())
         if i == 2:
-            ax.set_ylabel(f"{' '*18}scaled LSP", fontdict={'fontsize': 14})
+            ax.set_ylabel(f"{' '*27}scaled LSP", fontdict={'fontsize': 10})
         else:
             ax.set_ylabel('')
         if i == 3:
-            ax.set_xlabel('day of year', fontdict={'fontsize': 14})
             ax.set_xticks([0, 90, 181, 273, 364],
                           ['Jan', 'Apr', 'Jul', 'Oct', 'Jan'],
                          )
-            ax.tick_params(labelsize=10)
+            ax.tick_params(labelsize=8)
         else:
             ax.set_xlabel('')
             ax.set_xticks(())
@@ -223,8 +222,8 @@ def run_analysis(rgb_map_ax,
     n_perms = 1000
     print("\n\tnow calculating permutated Jaccard indices...\n")
     for i in range(n_perms):
-        if i % 100 == 0:
-            print(f"\n\t{np.round(100*(n_perms/(i+1)),1)}% complete")
+        if (i+1) % 100 == 0:
+            print(f"\n\t{np.round(100*((i+1)/n_perms),1)}% complete")
         perm_inds = np.random.choice(a=[*range(all_lsp_arr.shape[0])],
                                      size=all_lsp_arr.shape[0],
                                      replace=False,
@@ -258,7 +257,8 @@ def run_analysis(rgb_map_ax,
 
     print(("\n\nJaccard index between coffee-harvest region assignment and "
            f"K-means clustering (k=4): {np.round(jaccard_ind, 3)} "
-           f"(permutation-based P-value={str(np.round(Pval, 3))}) "
+           f"(permutation-based P-value={str(np.round(Pval, 3))};"
+           f"i.e., << {1/n_perms}) "
            "(range of permuted Jaccard values: "
            f"[{np.round(np.min(perm_jaccard_inds), 3)}, "
            f"{np.round(np.max(perm_jaccard_inds), 3)}])\n\n"))

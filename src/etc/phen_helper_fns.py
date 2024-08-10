@@ -746,7 +746,7 @@ def plot_flowerdate_LSP_comparison(flower_obs,
         xax_ticks = [0, 90, 180, 271, 364]
         xax_ticklabs = ['Jan', 'Apr', 'Jul', 'Oct', 'Jan']
         ax_ts.set_xticks(xax_ticks)
-        ax_ts.set_xticklabels(xax_ticklabs, size=7)
+        ax_ts.set_xticklabels(xax_ticklabs, size=8)
     assert np.round(np.max(lsp_ts), 0) == 2
     assert np.round(np.min(lsp_ts), 0) == -2
     ax_ts.set_yticks(())
@@ -779,7 +779,7 @@ def plot_flowerdate_LSP_comparison(flower_obs,
         xax_ticks = np.linspace(0, 365, 5)//7
         xax_ticklabs = ['Jan', 'Apr', 'Jul', 'Oct', 'Jan']
         ax_flow_obs.set_xticks(xax_ticks)
-        ax_flow_obs.set_xticklabels(xax_ticklabs, size=7)
+        ax_flow_obs.set_xticklabels(xax_ticklabs, size=8)
     elif flower_obs_plot_type == 'radar':
         # plot radar plot of observed flowering dates
         weeks = np.linspace(0, int(7*np.ceil(365/7)), int(np.ceil(365/7)))

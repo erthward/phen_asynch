@@ -62,93 +62,93 @@ radar_alpha=0.5
 radar_width_shrink_factor=0.9
 
 # plotting font sizes
-section_lab_fontsize=20
+section_lab_fontsize=17
 cbar_lab_fontsize = 12
-title_fontsize = 16
-taxon_fontsize = 14
+title_fontsize = 14
+taxon_fontsize = 9
 axlabel_fontsize = 10
 
 # configure figure and axes sizes
 figsize = (14.5, 7)
 gridspec_dims = (100, 205)
-sw_cont_map_slices = (slice(3, 18),
+sw_cont_map_slices = (slice(2, 17),
                      slice(0, 15),
                     )
-sw_photo_slices = [(slice(15, 30),
-                    slice(5, 20),
+sw_photo_slices = [(slice(15, 37),
+                    slice(0, 19),
                      )
                     ]
-sw_scat_map_slices = [(slice(5, 35),
+sw_scat_map_slices = [(slice(8, 38),
                        slice(20, 50),
                       ),
                      ]
-sw_ts_slices = [(slice(35, 45),
+sw_ts_slices = [(slice(38, 48),
                  slice(20, 50),
                 ),
                ]
-zaf_cont_map_slices = (slice(50, 65),
+zaf_cont_map_slices = (slice(55, 70),
                       slice(0, 15),
                      )
-zaf_photo_slices = [(slice(65, 80),
-                     slice(5, 20),
+zaf_photo_slices = [(slice(72, 96),
+                     slice(0, 18),
                     )
                    ]
-zaf_scat_map_slices = [(slice(55, 85),
+zaf_scat_map_slices = [(slice(60, 90),
                         slice(20, 50),
                        ),
                       ]
-zaf_ts_slices = [(slice(85, 95),
+zaf_ts_slices = [(slice(90, 100),
                   slice(20, 50),
                  ),
                 ]
-e_brz_cont_map_slices = (slice(3, 18),
-                        slice(60, 75),
+e_brz_cont_map_slices = (slice(4, 19),
+                        slice(54, 69),
                        )
-e_brz_photo_slices = [(slice(22, 37),
-                       slice(50, 65),
+e_brz_photo_slices = [(slice(19, 37),
+                       slice(54, 68),
                       ),
-                      (slice(72, 87),
-                       slice(50, 65),
+                      (slice(58, 83),
+                       slice(50, 72),
                       ),
                      ]
-e_brz_genclust_map_slices = [(slice(10, 40),
-                              slice(65, 95),
+e_brz_genclust_map_slices = [(slice(13, 43),
+                              slice(61, 91),
                              ),
                              (slice(60, 90),
-                              slice(65, 95),
+                              slice(61, 91),
                              ),
                             ]
-e_brz_genclust_ts_slices = [(slice(40, 50),
-                              slice(65, 95),
-                             ),
-                             (slice(90, 100),
-                              slice(65, 95),
-                             ),
-                            ]
-e_brz_lspclust_map_slices = [(slice(10, 40),
-                             slice(95, 125),
-                            ),
-                            (slice(60, 90),
-                             slice(95, 125),
-                            ),
-                           ]
-e_brz_lspclust_ts_slices = [(slice(40, 50),
-                             slice(95, 125),
+e_brz_genclust_ts_slices = [(slice(43, 53),
+                             slice(61, 91),
                             ),
                             (slice(90, 100),
-                             slice(90, 125),
+                             slice(61, 91),
+                            ),
+                            ]
+e_brz_lspclust_map_slices = [(slice(13, 43),
+                             slice(96, 126),
+                            ),
+                            (slice(60, 90),
+                             slice(96, 126),
                             ),
                            ]
-cafe_cont_map_slices = (slice(3, 18),
-                       slice(130, 145),
+e_brz_lspclust_ts_slices = [(slice(43, 53),
+                             slice(96, 126),
+                            ),
+                            (slice(90, 100),
+                             slice(96, 126),
+                            ),
+                           ]
+cafe_cont_map_slices = (slice(5, 20),
+                       slice(128, 143),
                       )
-cafe_photo_slices = (slice(4, 19),
-                     slice(140, 155),
+cafe_photo_slices = (slice(4, 20),
+                     slice(137, 167),
                     )
 cafe_rgb_map_slices = (slice(20, 100),
                        slice(130, 160),
                       )
-cafe_ts_slices = [(slice(18+(19*i),37+(19*i)), slice(165, 205)) for i in range(4)]
+cafe_ts_slices = [(slice(13+(21*i),34+(21*i)), slice(165, 205)) for i in range(4)]
 
 # common equal-area projection to use
 crs = 8857
@@ -474,21 +474,25 @@ else:
 inat_mmrr_filt_adeq_n = inat_mmrr_filt[inat_mmrr_filt['n'] >=min_n_inat_samps_for_demo_plots]
 
 # set cluster colors
-clust_colors=np.array(['#2d5098', # blue
-                       '#ca1957', # red
-                      ])
+flower_asynch_colors = np.array(['#fc6f03', # orange
+                                 '#036e61', # teal
+                                ])
 
 def plot_taxon_photo(ax, name):
     """
     plot a photo of the taxon, taken from
     the available CC BY and CC BY-NC photos on iNaturalist
     """
-    filename = name.replace(' ', '_') + '.jpg'
+    filename = name.replace(' ', '_') + '.png'
+    if name == 'Xiphorhynchus fuscus':
+        filename = os.path.splitext(filename)[0] + '_horizontal.png'
     filepath = os.path.join(phf.EXTERNAL_INAT_DATA_DIR,
                             'photos',
                             filename,
                            )
     img = mpimg.imread(filepath)
+    if 'horizontal' in filename:
+        img = img.swapaxes(0, 1)
     ax.imshow(img)
     ax.set_aspect('equal')
     ax.set_title('')
@@ -496,12 +500,15 @@ def plot_taxon_photo(ax, name):
     ax.set_ylabel('')
     ax.set_xticks(())
     ax.set_yticks(())
+    ax.set_axis_off()
+    ax.patch.set_alpha(0)
 
 
 def plot_map_bbox(map_xlims,
                   map_ylims,
                   ax,
-                  alpha=0.8,
+                  box_buff_pct=0.05,
+                  alpha=1.0,
                   linewidth=0.5,
                   label=None,
                   labelxpad=0.1,
@@ -512,6 +519,12 @@ def plot_map_bbox(map_xlims,
     adds the bounding box indicated by the given x- and y-lims to the given
     axes
     """
+    if box_buff_pct != 0:
+        x_buff = box_buff_pct * (np.abs(np.diff(map_xlims)))
+        y_buff = box_buff_pct * (np.abs(np.diff(map_ylims)))
+        buff = np.mean((x_buff, y_buff))
+        map_xlims = [map_xlims[0] - buff, map_xlims[1] + buff]
+        map_ylims = [map_ylims[0] - buff, map_ylims[1] + buff]
     xs = np.array(map_xlims)[[0, 0, 1, 1, 0]]
     ys = np.array(map_ylims)[[0, 1, 1, 0, 0]]
     ax.plot(xs, ys, '-k', alpha=alpha, linewidth=linewidth)
@@ -567,7 +580,7 @@ def plot_continental_reference_map(ax,
                   box_ylims,
                   ax=ax,
                   label=None,
-                  linewidth=2,
+                  linewidth=1,
                  )
 
 
@@ -611,6 +624,9 @@ def plot_focal_inat_taxa(mmrr_res_gdf,
                                       )
     ct = 0
     for taxon, K in taxa.items():
+        # plot the photo first (so its axes don't overlap anything else)
+        plot_taxon_photo(photo_axs[ct], taxon)
+
         tax_dict = mmrr_res_gdf[mmrr_res_gdf['name'] == taxon].iloc[0,:]
         tid = tax_dict['tid']
         name = tax_dict['name']
@@ -649,13 +665,11 @@ def plot_focal_inat_taxa(mmrr_res_gdf,
                                            flower_obs_hatch_size=flower_obs_hatch_size,
                                            radar_alpha=radar_alpha,
                                            radar_width_shrink_factor=radar_width_shrink_factor,
-                                           colors=clust_colors,
+                                           colors=flower_asynch_colors,
                                            save_scree_plot=save_scree_plot,
                                            name=name,
                                            tid=tid,
                                           )
-        # plot photo
-        plot_taxon_photo(photo_axs[ct], taxon)
         # set axis titles after all other components have been plotted
         if set_title:
             ax_map.set_title("$" + name.replace(' ', '\ ') + "$",
@@ -787,6 +801,10 @@ plot_taxon_photo(ax_photo, 'Coffea arabica')
 # run landscape genetic MMRRs and visualize results
 #------------------------------------------------------------------------------
 
+landgen_colors=np.array(['#2d5098', # blue
+                         '#ca1957', # red
+                        ])
+
 # set map bounding box
 map_xlims = [-48, -34]
 map_ylims = [-24.3, -2.8]
@@ -824,7 +842,7 @@ phf.plot_popgen_LSP_comparison(gen_dist_mat=rg_gen_dist,
                                ax_genclust_map=ax_rg_genclust_map,
                                ax_genclust_ts=ax_rg_genclust_ts,
                                K=2,
-                               colors=clust_colors,
+                               colors=landgen_colors,
                                plot_crs=crs,
                                map_xlim=map_xlims,
                                map_ylim=map_ylims,
@@ -859,7 +877,7 @@ phf.plot_popgen_LSP_comparison(gen_dist_mat=xf_gen_dist,
                                ax_genclust_map=ax_xf_genclust_map,
                                ax_genclust_ts=ax_xf_genclust_ts,
                                K=2,
-                               colors=clust_colors,
+                               colors=landgen_colors,
                                plot_crs=crs,
                                map_xlim=map_xlims,
                                map_ylim=map_ylims,
@@ -892,51 +910,51 @@ ax_meta.set_yticks(())
 ax_meta.set_xlabel('')
 ax_meta.set_ylabel('')
 ax_meta.set_title('')
-ax_meta.text(0.02,
-             0.97,
-             'A. flowering phenology',
+ax_meta.text(0.01,
+             0.98,
+             'A. Flowering asynchrony',
              weight='bold',
              size=section_lab_fontsize,
              clip_on=False,
             )
-ax_meta.text(0.31,
-             0.97,
-             'B. genetic isolation',
+ax_meta.text(0.265,
+             0.98,
+             'B. Isolation by asynchrony',
              weight='bold',
              size=section_lab_fontsize,
              clip_on=False,
             )
-ax_meta.text(0.63,
-             0.97,
-             'C. fruiting phenology',
+ax_meta.text(0.635,
+             0.98,
+             'C. Harvest asynchrony',
              weight='bold',
              size=section_lab_fontsize,
              clip_on=False,
             )
-ax_meta.text(0.35,
-             0.90,
+ax_meta.text(0.37,
+             0.89,
              'genetic\nclusters',
              ha='center',
              rotation=0,
              size=title_fontsize,
             )
-ax_meta.text(0.45,
-             0.90,
+ax_meta.text(0.5365,
+             0.89,
              'LSP\nclusters',
              ha='center',
              rotation=0,
              size=title_fontsize,
             )
-ax_meta.text(0.06,
-             0.66,
+ax_meta.text(0.04,
+             0.59,
              [*sw_taxa_clust_Ks][0].replace(' ', '\n'),
              ha='center',
              fontdict={'fontsize': taxon_fontsize,
                        'style': 'italic',
                       },
             )
-ax_meta.text(0.05,
-             0.17,
+ax_meta.text(0.04,
+             0.0,
              [*zaf_taxa_clust_Ks][0].replace(' ', '\n'),
              ha='center',
              fontdict={'fontsize': taxon_fontsize,
@@ -944,7 +962,7 @@ ax_meta.text(0.05,
                       },
             )
 ax_meta.text(0.30,
-             0.66,
+             0.63,
              'Rhinella\ngranulosa',
              ha='center',
              fontdict={'fontsize': taxon_fontsize,
@@ -952,32 +970,32 @@ ax_meta.text(0.30,
                       },
             )
 ax_meta.text(0.30,
-             0.17,
+             0.13,
              'Xiphorhynchus\nfuscus',
              ha='center',
              fontdict={'fontsize': taxon_fontsize,
                        'style': 'italic',
                       },
             )
-ax_meta.text(0.80,
-             0.80,
+ax_meta.text(0.74,
+             0.79,
              'Coffea\narabica',
              ha='center',
              fontdict={'fontsize': taxon_fontsize,
                        'style': 'italic',
                       },
             )
-ax_meta.plot([0.26, 0.26],
+ax_meta.plot([0.255, 0.255],
              [-0.2, 1.2],
-             linewidth=0.3,
+             linewidth=0.4,
              color='black',
              alpha=0.4,
              clip_on=False,
              zorder=0,
             )
-ax_meta.plot([0.59, 0.59],
+ax_meta.plot([0.6275, 0.6275],
              [-0.2, 1.2],
-             linewidth=0.3,
+             linewidth=0.4,
              color='black',
              alpha=0.4,
              clip_on=False,
@@ -990,8 +1008,8 @@ ax_meta.set_ylim(0, 1)
 fig.subplots_adjust(hspace=0,
                     wspace=0,
                     left=0.0,
-                    right=0.98,
-                    bottom=0.03,
+                    right=0.99,
+                    bottom=0.04,
                     top=0.98,
                    )
 fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_inatphen_and_landgen_results.png'),
