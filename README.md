@@ -9,10 +9,13 @@ with contributions from Lauren Di Maggio and Thao-Nguyen Bui.
 Code is made freely available under the MIT License,
 to be distributed and/or modified with due attribution.
 
-Data are archived **PUT DATA DOI HERE**
+Data are archived [here](PUT LINK HERE) (DOI: **PUT DATA DOI HERE**),
+and the main mapping results are also made publicly
+available as a Google Earth Engine asset ('users/drewhart/Terasaki_Hart_2024_LSP_diversity_asynchrony_main_map_results')
+and can be explored [here](https://lyrical-ring-231401.projects.earthengine.app/view/globalphenologicaldiversityandasynchronyterasakihart2024).
 
 Any questions, concerns, interests, or requests can be directed
-to me at: drew *dot* hart *at* berkeley *dot* edu. 
+to: drew *dot* hart *at* berkeley *dot* edu. 
 
 
 
@@ -113,7 +116,7 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ### map examples of LSP fitted to raw NIRv data:
-1. *On GEE*, run `src/phen/calc/GEE/viz/extract_raw_NIRv_at_CA_sites.js` to extract the raw, 20-year NIRv time series at a transect of 3 California FLUXNET sites with divergent phenologies (**1 task, 1m runtime**).
+1. *On GEE*, run `src/phen/calc/GEE/io/extract_raw_NIRv_at_CA_sites.js` to extract the raw, 20-year NIRv time series at a transect of 3 California FLUXNET sites with divergent phenologies (**1 task, 1m runtime**).
 2. *On laptop*, run `src/phen/viz/plot_NIRv_raw_and_fitted_at_example_sites.py` to produce a supplemental figure demonstrating the LSP time series fitted to the raw NIRv data for those three sites (**1 task, <5m runtime**).
 
 
@@ -182,10 +185,17 @@ Each step of the following workflow was executed in the environment indicated *i
 1. *On laptop*, run `python src/asynch/anal/isoclim/compare_phen_clim_geog_dist.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce the analysis summary figure (NOTE: analysis saves results for each paramater-combination as it runs, so can be stopped and restarted if necessary and will pick up where it left off.) (**1 task, ~26h runtime**).
 
 
+### run Colombian coffee harvest analysis:
+1. *On laptop*, work through the steps at the top of src/asynch/anal/phen/comparar_LSP_y_cosecha_cafetera_colombiana.py to digitize a set of sampling points for each of the four harvest region colors in the map in Figure XXXX of [XXX](XXX) and download the resulting CSV files.
+2. NOTE: The analysis is src/asynch/anal/phen/comparar_LSP_y_cosecha_cafetera_colombiana.py will be executed by the last step in the section 'run genetic analyses', below.
+
+
 ### run iNaturalist flowering-phenology analysis:
 1. *On laptop*, run `python src/asynch/anal/phen/get_all_inat_plant_phen_taxa.py` to save a table of the counts of all phenology-annotated and valid (i.e., native, non-captive, research-grade, with positional accuracy ≤ 1000 m) observations for all iNaturalist taxa with at least one observation. (**~5 min runtime; last run 2024-06-05T11:24:00UTC**)
 2. *On laptop*, run `python src/asynch/anal/phen/get_all_inat_phen_obs_and_fit_npeaks.py` to download phenology observation histograms and raw observations for all iNat taxa with at least 50 phenology-annotated and otherwise valid observations, fit alpha hulls to the first ≤ 5000 observations (α = 0.75, the mid-value from the climate-dependence analysis above), and estimate the number of peaks (0, 1, or 2) in their flowering-week histograms (using a KDE with bandwidth = 5, a peak detection algorithm detecting all peaks ≥ 60% of the max histogram height, and significance of the number of peaks being estimated using a 100-permutation test). (**~4 day runtime; run started about 2024-06-05T23:00:00UTC and ran until about 2024-06-09T00:00:00UTC, with a couple overnight stops to avoid excessive obstacles because of API rate-limiting; script has try/except blocks that seem to handle API rate limiting in an unsophisticated but technically passable way, but it still works best if it is stopped for some hours when 429 errors become too common, which is fine becuase it stashes results along the way and picks up wherever it left off**)
 3. *On laptop*, run `python src/asynch/anal/phen/fit_inat_flow_phen_LSP_MMRR_models.py` to run an MMRR, predicting flowering observation-time distance as a function of geographic and LSP distances, for all iNat taxa with non-unimodal flowering-week histograms (i.e., 0 or 2 peaks) (**1 task, ~10h runtime**).
+4. NOTE: The results of the previous step will be visualized by the last step in the section 'run genetic analyses', below.
+
 
 ### run genetic analyses:
 1. *On laptop*, download the [supplemental data in Dryad](http://datadryad.org/stash/dataset/doi:10.5061/dryad.pc866t1p4) from [Thomé et al. 2021](http://www.nature.com/articles/s41437-021-00460-7), the only genomic test of the asynchrony of seasons hypothesis (ASH).
@@ -193,8 +203,15 @@ Each step of the following workflow was executed in the environment indicated *i
 3. *On laptop*, manually compile the sample locations (from the [supplemental data in Zenodo](http://zenodo.org/records/5012226)) and FASTA-format sequences (from NCBI, based on sample voucher IDs in the supplemental data) for all samples of *Xiphorhychus fuscus*, the only species in [Quintero et al. 2014](http://www.journals.uchicago.edu/doi/full/10.1086/677261) (a multi-species test of the ASH using archived microsatellite data) that is sympatric with the *Rhinella granulosa*, the eastern Brazilian toad studied by Thomé et al.
 4. *On laptop*, run `bash src/asynch/anal/gen/xiphorhynchus/align_xiphorhynchus_fuscus.sh` to use [MAFFT v7.520](http://mafft.cbrc.jp/alignment/software/) to align all raw *X. fuscus* sequence data.
 5. *On laptop*, run `Rscript --vanilla src/asynch/anal/gen/xiphorhynchus/calc_gen_dist_mat_xiphorhynchus_fuscus.r` to produce a genetic distance matrix from the aligned _Xiphorhynchus fuscus_ sequences.
-6. *On laptop*, run `python src/asynch/anal/plot_flowphen_and_landgen_results.py` to execute both landscape genetic analyses (*R. granulosa* and *X. fuscus*) and then visualize results and example taxa from both the iNaturalist flowering phenology peak-fitting and MMRR analyses and the landscape genetic analyses (**1 task, ~15m runtime**).
+6. *On laptop*, run `python src/asynch/anal/plot_flowphen_and_landgen_results.py` to execute both of the landscape genetic analyses (for *R. granulosa* and *X. fuscus*) and visualize the results, as well as running and visualizing the Colombian coffee harvest analysis and visualizing results from the iNaturalist flowering phenology analysis (**1 task, ~30m runtime**).
 
+
+### set up online data viewer:
+1. *On laptop*, run `python src/data_prep/data_viewer/prep_data_for_GEE_data_viewer.py` to produce a single GeoTIFF containing all of the main mapping results (coefficients, in bands 1-5; EOFS, in bands 6-9; folded EOFS, for visualization only, in bands 10-12; 100-km asynchrony, in band 13; and the asynch P-value, $R^2$, and sample-size maps, in bands 14-16) (**1 task, <5m runtime**).
+2. *On GEE*, upload the resulting GeoTIFF as a new asset, setting the Asset ID to 'Terasaki_Hart_2024_LSP_main_map_results', setting the pyramiding policy to MEAN (works fine for every layer except the last one, which is not of major interest), and setting the masking mode to None (because missing values are already NaN within the file) (**1 task, ~30m runtime**).
+3. *On GEE*, once the asset is uploaded, make it publicly accessible.
+4. *On GEE*, use the 'Get Link' button to create a URL pointing to the script saved at src/data_prep/data_viewer/Terasaki_Hart_2024_LSP_diversity_asynchrony_VIEW_RESULTS.js' (saved at a different path within my GEE cloud project's repo), then copy that URL to the appropriate place at the top of this README.
+4. *On GEE*, interested individuals can now use the link at the top of this README to navigate to a very basic data viewer for our main mapping results.
 
 -------------------------------------------
 
