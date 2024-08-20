@@ -12,9 +12,10 @@ to be distributed and/or modified with due attribution.
 Data are archived [here](PUT LINK HERE) (DOI: **PUT DATA DOI HERE**),
 and the main mapping results are also made publicly
 available as a Google Earth Engine asset ('users/drewhart/Terasaki_Hart_2024_LSP_diversity_asynchrony_main_map_results').
-That asset can also be explored through the [Google Earth Engine app](https://lyrical-ring-231401.projects.earthengine.app/view/globalphenologicaldiversityandasynchronyterasakihart2024):
 
-[![GEE_app_screenshot][GEE_app_screenshot.PNG]](https://lyrical-ring-231401.projects.earthengine.app/view/globalphenologicaldiversityandasynchronyterasakihart2024)
+The same asset can also be explored through the [Google Earth Engine app](https://lyrical-ring-231401.projects.earthengine.app/view/globalphenologicaldiversityandasynchronyterasakihart2024):
+
+[![GEE_app_screenshot](GEE_app_screenshot.PNG)](https://lyrical-ring-231401.projects.earthengine.app/view/globalphenologicaldiversityandasynchronyterasakihart2024)
 
 Any questions, concerns, interests, or requests can be directed
 to: drew *dot* hart *at* berkeley *dot* edu. 
