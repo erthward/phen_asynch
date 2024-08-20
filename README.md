@@ -11,8 +11,10 @@ to be distributed and/or modified with due attribution.
 
 Data are archived [here](PUT LINK HERE) (DOI: **PUT DATA DOI HERE**),
 and the main mapping results are also made publicly
-available as a Google Earth Engine asset ('users/drewhart/Terasaki_Hart_2024_LSP_diversity_asynchrony_main_map_results')
-and can be explored [here](https://lyrical-ring-231401.projects.earthengine.app/view/globalphenologicaldiversityandasynchronyterasakihart2024).
+available as a Google Earth Engine asset ('users/drewhart/Terasaki_Hart_2024_LSP_diversity_asynchrony_main_map_results').
+That asset can also be explored through the [Google Earth Engine app](https://lyrical-ring-231401.projects.earthengine.app/view/globalphenologicaldiversityandasynchronyterasakihart2024):
+
+[![GEE_app_screenshot][GEE_app_screenshot.png]](https://lyrical-ring-231401.projects.earthengine.app/view/globalphenologicaldiversityandasynchronyterasakihart2024)
 
 Any questions, concerns, interests, or requests can be directed
 to: drew *dot* hart *at* berkeley *dot* edu. 
@@ -186,7 +188,7 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ### run Colombian coffee harvest analysis:
-1. *On laptop*, work through the steps at the top of src/asynch/anal/phen/comparar_LSP_y_cosecha_cafetera_colombiana.py to digitize a set of sampling points for each of the four harvest region colors in the map in Figure XXXX of [XXX](XXX) and download the resulting CSV files.
+1. *On laptop*, work through the steps at the top of src/asynch/anal/phen/comparar_LSP_y_cosecha_cafetera_colombiana.py to digitize a set of sampling points for each of the four harvest region colors in the map in Figure 2 of [Mujeres en la caficultura tradicional colombiana, 1910-1970](https://doi.org/10.19053/20275137.3200) and download the resulting CSV files.
 2. NOTE: The analysis is src/asynch/anal/phen/comparar_LSP_y_cosecha_cafetera_colombiana.py will be executed by the last step in the section 'run genetic analyses', below.
 
 
