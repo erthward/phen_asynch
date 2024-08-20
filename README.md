@@ -1,5 +1,13 @@
 # < PUT TITLE HERE >
+
 ### < PUT CITATION HERE >
+
+-------------------------------------------
+
+
+
+## overview
+
 This repo contains all the code used to produce the analysis
 for this paper and for its precursor, chapter 3 of my PhD dissertation.
 
@@ -26,7 +34,7 @@ to: drew *dot* hart *at* berkeley *dot* edu.
 
 
 
-## contents
+## repo contents
 All analysis code is located in `src`. Analyses were run in two major stages, so the two major subdirectories of `src` are organized to reflect this:
 
   1. `src/phen/`: calculation of global maps of characteristic seasonal phenology, and associated analysis
@@ -46,7 +54,8 @@ Other directories include:
 
 
 
-## workflow:
+## analysis workflow
+
 Each step of the following workflow was executed in the environment indicated *in italics* (either on GEE, on the UC Berkeley Savio cluster, or on my laptop). See **working environments**, below, for the software specifications of each of these environments.
 
 
@@ -220,7 +229,7 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 
-## working environments
+## analysis working environments
 - **laptop**:
   - Pop!\_OS 22.04 LTS (*except Ubuntu 18 was used for SIF data prep and evaluation*)
   - Bash 5.1.16 (*except Bash 4 was used for SIF data prep and evaluation*)
