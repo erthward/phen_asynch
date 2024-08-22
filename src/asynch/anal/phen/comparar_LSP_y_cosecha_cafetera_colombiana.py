@@ -1,6 +1,44 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+'''
+NOTE: this analysis relies of 4 CSVs of sampling points digitized
+      within Fedecafé-mapped coffee harvest regions.
+      The steps taken to produce these files are:
+
+    1. Download or copy the native-resolution image of Figure 2 in
+       Mujeres en la caficultura tradicional colombiana, 1910-1970
+       (DOI: 10.19053/20275137.3200).
+
+    2. Load that imagine into the Web Plot Digitizer
+       (https://apps.automeris.io/wpd4/) as a simple 2D (X-Y) image.
+
+    3. Point and click to set two X and two Y reference points, using the
+       vertical and horizontal grid lines where they meet the edges of the
+       image and are labeled by degree values, then click 'Complete!', enter
+       the correpsonding X and Y coordinate values for the points, and check
+       the "Assume axes are perfectly aligned..." box to skip
+       rotation-correction.
+
+    4. For each of the four cluster colors, click on the color-display box
+       under the 'Automatic Extraction' section, click 'Color Picker' in the
+       pop-up, click on the cluster color somewhere unambiguous within the image,
+       then click 'Done' when the pop-up reappears.
+
+    5. Set the 'Distance' value to 12 (one-tenth of the default value of 120,
+       determined based on visual confirmation that this only drops points within
+       the correct delineated regions (and their color boxes in the map legend,
+       lol), and leave other settings at defaults, then click 'Run'.
+
+    6. After the digitized sampling points appear on the image, click 'View
+       Data', at the left, then click 'Download .CSV' in the pop-up and save
+       the file, using the cluster color name ('AMARILLO', 'ANARANJADO',
+       'MORADO', 'VERDE') and the their corresponding principcal and mitaca
+       month strings ('principalSOND', 'principalMAMJ', 'mitacaAM', 'mitacaON')
+       in the filename.
+
+'''
+
 import os
 import re
 import sys
@@ -9,6 +47,7 @@ import pandas as pd
 import geopandas as gpd
 import rioxarray as rxr
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
 from shapely.geometry import Point
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -20,10 +59,59 @@ sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
 import phen_helper_fns as phf
 
 
+def calc_cluster_jaccard_index(X,
+                               expected_labels,
+                               k=4,
+                              ):
+    '''
+    cluster the values in X (an n_samples x n_features array),
+    then calculate the Jaccard index based on the comparison between
+    the clustered labels and expected_labels
+    '''
+    assert len(expected_labels) == X.shape[0]
+    # cluster the LSP time series at all the sampling points
+    clusts = KMeans(n_clusters=k).fit(X)
+    # calculate binary matrices indicating whether each pair of points has the same
+    # or different labels, both for expected labels and for the cluster labels
+    orig_same = (np.ones([len(expected_labels)]*2) * np.nan).astype(np.int16)
+    clust_same = (np.ones([X.shape[0]]*2) * np.nan).astype(np.int16)
+    assert np.all(orig_same.shape == clust_same.shape)
+    for i in range(len(expected_labels)):
+        for j in range(len(expected_labels)):
+            if i == j:
+                orig_same[i,j] = 1
+                clust_same[i, j] = 1
+            else:
+                orig_same[i,j] = orig_same[j, i] = (expected_labels[i] ==
+                                                  expected_labels[j])
+                clust_same[i,j] = clust_same[j, i] = (clusts.labels_[i] ==
+                                                      clusts.labels_[j])
+    # extract the upper triangular values indicating pairwise label agreements
+    orig_same_vals = orig_same[np.triu_indices(orig_same.shape[0], k=1)]
+    clust_same_vals = clust_same[np.triu_indices(clust_same.shape[0], k=1)]
+    # check length is correct
+    expected_len = ((orig_same.shape[0] **2) - orig_same.shape[0])/2
+    assert len(orig_same_vals) == len(clust_same_vals) == expected_len
+    # get vectors indicating whether or not point pairs have the same labels,
+    # in the expected labels, the clustered labels, or in both
+    same_both = orig_same_vals & clust_same_vals
+    same_reg_only = orig_same_vals & ~clust_same_vals
+    same_clust_only = ~orig_same_vals & clust_same_vals
+    sum_same_either = np.sum((same_both, same_reg_only, same_clust_only))
+    # check that the sum of all three of those vectors equals the sum of all
+    # point-pairs that are the same in at least one of the two datasets
+    assert sum_same_either == np.sum(orig_same_vals | clust_same_vals)
+    # use those vectors to calculate Jaccard index for clusts vis-a-vis expected
+    jaccard_ind = np.sum(same_both)/sum_same_either
+    assert 0 <= jaccard_ind <= 1
+    return clusts, jaccard_ind
+
+
 def run_analysis(rgb_map_ax,
                  ts_axs,
                  map_xlims,
                  map_ylims,
+                 n_perms=1000,
                  eofs_alpha=0.75,
                  region_sample_marker_size=40,
                 ):
@@ -172,54 +260,22 @@ def run_analysis(rgb_map_ax,
     # keep only points with LSP data
     gdf = gdf.loc[all_keep, :]
 
-        # concatenate all LSP time series into a single array
+    # concatenate all LSP time series into a single array
     all_lsp_arr = np.vstack(all_lsp)
-    # cluster the LSP time series at all the sampling points
-    clusts = KMeans(n_clusters=4).fit(all_lsp_arr)
-    # calculate binary matrices indicating whether each pair of points has the same
-    # or different labels, both for the officially mapped coffee-harvest regions
-    # and for our clustering labels
-    print("\n\tnow calculating Jaccard index...\n")
-    reg_same = (np.ones([len(gdf)]*2) * np.nan).astype(np.int16)
-    clust_same = (np.ones([all_lsp_arr.shape[0]]*2) * np.nan).astype(np.int16)
-    assert np.all(reg_same.shape == clust_same.shape)
-    for i in range(len(gdf)):
-        for j in range(len(gdf)):
-            if i == j:
-                reg_same[i,j] = 1
-                clust_same[i, j] = 1
-            else:
-                reg_same[i,j] = reg_same[j, i] = (gdf['color'].iloc[i] ==
-                                                  gdf['color'].iloc[j])
-                clust_same[i,j] = clust_same[j, i] = (clusts.labels_[i] ==
-                                                      clusts.labels_[j])
-    # extract the upper triangular values indicating pairwise label agreements
-    reg_same_vals = reg_same[np.triu_indices(reg_same.shape[0], k=1)]
-    clust_same_vals = clust_same[np.triu_indices(clust_same.shape[0], k=1)]
-    # check length is correct
-    expected_len = ((reg_same.shape[0] **2) - reg_same.shape[0])/2
-    assert len(reg_same_vals) == len(clust_same_vals) == expected_len
-    # get vectors indicating whether point-pairs have the same label in both
-    # datasets, the same label only in the coffee harvest regions, or the same
-    # label only in our clustering results
-    same_both = reg_same_vals & clust_same_vals
-    same_reg_only = reg_same_vals & ~clust_same_vals
-    same_clust_only = ~reg_same_vals & clust_same_vals
-    sum_same_either = np.sum((same_both, same_reg_only, same_clust_only))
-    # check that the sum of all three of those vectors equals the sum of all
-    # point-pairs that are the same in at least one of the two datasets
-    # (i.e, either the same in the coffee harvest regions or the same in our
-    # clustering results)
-    assert sum_same_either == np.sum(reg_same_vals | clust_same_vals)
-    # use those vectors to calculate the Jaccard index for our clustering vis-a-vis
-    # the coffee harvest regions' sample points
-    jaccard_ind = np.sum(same_both)/sum_same_either
-    assert 0 <= jaccard_ind <= 1
-    # also use the same approach to simulate 999 Jaccard index values from datasets
-    # in which the clustering is run after the assignment of LSP time series to
-    # points has been permuted
-    perm_jaccard_inds = []
-    n_perms = 1000
+
+    # prep the expected labels
+    labs = gdf.loc[:, 'color'].values.ravel()
+
+    # cluster LSP time series and calculate Jaccard index vis-a-vis harvest region labels
+    lsp_clusts, ji_lsp = calc_cluster_jaccard_index(X=all_lsp_arr,
+                                                    expected_labels=labs,
+                                                    k=4,
+                                                   )
+
+    # use the same approach to simulate null Jaccard index values from datasets
+    # in which clustering is run after relationship between sampling points and
+    # LSP time series has been shuffled
+    perm_jis_lsp = []
     print("\n\tnow calculating permutated Jaccard indices...\n")
     for i in range(n_perms):
         if (i+1) % 100 == 0:
@@ -230,38 +286,31 @@ def run_analysis(rgb_map_ax,
                                     )
         all_lsp_arr_perm = all_lsp_arr[perm_inds, :]
         assert np.all(all_lsp_arr_perm.shape == all_lsp_arr.shape)
-        perm_clusts = KMeans(n_clusters=4).fit(all_lsp_arr_perm)
-        perm_clust_same = (np.ones([all_lsp_arr_perm.shape[0]]*2) * np.nan).astype(np.int16)
-        assert np.all(reg_same.shape == perm_clust_same.shape)
-        for i in range(len(gdf)):
-            for j in range(len(gdf)):
-                if i == j:
-                    perm_clust_same[i, j] = 1
-                else:
-                    perm_clust_same[i,j] = perm_clust_same[j, i] = (perm_clusts.labels_[i] ==
-                                                                    perm_clusts.labels_[j])
-        perm_clust_same_vals = perm_clust_same[np.triu_indices(perm_clust_same.shape[0], k=1)]
-        expected_len = ((reg_same.shape[0] **2) - reg_same.shape[0])/2
-        assert len(perm_clust_same_vals) == expected_len
-        perm_same_both = reg_same_vals & perm_clust_same_vals
-        perm_same_reg_only = reg_same_vals & ~perm_clust_same_vals
-        perm_same_clust_only = ~reg_same_vals & perm_clust_same_vals
-        perm_sum_same_either = np.sum((perm_same_both, perm_same_reg_only, perm_same_clust_only))
-        assert perm_sum_same_either == np.sum(reg_same_vals | perm_clust_same_vals)
-        perm_jaccard_ind = np.sum(perm_same_both)/perm_sum_same_either
-        perm_jaccard_inds.append(perm_jaccard_ind)
-    # use results to calculate the empirical P-value of our observed Jaccard index
-    assert len(perm_jaccard_inds) == n_perms
-    assert np.all([0 <= pji <= 1 for pji in perm_jaccard_inds])
-    Pval = np.mean(jaccard_ind <= np.array(perm_jaccard_inds))
+        (perm_lsp_clusts,
+         perm_ji_lsp) = calc_cluster_jaccard_index(X=all_lsp_arr_perm,
+                                                    expected_labels=labs,
+                                                    k=4,
+                                                   )
+        perm_jis_lsp.append(perm_ji_lsp)
 
+    # use results to calculate the empirical P-values of our observed Jaccard
+    # index values
+    # (Bonferroni corrected for multiple testing)
+    assert len(perm_jis_lsp) == n_perms
+    assert np.all([0 <= pji <= 1 for pji in perm_jis_lsp])
+    Pval = np.mean(ji_lsp <= np.array(perm_jis_lsp)) / 2
+    if Pval == 0:
+        much_less_than_str = f"; i.e., << {1/n_perms}"
+    else:
+        much_less_than_str = ''
     print(("\n\nJaccard index between coffee-harvest region assignment and "
-           f"K-means clustering (k=4): {np.round(jaccard_ind, 3)} "
-           f"(permutation-based P-value={str(np.round(Pval, 3))};"
-           f"i.e., << {1/n_perms}) "
+           "K-means clustering of LSP time series (k=4): "
+           f"{np.round(ji_lsp, 3)} "
+           f"(permutation-based, Bonferroni-corrected P-value={str(np.round(Pval, 3))}"
+           f"{much_less_than_str}) "
            "(range of permuted Jaccard values: "
-           f"[{np.round(np.min(perm_jaccard_inds), 3)}, "
-           f"{np.round(np.max(perm_jaccard_inds), 3)}])\n\n"))
+           f"[{np.round(np.min(perm_jis_lsp), 3)}, "
+           f"{np.round(np.max(perm_jis_lsp), 3)}])\n\n"))
 
 
     #--------------------------------------------------------------------------

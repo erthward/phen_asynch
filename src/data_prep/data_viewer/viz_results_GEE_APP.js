@@ -19,7 +19,6 @@
 //      update line plots.
 //   6. Click the '🗑 ️Clear all points' button, if needed,
 //      then repeat the above process to create new points.
-//   7. Resize map panel, as needed, to improve visibility.
 //
 //
 // All data are free to use and redistribute, with proper
@@ -290,44 +289,11 @@ var calcHarmonicRegressionForViz = function(NIRvImgColl){
 
 
 
+/////////////////////////////////////////////////////////
+// UI FUNCTIONS
+/////////////////////////////////////////////////////////
 
-////////////////////////////////////////////////////////////////////
-// PLOTTING FUNCTIONS
-////////////////////////////////////////////////////////////////////
-
-// load color palettes
 var palettes = require('users/gena/packages:palettes');
-
-// // plot ITCZ-folded LSP EOFs
-// var plotEOFs = function(results){
-//   var EOFsForViz = res.select(['b10', 'b11', 'b12']);
-//   Map.addLayer(EOFsForViz,
-//               {},
-//               'LSP EOFs (folded across ITCZ, for viz)',
-//               true
-//               );
-// };
-
-
-// // plot 100-km LSP asynchrony
-// var plotAsynch = function(res){
-//   var asynch = res.select('b13');
-//   Map.addLayer(asynch,
-//               {min:-0.00002,
-//                 max:0.0002,
-//                 palette: palettes.crameri.lajolla[25].reverse(),
-//               },
-//               'LSP asynchrony (100 km neighborhood)',
-//               false
-//               );
-// };
-
-// // plot all results
-// var plotResults = function(res){
-//   plotEOFs(res);
-//   plotAsynch(res);
-// };
-
 
 var ColorBar = function(palette) {
   return ui.Thumbnail({
@@ -360,34 +326,22 @@ var makeLegend = function(title, low, mid, high, palette, pos) {
   var panel = ui.Panel([titlePanel, ColorBar(palette), labelPanel]);
   panel.style().set({
       width: '300px',
-      position: pos
+      position: 'top-left'
     });
   return panel;
 };
 
+// get palette to use for asynchrony
+// (because calling the 'reverse' method more than once reverses the palette again!)
+var asynchPalette = palettes.crameri.lajolla[25].reverse();
 
-
-
-/////////////////////////////////////////////////////////
-// UI FUNCTIONS
-/////////////////////////////////////////////////////////
-
-// var getTimeSeries = function(img_coll, pt){
-//   var timeSeriesColl = img_coll.map(function(img){
-//     var reduced = img.reduceRegion({
-//       reducer: ee.Reducer.mean(),
-//       geometry: pt,
-//       scale: 5000
-//     }).get('fitted');
-//     // TODO: REPLACE THE APPROACH IN THE NEXT LINE WITH EITHER SOME JUSTIFIABLE INTERPOLATION
-//     // OR A MUTUAL FILTERING OF MISSING VALUES
-//     var reduced = ee.Algorithms.If(ee.Algorithms.IsEqual(reduced, null), 0, reduced);
-//     return img.set('extracted', reduced);
-//   }, false);
-//   var timeSeries = timeSeriesColl.aggregate_array('extracted');
-//   return timeSeries;
-// };
-
+// create an asynchrony legend (to be added when that layer is displayed, otherwise removed)
+var asynchLegend = makeLegend('LSP asynchrony',
+                              'low',
+                              'mod',
+                              'high',
+                              asynchPalette
+                             );
 
 // function to set up and stylize map
 var createMap = function(){
@@ -481,7 +435,8 @@ var createLayerSelector = function(map, EOFsForViz, asynch, mainPanel){
             min: 0,
             max: 1,
             opacity: 0.85
-        }
+        },
+        cbar: false,
     },
     'asynch': {
         name: 'LSP asynchrony',
@@ -490,9 +445,10 @@ var createLayerSelector = function(map, EOFsForViz, asynch, mainPanel){
         vis: {
             min: 0,
             max: 0.0001465478,  // 99th percentile
-            palette: palettes.crameri.lajolla[25].reverse(),
+            palette: asynchPalette,
             opacity: 0.85
-        }
+        },
+        cbar: true, 
     }
   };
   // create a layer selector, using that data info
@@ -515,14 +471,21 @@ var createLayerSelector = function(map, EOFsForViz, asynch, mainPanel){
 
     // reset map layers
     map.layers().reset();
+    map.remove(asynchLegend);
     
     // if layer is none, reset map layers
     if (layer == 'none') {
         map.layers().reset();
+        map.remove(asynchLegend);
     } else {
     // add chosen layer to map
         var visImg = info.img.visualize(info.vis);
+        map.remove(asynchLegend);
         map.addLayer(visImg, {}, layer);
+        // add colorbar, if needed
+        if (info.cbar){
+          map.add(asynchLegend);
+        }
     }
   }
   // register the redrawLayer function as a callback on the layer selector
@@ -747,3 +710,4 @@ var createApp = function(){
 
 // call the main app-creation function
 createApp();
+

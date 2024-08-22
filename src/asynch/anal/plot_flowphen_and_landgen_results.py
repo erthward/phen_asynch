@@ -78,26 +78,26 @@ sw_photo_slices = [(slice(15, 37),
                     slice(0, 19),
                      )
                     ]
-sw_scat_map_slices = [(slice(8, 38),
+sw_scat_map_slices = [(slice(6, 36),
                        slice(20, 50),
                       ),
                      ]
-sw_ts_slices = [(slice(38, 48),
+sw_ts_slices = [(slice(36, 46),
                  slice(20, 50),
                 ),
                ]
-zaf_cont_map_slices = (slice(55, 70),
+zaf_cont_map_slices = (slice(53, 68),
                       slice(0, 15),
                      )
-zaf_photo_slices = [(slice(72, 96),
+zaf_photo_slices = [(slice(71, 95),
                      slice(0, 18),
                     )
                    ]
-zaf_scat_map_slices = [(slice(60, 90),
+zaf_scat_map_slices = [(slice(54, 88),
                         slice(20, 50),
                        ),
                       ]
-zaf_ts_slices = [(slice(90, 100),
+zaf_ts_slices = [(slice(88, 98),
                   slice(20, 50),
                  ),
                 ]
@@ -474,8 +474,8 @@ else:
 inat_mmrr_filt_adeq_n = inat_mmrr_filt[inat_mmrr_filt['n'] >=min_n_inat_samps_for_demo_plots]
 
 # set cluster colors
-flower_asynch_colors = np.array(['#fc6f03', # orange
-                                 '#036e61', # teal
+flower_asynch_colors = np.array(['#c4ba78', # tan
+                                 '#2cab87', # turquoise
                                 ])
 
 def plot_taxon_photo(ax, name):
@@ -491,6 +491,9 @@ def plot_taxon_photo(ax, name):
                             filename,
                            )
     img = mpimg.imread(filepath)
+    # make white pixels (i.e. pixels with 1s in the first 3 layers) transparent
+    img[:,:,3] *= (img[:,:,:3].sum(axis=2)!=3)
+    # swap x and y axes, if necessary
     if 'horizontal' in filename:
         img = img.swapaxes(0, 1)
     ax.imshow(img)
@@ -527,7 +530,7 @@ def plot_map_bbox(map_xlims,
         map_ylims = [map_ylims[0] - buff, map_ylims[1] + buff]
     xs = np.array(map_xlims)[[0, 0, 1, 1, 0]]
     ys = np.array(map_ylims)[[0, 1, 1, 0, 0]]
-    ax.plot(xs, ys, '-k', alpha=alpha, linewidth=linewidth)
+    ax.plot(xs, ys, '-k', alpha=alpha, linewidth=linewidth, clip_on=False)
     if label is not None:
         assert labelxpad is not None
         assert labelypad is not None
@@ -775,10 +778,14 @@ ts_axs = [fig.add_subplot(gs[cafe_ts_slices[i][0],
 rgb_map_ax = fig.add_subplot(gs[cafe_rgb_map_slices[0],
                                 cafe_rgb_map_slices[1]])
 # run and plot the analysis
+n_perms = 1000
 cafe.run_analysis(rgb_map_ax,
                   ts_axs,
                   map_xlims,
                   map_ylims,
+                  n_perms=n_perms,
+                  eofs_alpha=0.75,
+                  region_sample_marker_size=40,
                  )
 # add map of bigger region
 ax_cont_map = fig.add_subplot(gs[cafe_cont_map_slices[0],
@@ -801,8 +808,8 @@ plot_taxon_photo(ax_photo, 'Coffea arabica')
 # run landscape genetic MMRRs and visualize results
 #------------------------------------------------------------------------------
 
-landgen_colors=np.array(['#2d5098', # blue
-                         '#ca1957', # red
+landgen_colors=np.array(['#648fff', # blue
+                         '#e84138', # red
                         ])
 
 # set map bounding box
@@ -910,7 +917,7 @@ ax_meta.set_yticks(())
 ax_meta.set_xlabel('')
 ax_meta.set_ylabel('')
 ax_meta.set_title('')
-ax_meta.text(0.01,
+ax_meta.text(0.0075,
              0.98,
              'A. Flowering asynchrony',
              weight='bold',
@@ -919,7 +926,7 @@ ax_meta.text(0.01,
             )
 ax_meta.text(0.265,
              0.98,
-             'B. Isolation by asynchrony',
+             'B. Genetic isolation by asynchrony',
              weight='bold',
              size=section_lab_fontsize,
              clip_on=False,
@@ -938,7 +945,7 @@ ax_meta.text(0.37,
              rotation=0,
              size=title_fontsize,
             )
-ax_meta.text(0.5365,
+ax_meta.text(0.541,
              0.89,
              'LSP\nclusters',
              ha='center',
@@ -946,7 +953,7 @@ ax_meta.text(0.5365,
              size=title_fontsize,
             )
 ax_meta.text(0.04,
-             0.59,
+             0.595,
              [*sw_taxa_clust_Ks][0].replace(' ', '\n'),
              ha='center',
              fontdict={'fontsize': taxon_fontsize,
@@ -954,12 +961,13 @@ ax_meta.text(0.04,
                       },
             )
 ax_meta.text(0.04,
-             0.0,
+             0.005,
              [*zaf_taxa_clust_Ks][0].replace(' ', '\n'),
              ha='center',
              fontdict={'fontsize': taxon_fontsize,
                        'style': 'italic',
                       },
+             clip_on=False,
             )
 ax_meta.text(0.30,
              0.63,
@@ -987,17 +995,17 @@ ax_meta.text(0.74,
             )
 ax_meta.plot([0.255, 0.255],
              [-0.2, 1.2],
-             linewidth=0.4,
+             linewidth=0.7,
              color='black',
-             alpha=0.4,
+             alpha=0.7,
              clip_on=False,
              zorder=0,
             )
 ax_meta.plot([0.6275, 0.6275],
              [-0.2, 1.2],
-             linewidth=0.4,
+             linewidth=0.7,
              color='black',
-             alpha=0.4,
+             alpha=0.7,
              clip_on=False,
              zorder=0,
             )
@@ -1007,12 +1015,12 @@ ax_meta.set_ylim(0, 1)
 # adjust subplots and save
 fig.subplots_adjust(hspace=0,
                     wspace=0,
-                    left=0.0,
+                    left=0,
                     right=0.99,
                     bottom=0.04,
                     top=0.98,
                    )
-fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_inatphen_and_landgen_results.png'),
+fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_coffea_inat_landgen_results.png'),
             dpi=600,
            )
 

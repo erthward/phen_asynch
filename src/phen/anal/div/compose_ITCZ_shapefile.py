@@ -7,35 +7,36 @@ import statsmodels.api as sm
 import numpy as np
 import os
 
-###############################################################################
-# NOTE: MANUAL STEPS TAKEN:
-    # 1. capture screenshot of Fig. 1a in Zhisheng et al. 2015, "Global Monsoon
-    #    Dynamics and Climate Change"
-    # 2. go to https://apps.automeris.io/wpd/, click File -> Load Images and upload screenshot
-    # 3. select "Map With Scale Bar", click "Align Axes", then drop two points
-    #    along the 0-degree meridian (points: (0,0) and (0, 30)
+'''
+NOTE: This analysis relies on digitized CSVs of the ITCZ at various times of
+      year. The steps taken to produce these files are:
 
-    # 4. click "Complete" and enter '10' and 'degrees' in the prompt boxes
+     1. capture screenshot of Fig. 1a in Zhisheng et al. 2015, "Global Monsoon
+        Dynamics and Climate Change"
+     2. go to https://apps.automeris.io/wpd/, click File -> Load Images and upload screenshot
+     3. select "Map With Scale Bar", click "Align Axes", then drop two points
+        along the 0-degree meridian (points: (0,0) and (0, 30)
 
-    # 5. click on the color box next to "Foreground color" and select the blue
-    #    corresponding to the DJF ITCZ curve
+     4. click "Complete" and enter '10' and 'degrees' in the prompt boxes
 
-    # 6. set color distance to 20, deltaX and deltaY to 1 pixel, then click
-    #    "Run" to add automatically digitized points along the DJF ITCZ curve
+     5. click on the color box next to "Foreground color" and select the blue
+        corresponding to the DJF ITCZ curve
 
-    # 7. click "Delete Point (D)", hover over the incorrectly digitized points
-    #    added to the map legend, and repeatedly click until the last point
-    #    there is deleted
+     6. set color distance to 20, deltaX and deltaY to 1 pixel, then click
+        "Run" to add automatically digitized points along the DJF ITCZ curve
 
-    # 8. click "View Data" -> "Download .CSV" and download the CSV file as
-    #    'ITCZ_DJF.csv'
+     7. click "Delete Point (D)", hover over the incorrectly digitized points
+        added to the map legend, and repeatedly click until the last point
+        there is deleted
 
-    # 9. repeat steps 5-8 for the JJA ITCZ curve and download its file as
-    #    'ITCZ_JJA.csv'
+     8. click "View Data" -> "Download .CSV" and download the CSV file as
+        'ITCZ_DJF.csv'
 
-    # 10. run this script to produce the shapefile
+     9. repeat steps 5-8 for the JJA ITCZ curve and download its file as
+        'ITCZ_JJA.csv'
 
-###############################################################################
+     10. run this script to produce the shapefile
+'''
 
 data_dir = os.path.join(phf.DATA_DIR, 'itcz')
 

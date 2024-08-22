@@ -295,7 +295,7 @@ def get_raster_info_points(rast_filepath, pts, return_format='vals',
     default), the fitted time series at those
     points (if return_format == 'ts'; ONLY VALID FOR COEFF RASTERS!),
     the pairwise distance matrix (if return_format
-    == 'pdm'), of the pairwise seasonal distance matrix (if
+    == 'pdm'), or the pairwise seasonal distance matrix (if
     return_format=='ts_pdm'; ONLY VALID FOR COEFF RASTERS!)
     """
     # read in the raster file
