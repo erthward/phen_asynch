@@ -18,6 +18,7 @@ import rioxarray as rxr
 import cmcrameri.cm as cmc
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+from scipy import stats
 from sklearn.cluster import KMeans
 from shapely.geometry import Point
 from collections import OrderedDict
@@ -29,7 +30,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
                     'seasonal_asynchrony/src/etc/'))
 import phen_helper_fns as phf
-from MMRR import MMRR
 
 sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
                     'seasonal_asynchrony/src/asynch/anal/phen/'))
@@ -63,7 +63,7 @@ radar_width_shrink_factor=0.9
 
 # plotting font sizes
 section_lab_fontsize=17
-cbar_lab_fontsize = 12
+cbar_lab_fontsize = 16
 title_fontsize = 14
 taxon_fontsize = 9
 axlabel_fontsize = 10
@@ -175,13 +175,15 @@ inat_obs_data_dir = os.path.join(inat_hex_data_dir, 'obs_data')
 # summarize and plot flower-phenology analysis results
 #------------------------------------------------------------------------------
 
+print(f"\n\n{'-'*80}\n\nNOW RUNNING INATURALIST ANALYSES...\n")
+
 # create the overall figure
 fig = plt.figure(figsize=figsize)
 gs = fig.add_gridspec(nrows=gridspec_dims[0], ncols=gridspec_dims[1])
 gs_supp = fig.add_gridspec(ncols=1, nrows=16)
 
 # create the iNat peak-analysis supp figure
-fig_supp = plt.figure(figsize=(9,16))
+fig_supp = plt.figure(figsize=(9,15))
 
 # plot inat flower phenology peak-analysis results
 peaks_hex_filename = 'inat_hex_results.json'
@@ -190,11 +192,11 @@ inat_h3_gdf = gpd.read_file(os.path.join(inat_hex_data_dir, peaks_hex_filename))
 inat_h3_gdf['prop_non1peak_signif'] = (inat_h3_gdf['prop_0peak_signif'] +
                                   inat_h3_gdf['prop_2pluspeak_signif'])
 cmap='viridis'
-res_cols = ['prop_non1peak_signif',
-            'prop_0peak_signif',
+res_cols = ['prop_0peak_signif',
             'prop_2pluspeak_signif',
+            'prop_non1peak_signif',
            ]
-label_dict = {'prop_non1peak_signif': 'non-unimodal',
+label_dict = {'prop_non1peak_signif': 'all non-unimodal',
               'prop_0peak_signif': 'no significant peaks',
               'prop_2pluspeak_signif': '≥2 significant peaks',
              }
@@ -238,10 +240,10 @@ for i, res_col in enumerate(res_cols):
         orientation = 'horizontal'
         plt.colorbar(scalcmap, cax=cax, orientation=orientation)
         ticks = np.linspace(0, 1, 5)
-        cax.set_xlabel('proportion\nnon-unimodal\ntaxa',
+        cax.set_xlabel('proportion of taxa',
                        fontdict={'fontsize': cbar_lab_fontsize},
                       )
-        cax.set_xticks(ticks, ['%0.2f' % t for t in ticks], size=9)
+        cax.set_xticks(ticks, ['%0.2f' % t for t in ticks], size=12)
         cax.set_ylabel('')
         cax.set_yticks(())
     # set equal aspect ratio
@@ -263,6 +265,13 @@ fig_supp.savefig(os.path.join(phf.FIGS_DIR,
 #------------------------------------------------------------------------------
 # summarize and plot flowering_phenology MMRR results
 #------------------------------------------------------------------------------
+
+all_taxa_count = len(gpd.read_file('./phen/all_inat_plant_phen_taxa.csv'))
+print(f"\n\n{all_taxa_count} have flowering observations in iNaturalist.")
+
+gt50_obs_taxa_count = len(gpd.read_file('./phen/inat_flower_phen_results.json'))
+print(f"\n\n{gt50_obs_taxa_count} have >= 50 flowering observations available.")
+
 mmrr_res_filename = './phen/inat_flower_doy_LSP_MMRR_res.csv'
 inat_mmrr_df = pd.read_csv(mmrr_res_filename)
 
@@ -310,68 +319,73 @@ p_bonf_corr = 0.05/(np.sum(np.invert(inat_mmrr_gdf['extreme_lat_range'])))
 inat_mmrr_gdf.loc[:, 'lsp_p_sig_bonf_corr'] = inat_mmrr_gdf.loc[:, 'lsp_p']<=p_bonf_corr
 inat_mmrr_gdf.loc[inat_mmrr_gdf['extreme_lat_range'], 'lsp_p_sig_bonf_corr'] = np.nan
 
+# correction for false discovery rate
+p_vals_fdr = stats.false_discovery_control(inat_mmrr_gdf.loc[:, 'lsp_p'],
+                                           method='bh')
+inat_mmrr_gdf.loc[:, 'lsp_p_fdr'] = p_vals_fdr
+inat_mmrr_gdf.loc[:, 'lsp_p_fdr_sig'] = p_vals_fdr <= 0.05
+
 # sort rows by significance and then by sample size
 inat_mmrr_gdf = inat_mmrr_gdf.sort_values(by=['extreme_lat_range', 'lsp_p', 'n'],
                                           ascending=[True, True, False],
                                          )
 
-# save MMRR results formatted as a supplemental table
-inat_mmrr_gdf_for_table = inat_mmrr_gdf.loc[:, ['name',
-                                                'tid',
-                                                'pct_miss',
-                                                'n',
-                                                'int',
-                                                'int_t',
-                                                'int_p',
-                                                'geo',
-                                                'geo_t',
-                                                'geo_p',
-                                                'env',
-                                                'env_t',
-                                                'env_p',
-                                                'lsp',
-                                                'lsp_t',
-                                                'lsp_p',
-                                                'lsp_p_sig_bonf_corr',
-                                                'f',
-                                                'f_p',
-                                                'r2',
-                                               ]]
-inat_mmrr_gdf_for_table.columns = ['taxon name',
-                                   'taxon iNat ID',
-                                   '% observation locations missing LSP data',
-                                   'MMRR n',
-                                   'MMRR intercept',
-                                   'MMRR intercept t-stat',
-                                   'MMRR intercept P-value',
-                                   'MMRR geographic distance coefficient',
-                                   'MMRR geographic distance coefficient t-stat',
-                                   'MMRR geographic distance coefficient P-value',
-                                   'MMRR environmental distance coefficient',
-                                   'MMRR environmental distance coefficient t-stat',
-                                   'MMRR environmental distance coefficient P-value',
-                                   'MMRR LSP distance coefficient',
-                                   'MMRR LSP distance coefficient t-stat',
-                                   'MMRR LSP distance coefficient P-value',
-                                   'MMRR LSP distance coefficient signif. after Bonferroni correction?',
-                                   'MMRR F-stat',
-                                   'MMRR F-stat P-value',
-                                   'MMRR R2',
-                                  ]
-inat_mmrr_gdf_for_table.to_csv(os.path.join(phf.TABS_DIR,
-                                            'TAB_SUPP_iNat_MMRR_results.csv'),
-                               index=False,
-                              )
-
 # drop extreme-latitudinal-range taxa from further analysis
 inat_mmrr_filt = inat_mmrr_gdf[~inat_mmrr_gdf['extreme_lat_range']]
+
+# save MMRR results formatted as a supplemental table
+# (only taxa that are significant after FDR correction; otherwise would
+# be a huge table for supps, and the full table will be in Zenodo anyhow)
+supp_tab = inat_mmrr_filt[inat_mmrr_filt['lsp_p_fdr_sig']].loc[:, ['name',
+                                                                   'tid',
+                                                                   'n',
+                                                                   'int',
+                                                                   'int_t',
+                                                                   'int_p',
+                                                                   'geo',
+                                                                   'geo_t',
+                                                                   'geo_p',
+                                                                   'env',
+                                                                   'env_t',
+                                                                   'env_p',
+                                                                   'lsp',
+                                                                   'lsp_t',
+                                                                   'lsp_p',
+                                                                   'f',
+                                                                   'f_p',
+                                                                   'r2',
+                                                                  ]]
+supp_tab.columns = ['taxon',
+                    'iNat ID',
+                    'n',
+                    'int.',
+                    'int. t',
+                    'int. P',
+                    'geo.',
+                    'geo. t',
+                    'geo. P',
+                    'env.',
+                    'env. t',
+                    'env. P',
+                    'LSP',
+                    'LSP t',
+                    'LSP P',
+                    'F',
+                    'F P',
+                    'R2',
+                   ]
+supp_tab.to_csv(os.path.join(phf.TABS_DIR, 'TAB_SUPP_iNat_MMRR_results.csv'),
+                index=False,
+               )
 
 # print & log numbers & percentages of taxa passing the different filtering & analysis stages
 n_nonunimodal_taxa = np.sum(inat_res_gdf['signif_npeaks']!=1)
 n_all_taxa = len(inat_res_gdf)
-sig_nonunimodal_msg = (f"{np.round(100*(n_nonunimodal_taxa/n_all_taxa))}% "
+sig_nonunimodal_msg = (f"{np.round(100*(n_nonunimodal_taxa/n_all_taxa),1)}% "
                        "of taxa are significantly non-unimodal "
                        f"({n_nonunimodal_taxa}/{n_all_taxa}).")
+npeaks_cts = inat_res_gdf.loc[:, ['signif_npeaks', 'tid']].groupby('signif_npeaks').count()
+print(f"(counts of taxa by number of peaks: {npeaks_cts})")
 n_taxa_w_failed_MMRR = len(inat_mmrr_df) - len(inat_mmrr_df_valid_pval)
 fail_fit_MMRR_msg = (f"{n_taxa_w_failed_MMRR} non-unimodal taxa failed "
                       "to fit a valid MMRR model.")
@@ -381,22 +395,31 @@ too_broad_distr_msg = (f"{n_taxa_w_broad_distrs} non-unimodal taxa dropped "
 n_MMRR_taxa = len(inat_mmrr_filt)
 n_MMRR_taxa_LSP_signif_0p05 = np.sum(inat_mmrr_filt['lsp_p']<=0.05)
 n_MMRR_taxa_LSP_signif_bonf_corr = np.sum(inat_mmrr_filt['lsp_p_sig_bonf_corr'])
-sig_MMRR_LSP_msg = (f"{np.round(100*(n_MMRR_taxa_LSP_signif_0p05/n_MMRR_taxa))}% "
+n_MMRR_taxa_LSP_signif_fdr_corr = np.sum(inat_mmrr_filt['lsp_p_fdr_sig'])
+sig_MMRR_LSP_msg = (f"{np.round(100*(n_MMRR_taxa_LSP_signif_0p05/n_MMRR_taxa),1)}% "
                      "of non-unimodal taxa for which MMRRs were fitted "
                      "had significant LSP-distance coefficients (P<=0.05) "
                     f"({n_MMRR_taxa_LSP_signif_0p05}/{n_MMRR_taxa}).")
 sig_MMRR_LSP_msg_bonf_corr = (
-                f"{np.round(100*(n_MMRR_taxa_LSP_signif_bonf_corr/n_MMRR_taxa))}% "
+                f"{np.round(100*(n_MMRR_taxa_LSP_signif_bonf_corr/n_MMRR_taxa),1)}% "
                  "of non-unimodal taxa for which MMRRs were fitted "
                  "had significant LSP-distance coefficients after "
                 f"Bonferroni correction (P-value <={np.round(p_bonf_corr, 5)}) "
                 f"({n_MMRR_taxa_LSP_signif_bonf_corr}/{n_MMRR_taxa}).")
+sig_MMRR_LSP_msg_fdr_corr = (
+                f"{np.round(100*(n_MMRR_taxa_LSP_signif_fdr_corr/n_MMRR_taxa),1)}% "
+                 "of non-unimodal taxa for which MMRRs were fitted "
+                 "had significant LSP-distance coefficients after "
+                f"FDR correction (P-value <=0.05) "
+                f"({n_MMRR_taxa_LSP_signif_fdr_corr}/{n_MMRR_taxa}).")
+
 print(f"{fail_fit_hull_msg}\n\n")
 print(f"{sig_nonunimodal_msg}\n\n")
 print(f"{fail_fit_MMRR_msg}\n\n")
 print(f"{too_broad_distr_msg}\n\n")
 print(f"{sig_MMRR_LSP_msg}\n\n")
 print(f"{sig_MMRR_LSP_msg_bonf_corr}\n\n")
+print(f"{sig_MMRR_LSP_msg_fdr_corr}\n\n")
 
 # log the summary info, if not already logged
 MMRR_sum_logged = False
@@ -412,6 +435,7 @@ if not MMRR_sum_logged:
         f.write(f"{too_broad_distr_msg}\n\n")
         f.write(f"{sig_MMRR_LSP_msg}\n\n")
         f.write(f"{sig_MMRR_LSP_msg_bonf_corr}\n\n")
+        f.write(f"{sig_MMRR_LSP_msg_fdr_corr}\n\n")
 
 # summarize MMRR results to hexes
 mmrr_hex_filename = 'inat_hex_MMRR_results.json'
@@ -444,16 +468,24 @@ if not os.path.isfile(os.path.join(inat_hex_data_dir, mmrr_hex_filename)):
         new_cols['mean_pct_miss'].append(np.mean(gdf_intsxn['pct_miss']))
         new_cols['mean_lsp_p'].append(np.mean(gdf_intsxn['lsp_p']))
         new_cols['mean_lsp'].append(np.mean(gdf_intsxn['lsp']))
-        new_cols['prop_lsp_signif'].append(np.mean(gdf_intsxn['lsp_p']<=p_bonf_corr))
+        new_cols['prop_lsp_signif'].append(
+            np.mean(stats.false_discovery_control(gdf_intsxn['lsp_p'],
+                                                  method='bh')<=0.05))
         new_cols['prop_lsp_signif_0p05'].append(np.mean(gdf_intsxn['lsp_p']<=0.05))
         new_cols['mean_geo_p'].append(np.mean(gdf_intsxn['geo_p']))
         new_cols['mean_geo'].append(np.mean(gdf_intsxn['geo']))
-        new_cols['prop_geo_signif'].append(np.mean(gdf_intsxn['geo_p']<=p_bonf_corr))
+        new_cols['prop_geo_signif'].append(
+            np.mean(stats.false_discovery_control(gdf_intsxn['geo_p'],
+                                                  method='bh')<=0.05))
         new_cols['mean_int_p'].append(np.mean(gdf_intsxn['int_p']))
         new_cols['mean_int'].append(np.mean(gdf_intsxn['int']))
-        new_cols['prop_int_signif'].append(np.mean(gdf_intsxn['int_p']<=p_bonf_corr))
+        new_cols['prop_int_signif'].append(
+            np.mean(stats.false_discovery_control(gdf_intsxn['int_p'],
+                                                  method='bh')<=0.05))
         new_cols['mean_f_p'].append(np.mean(gdf_intsxn['f_p']))
-        new_cols['prop_mod_signif'].append(np.mean(gdf_intsxn['f_p']<=p_bonf_corr))
+        new_cols['prop_mod_signif'].append(
+            np.mean(stats.false_discovery_control(gdf_intsxn['f_p'],
+                                                  method='bh')<=0.05))
         new_cols['mean_r2'].append(np.mean(gdf_intsxn['r2']))
     for col, vals in new_cols.items():
         inat_h3_gdf[col] = vals
@@ -633,7 +665,7 @@ def plot_focal_inat_taxa(mmrr_res_gdf,
         tax_dict = mmrr_res_gdf[mmrr_res_gdf['name'] == taxon].iloc[0,:]
         tid = tax_dict['tid']
         name = tax_dict['name']
-        print(f"\n\tnow plotting {name}...")
+        print(f"\n\tplotting {name}...")
         ax_map = scatter_map_axs[ct]
         ax_ts = ts_axs[ct]
         if flow_obs_axs is not None:
@@ -767,6 +799,8 @@ plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
 # run coffee-harvest analysis and plot results
 #---------------------------------------------
 
+print(f"\n\n{'-'*80}\n\nNOW RUNNING COFFEA ANALYSIS...\n")
+
 # set up axgs
 # add black box to bigger regional map to indicate focal region
 map_xlims = [-7.45e6, -6.863e6]
@@ -832,6 +866,9 @@ plot_continental_reference_map(ax_cont_map,
                                crs=crs,
                               )
 
+
+print(f"\n\n{'-'*80}\n\nNOW RUNNING RHINELLA LANDGEN ANALYSIS...\n")
+
 # analyze and plot Rhinella granulosa data
 rg_gen_dist, rg_pts = rg.run_analysis()
 ax_rg_genclust_map = fig.add_subplot(gs[e_brz_genclust_map_slices[0][0],
@@ -866,6 +903,9 @@ ax_rg_genclust_ts.set_ylabel('scaled LSP',
                              labelpad=7,
                               fontdict={'fontsize': axlabel_fontsize},
                              )
+
+
+print(f"\n\n{'-'*80}\n\nNOW RUNNING XIPHORHYNCHUS LANDGEN ANALYSIS...\n")
 
 # analyze and plot Xiphorhynchus fuscus data
 xf_gen_dist, xf_pts = xf.run_analysis()
@@ -1020,7 +1060,7 @@ fig.subplots_adjust(hspace=0,
                     bottom=0.04,
                     top=0.98,
                    )
-fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_coffea_inat_landgen_results.png'),
+fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_inat_landgen_coffea_results.png'),
             dpi=600,
            )
 

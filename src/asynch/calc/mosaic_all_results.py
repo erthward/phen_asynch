@@ -20,12 +20,12 @@ template_cmd = "python %s %s %s %s %s"
 if os.getcwd().split('/')[1] == 'global':
     script_path = ("/global/home/users/drewhart/seasonality/seasonal_asynchrony/"
                    "src/asynch/calc/mosaic_results.py")
-    data_path = "/global/scratch/users/drewhart/seasonality/GEE_outputs/"
+    data_path = "/global/scratch/users/drewhart/seasonality/GEE_outputs_and_derivatives/"
 # ... or on laptop
 else:
     script_path = ("/home/deth/Desktop/CAL/research/projects/seasonality/"
                    "seasonal_asynchrony/src/asynch/calc/mosaic_results.py")
-    data_path = "/media/deth/SLAB/diss/3-phn/GEE_outputs/"
+    data_path = "/media/deth/SLAB/diss/3-phn/GEE_outputs_and_derivatives/"
 
 
 # loop over vars and lyrs

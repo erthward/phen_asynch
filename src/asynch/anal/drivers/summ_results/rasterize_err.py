@@ -10,7 +10,7 @@ import os
 
 # get path for savio...
 if os.getcwd().split('/')[1] == 'global':
-    data_dir = "/global/scratch/users/drewhart/seasonality/rf_data/"
+    data_dir = "/global/scratch/users/drewhart/seasonality/asynch_drivers_analysis/"
 # ... or on laptop
 else:
     data_dir = "/media/deth/SLAB/diss/3-phn/final_maps_and_results/rf/"

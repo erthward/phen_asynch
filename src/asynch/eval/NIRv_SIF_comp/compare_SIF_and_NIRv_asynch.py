@@ -35,8 +35,8 @@ for neigh_rad_i, neigh_rad in enumerate(['50', '100', '150']):
     diff_scale = nirv_scale - sif_scale
 
     # get max abs val to use to center raster map on 0
-    max_abs_val = max(np.abs((np.nanpercentile(diff_scale, 0.01),
-                              np.nanpercentile(diff_scale, 99.99))))
+    max_abs_val = max(np.abs((np.nanpercentile(diff_scale, 1),
+                              np.nanpercentile(diff_scale, 99))))
 
     ax = fig.add_subplot(gs[neigh_rad_i, :2])
     diff_scale.plot.imshow(ax=ax,
@@ -47,14 +47,14 @@ for neigh_rad_i, neigh_rad in enumerate(['50', '100', '150']):
     # increase colorbar ticklabel size and label the colorbar
     fig.axes[-1].tick_params(labelsize=9)
     fig.axes[-1].set_ylabel('$asynch_{NIR_{V\ stand}}-asynch_{SIF_{stand}}$',
-                            fontdict={'fontsize': 12})
+                            fontdict={'fontsize': 14})
 
     ax.set_xlabel('')
     ax.set_ylabel('')
     ax.set_xticks(())
     ax.set_yticks(())
-    ax.set_title('neigh_rad = %s km' % neigh_rad,
-                 fontdict={'fontsize': 14})
+    ax.set_title('neighborhood radius = %s km' % neigh_rad,
+                 fontdict={'fontsize': 16})
     phf.plot_juris_bounds(ax=ax,
                           crs=diff_scale.rio.crs.to_epsg(),
                           strip_axes=False,
@@ -64,6 +64,7 @@ for neigh_rad_i, neigh_rad in enumerate(['50', '100', '150']):
 
     # scatter samples against one another and fit SLR
     ax = fig.add_subplot(gs[neigh_rad_i, 3])
+    ax.ticklabel_format(style='sci', scilimits=([-5,-5]))
     ax.scatter(sif.values.ravel(),
                nirv.values.ravel(),
                s=0.1,
@@ -84,18 +85,21 @@ for neigh_rad_i, neigh_rad in enumerate(['50', '100', '150']):
                          10000)
     plot_y = lm.params[0] + lm.params[1]*plot_x
     ax.plot(plot_x, plot_y, '-r', linewidth=2, alpha=0.5)
-    ax.set_xlim(np.nanpercentile(sif, (1, 99)))
-    ax.set_ylim(np.nanpercentile(nirv, (1, 99)))
+    ax.set_xlim(np.nanpercentile(sif, (0.1, 99.9)))
+    ax.set_ylim(np.nanpercentile(nirv, (0.1, 99.9)))
     get_text_pos = lambda lims, frac: lims[0] + (frac*(lims[1]-lims[0]))
-    ax.text(get_text_pos(ax.get_xlim(), 0.8),
-            get_text_pos(ax.get_ylim(), 0.1),
+    ax.text(get_text_pos(ax.get_xlim(), 0.7),
+            get_text_pos(ax.get_ylim(), 0.8),
             '$R^{2}=%0.2f$' % lm.rsquared,
             color='red',
-            size=9,
+            size=11,
            )
-    ax.set_xlabel('$SIF$ asynchrony', fontdict={'fontsize': 12})
-    ax.set_ylabel('$NIR_{V}$ asynchrony', fontdict={'fontsize': 12})
-    ax.tick_params(labelsize=9, rotation=45)
+    if neigh_rad_i == 2:
+        ax.set_xlabel('$SIF$ asynchrony', fontdict={'fontsize': 14})
+    else:
+        ax.set_xlabel('')
+    ax.set_ylabel('$NIR_{V}$ asynchrony', fontdict={'fontsize': 14})
+    ax.tick_params(labelsize=11, rotation=0)
 
 fig.subplots_adjust(top=0.95,
                     bottom=0.08,

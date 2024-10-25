@@ -230,6 +230,7 @@ def map_asynch(fig, cbar_axlab,
     ax.set_xlim(0.95 * ax.get_xlim()[0], ax.get_xlim()[1])
     # crop at top of LSP map
     phf.set_upper_ylim(ax)
+    ax.set_aspect('equal')
     ax.set_xlabel('')
     ax.set_ylabel('')
     ax.set_xticks(())
@@ -435,7 +436,7 @@ if __name__ == '__main__':
         if what_to_plot == 'main':
             # set up main figure
             fig_main = plt.figure(figsize=(24, 26))
-            gs = fig_main.add_gridspec(ncols=270, nrows=270)
+            gs = fig_main.add_gridspec(ncols=280, nrows=270)
 
 
             # plot the main asynch map
@@ -450,6 +451,7 @@ if __name__ == '__main__':
                        which_covars='top',
                        cbar_axlab='predominant driver of LSP asynchrony',
                       )
+            ax.set_aspect('equal')
 
             # finish plot formatting
             fig_main.subplots_adjust(left=0.05,
@@ -477,7 +479,7 @@ if __name__ == '__main__':
         elif what_to_plot == 'predom_supp':
 
             # set up supplemental predominance figure
-            fig_predom_supp = plt.figure(figsize=(24, 13))
+            fig_predom_supp = plt.figure(figsize=(19, 10))
             ax = fig_predom_supp.add_subplot(1,1,1)
 
             map_predom(ax, predom,
@@ -486,11 +488,11 @@ if __name__ == '__main__':
                        which_covars='all',
                        cbar_axlab='predominant covar',
                        polys_color='none',
-                       cbar_ticklab_fontsize=15,
+                       cbar_ticklab_fontsize=16,
                       )
             fig_predom_supp.subplots_adjust(left=0.02,
                                             right = 0.98,
-                                            bottom=0.08,
+                                            bottom=0.12,
                                             top=0.98,
                                             hspace=0.8,
                                             wspace=0.0

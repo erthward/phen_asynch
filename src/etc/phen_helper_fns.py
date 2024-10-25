@@ -56,7 +56,7 @@ FIGS_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
 TABS_DIR = ('/home/deth/Desktop/CAL/research/projects/seasonality/'
             'seasonal_asynchrony/res/tabs')
 EXTERNAL_DATA_DIR = '/media/deth/SLAB/diss/3-phn/final_maps_and_results/'
-EXTERNAL_MASK_DATA_DIR = '/media/deth/SLAB/diss/3-phn/GEE_outputs/LSP_masks/'
+EXTERNAL_MASK_DATA_DIR = '/media/deth/SLAB/diss/3-phn/GEE_outputs_and_derivatives/LSP_masks/'
 EXTERNAL_RF_DATA_DIR = '/media/deth/SLAB/diss/3-phn/final_maps_and_results/rf/'
 EXTERNAL_INAT_DATA_DIR = '/media/deth/SLAB/diss/3-phn/inat/'
 EXTERNAL_FLUX_DATA_DIR = '/media/deth/SLAB/diss/3-phn/flux/'

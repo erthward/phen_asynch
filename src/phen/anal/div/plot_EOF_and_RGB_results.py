@@ -10,6 +10,7 @@ import geopandas as gpd
 import palettable
 from matplotlib.transforms import Affine2D
 import mpl_toolkits.axisartist.floating_axes as floating_axes
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import LinearSegmentedColormap
 from colorsys import hls_to_rgb
 from sklearn.metrics.pairwise import pairwise_distances_argmin
@@ -249,8 +250,8 @@ if write_wt_sum_eofs_to_file:
 
 if what_to_plot == 'eof_summ_fig':
     # create EOF fig
-    fig_eof = plt.figure(figsize=(21,30))
-    gs = GridSpec(4, 3, figure=fig_eof)
+    fig_eof = plt.figure(figsize=(14,20))
+    gs = GridSpec(4, 3, figure=fig_eof, height_ratios=[1,1,1,1.1])
     # make maps of EOFS 1 through 4, all raw
     # NOTE: reloading, to grab all 4
     eofs = rxr.open_rasterio(os.path.join(phf.EXTERNAL_DATA_DIR,
@@ -271,14 +272,33 @@ if what_to_plot == 'eof_summ_fig':
     for i in range(4):
         ax_map = fig_eof.add_subplot(gs[i, :2])
         ax_pc = fig_eof.add_subplot(gs[i, 2])
+        # add colorbar axes at bottom
+        if i == 3:
+            add_colorbar=True
+            divider = make_axes_locatable(ax_map)
+            cbar_ax = divider.append_axes('bottom', size='7%', pad=0.2)
+            cbar_ax.tick_params(labelsize=12)
+            cbar_kwargs = {'orientation': 'horizontal'}
+        else:
+            add_colorbar=False
+            cbar_ax = None
+            cbar_kwargs = None
         eofs_for_map[i] = eofs_for_map[i].where(
                 eofs_for_map[i] < 2*eofs[i].max(), np.nan)
+        # reset the 'long_name' attr, to avoid the stupid "AttributeError:
+        # 'tuple' object has no attribute 'startswith'" that is thrown by
+        # rioxarry if I otherwise try to use add_colorbar=True
+        eofs_for_map.attrs['long_name'] = ''
         eofs_for_map[i].plot.imshow(ax=ax_map,
                                     cmap='coolwarm',
-                                    add_colorbar=False,
+                                    add_colorbar=add_colorbar,
+                                    cbar_ax=cbar_ax,
+                                    cbar_kwargs=cbar_kwargs,
                                     alpha=1,
                                     zorder=0,
                                    )
+        if i == 3:
+            cbar_ax.set_xlabel('EOF', fontdict={'size': 20})
         phf.plot_juris_bounds(ax_map,
                               lev0_linewidth=0.5,
                               lev0_alpha=0.7,
@@ -289,7 +309,7 @@ if what_to_plot == 'eof_summ_fig':
         ax_map.set_ylim(eofs_for_map.rio.bounds()[1::2])
         ax_map.text(0.92*ax_map.get_xlim()[0], 0.92*ax_map.get_ylim()[0],
                     'EOF %i:\n%0.2f%%' % (i+1, eofs_pcts[i]),
-                    fontdict={'fontsize': 38})
+                    fontdict={'fontsize': 26})
         ax_map.set_aspect('equal')
         phf.set_upper_ylim(ax_map)
         # plot PC time series

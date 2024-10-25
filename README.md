@@ -1,4 +1,4 @@
-# < PUT TITLE HERE >
+# Global phenology maps reveal the diversity, convergence, and asynchrony of ecosystem function
 
 ### < PUT CITATION HERE >
 
@@ -157,10 +157,10 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ### run NIRv-SIF LSP comparison:
-1. *On Savio*, run `sbatch src/phen/eval/compare_NIRv_and_SIF_maps/ch3_phen_comparison_job.sh` to calculate a global map of $R^2$ values between the fitted annual NIRv-based and SIF-based LSP patterns (**1 task, ~12h runtime**).
-2. *On Savio*, run `bash src/phen/eval/compare_NIRv_and_SIF_maps/ul_NIRv_SIF_phen_comparison_results_to_bdrive.sh` to upload the resulting GeoTIFF to Google Drive (**1 task, ~1m runtime**).
-3. *On laptop*, run `bash src/phen/eval/compare_NIRv_and_SIF_maps/dl_NIRv_SIF_phen_comparison_results_from_bdrive.sh` to download the GeoTIFF to the necessary local directory (**1 task, ~1m runtime**).
-4 *On laptop*, run `python src/phen/eval/compare_NIRv_and_SIF_maps/map_NIRv_SIF_LSP_comparison.py` to map the $R^2$ values between the fitted NIRv and SIF LSP datasets (**1 task, <1m runtime**).
+1. *On Savio*, run `sbatch src/phen/eval/NIRv_SIF_comp/ch3_phen_comparison_job.sh` to calculate a global map of $R^2$ values between the fitted annual NIRv-based and SIF-based LSP patterns (**1 task, ~12h runtime**).
+2. *On Savio*, run `bash src/phen/eval/NIRv_SIF_comp/ul_NIRv_SIF_phen_comparison_results_to_bdrive.sh` to upload the resulting GeoTIFF to Google Drive (**1 task, ~1m runtime**).
+3. *On laptop*, run `bash src/phen/eval/NIRv_SIF_comp/dl_NIRv_SIF_phen_comparison_results_from_bdrive.sh` to download the GeoTIFF to the necessary local directory (**1 task, ~1m runtime**).
+4 *On laptop*, run `python src/phen/eval/NIRv_SIF_comp/map_NIRv_SIF_LSP_comparison.py` to map the $R^2$ values between the fitted NIRv and SIF LSP datasets (**1 task, <1m runtime**).
 
 
 ### run FLUXNET evaluation:
@@ -208,16 +208,16 @@ Each step of the following workflow was executed in the environment indicated *i
 1. *On laptop*, run `python src/asynch/anal/isoclim/compare_phen_clim_geog_dist.py` to run all iterations of the analysis of the latitudinal trend in the phenological distance~climatic distance relationship and produce the analysis summary figure (NOTE: analysis saves results for each paramater-combination as it runs, so can be stopped and restarted if necessary and will pick up where it left off.) (**1 task, ~26h runtime**).
 
 
-### run Colombian coffee harvest analysis:
-1. *On laptop*, work through the steps at the top of src/asynch/anal/phen/comparar_LSP_y_cosecha_cafetera_colombiana.py to digitize a set of sampling points for each of the four harvest region colors in the map in Figure 2 of [Mujeres en la caficultura tradicional colombiana, 1910-1970](https://doi.org/10.19053/20275137.3200) and download the resulting CSV files.
-2. NOTE: The analysis is src/asynch/anal/phen/comparar_LSP_y_cosecha_cafetera_colombiana.py will be executed by the last step in the section 'run genetic analyses', below.
-
-
 ### run iNaturalist flowering-phenology analysis:
 1. *On laptop*, run `python src/asynch/anal/phen/get_all_inat_plant_phen_taxa.py` to save a table of the counts of all phenology-annotated and valid (i.e., native, non-captive, research-grade, with positional accuracy ≤ 1000 m) observations for all iNaturalist taxa with at least one observation. (**~5 min runtime; last run 2024-06-05T11:24:00UTC**)
 2. *On laptop*, run `python src/asynch/anal/phen/get_all_inat_phen_obs_and_fit_npeaks.py` to download phenology observation histograms and raw observations for all iNat taxa with at least 50 phenology-annotated and otherwise valid observations, fit alpha hulls to the first ≤ 5000 observations (α = 0.75, the mid-value from the climate-dependence analysis above), and estimate the number of peaks (0, 1, or 2) in their flowering-week histograms (using a KDE with bandwidth = 5, a peak detection algorithm detecting all peaks ≥ 60% of the max histogram height, and significance of the number of peaks being estimated using a 100-permutation test). (**~4 day runtime; run started about 2024-06-05T23:00:00UTC and ran until about 2024-06-09T00:00:00UTC, with a couple overnight stops to avoid excessive obstacles because of API rate-limiting; script has try/except blocks that seem to handle API rate limiting in an unsophisticated but technically passable way, but it still works best if it is stopped for some hours when 429 errors become too common, which is fine becuase it stashes results along the way and picks up wherever it left off**)
 3. *On laptop*, run `python src/asynch/anal/phen/fit_inat_flow_phen_LSP_MMRR_models.py` to run an MMRR, predicting flowering observation-time distance as a function of geographic and LSP distances, for all iNat taxa with non-unimodal flowering-week histograms (i.e., 0 or 2 peaks) (**1 task, ~10h runtime**).
 4. NOTE: The results of the previous step will be visualized by the last step in the section 'run genetic analyses', below.
+
+
+### run Colombian coffee harvest analysis:
+1. *On laptop*, work through the steps at the top of src/asynch/anal/phen/comparar_LSP_y_cosecha_cafetera_colombiana.py to digitize a set of sampling points for each of the four harvest region colors in the map in Figure 2 of [Mujeres en la caficultura tradicional colombiana, 1910-1970](https://doi.org/10.19053/20275137.3200) and download the resulting CSV files.
+2. NOTE: The analysis is src/asynch/anal/phen/comparar_LSP_y_cosecha_cafetera_colombiana.py will be executed by the last step in the section 'run genetic analyses', below.
 
 
 ### run genetic analyses:
@@ -226,7 +226,7 @@ Each step of the following workflow was executed in the environment indicated *i
 3. *On laptop*, manually compile the sample locations (from the [supplemental data in Zenodo](http://zenodo.org/records/5012226)) and FASTA-format sequences (from NCBI, based on sample voucher IDs in the supplemental data) for all samples of *Xiphorhychus fuscus*, the only species in [Quintero et al. 2014](http://www.journals.uchicago.edu/doi/full/10.1086/677261) (a multi-species test of the ASH using archived microsatellite data) that is sympatric with the *Rhinella granulosa*, the eastern Brazilian toad studied by Thomé et al.
 4. *On laptop*, run `bash src/asynch/anal/gen/xiphorhynchus/align_xiphorhynchus_fuscus.sh` to use [MAFFT v7.520](http://mafft.cbrc.jp/alignment/software/) to align all raw *X. fuscus* sequence data.
 5. *On laptop*, run `Rscript --vanilla src/asynch/anal/gen/xiphorhynchus/calc_gen_dist_mat_xiphorhynchus_fuscus.r` to produce a genetic distance matrix from the aligned _Xiphorhynchus fuscus_ sequences.
-6. *On laptop*, run `python src/asynch/anal/plot_flowphen_and_landgen_results.py` to execute both of the landscape genetic analyses (for *R. granulosa* and *X. fuscus*) and visualize the results, as well as running and visualizing the Colombian coffee harvest analysis and visualizing results from the iNaturalist flowering phenology analysis (**1 task, ~30m runtime**).
+6. *On laptop*, run `python src/asynch/anal/plot_flowphen_landgen_cafe_results.py` to execute both of the landscape genetic analyses (for *R. granulosa* and *X. fuscus*) and visualize the results, as well as running and visualizing the Colombian coffee harvest analysis and visualizing results from the iNaturalist flowering phenology analysis (**1 task, ~30m runtime**).
 
 
 ### set up online data viewer:
@@ -280,9 +280,10 @@ Each step of the following workflow was executed in the environment indicated *i
     - colormap 1.0.4
     - imageio 2.19.0
     - cv2 4.9.0 
-  - R 
+  - R 4.0.5
     - adegent 2.1.5
     - ape 5.6.2
+    - rnpn 1.2.8.0
   - MAFFT 7.520
   - LibreOffice 7.3.7.2 30(Build:2)
 - **UC Berkeley Savio Cluster**:

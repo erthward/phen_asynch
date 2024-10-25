@@ -87,10 +87,10 @@ const TIMEIT = false
 
 # either get path on my laptop...
 if splitpath(pwd())[2] == "home"
-    const BASE_DATA_DIR = "/media/deth/SLAB/diss/3-phn/GEE_outputs/"
+    const BASE_DATA_DIR = "/media/deth/SLAB/diss/3-phn/GEE_outputs_and_derivatives/"
 # ... or else get path on Savio
 else
-    const BASE_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_outputs/"
+    const BASE_DATA_DIR = "/global/scratch/users/drewhart/seasonality/GEE_outputs_and_derivatives/"
 end
 
 """

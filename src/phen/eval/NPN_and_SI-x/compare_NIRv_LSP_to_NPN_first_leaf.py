@@ -53,7 +53,7 @@ print(("\n\nAfter accounting for masked LSP pixels, "
 
 # estimate start of season (SOS) as doy when LSP exceeds 50% of its amplitude
 # (a la Melaas et al. 2016, but I take it this is standard practice)
-half_max = np.max(lsp, axis=1) * 0.5
+half_max = np.percentile(lsp, 50, axis=1)
 sos = [np.where(lsp[i,:] > half_max[i])[0][0] for i in range(lsp.shape[0])]
 assert len(sos)==len(half_max)==lsp.shape[0]==len(npn)
 npn.loc[:, 'lsp_sos'] = sos
@@ -80,6 +80,10 @@ for i in range(len(comp_cols)):
     ax = fig.add_subplot(1,3,i+1)
     # drop rows with missing SI-x values
     cols = comp_cols[i]
+    print('*'*80)
+    print('*'*80)
+    print('*'*80)
+    print(f"\n\nAnalyzing {cols[1]} ~ {cols[0]}...\n")
     keep_rows = np.all(pd.notnull(npn.loc[:, cols]), axis=1)
     subnpn = npn.loc[keep_rows, :]
     # simple linear regression
@@ -87,6 +91,7 @@ for i in range(len(comp_cols)):
     X = sm.add_constant(X)
     y = subnpn.loc[:, cols[1]].values
     mod = sm.OLS(endog=y, exog=X).fit()
+    print(mod.summary2())
     pred_X = np.arange(0, 365, 0.5).reshape((-1, 1))
     pred_X = np.hstack((np.ones(pred_X.shape), pred_X))
     pred_y = mod.predict(exog=pred_X)
@@ -99,13 +104,6 @@ for i in range(len(comp_cols)):
                s=1,
                alpha=0.8,
               )
-    #edges = np.linspace(0, 365, int(365/5)+1)
-    #heatmap, xedges, yedges = np.histogram2d(subnpn.loc[:, cols[0]],
-    #                                         subnpn.loc[:, cols[1]],
-    #                                         bins=edges,
-    #                                        )
-    #extent = [0, 365, 0, 365]
-    #ax.imshow(heatmap.T, extent=extent, origin='lower', cmap='Greys')
     ax.plot(pred_X[:, 1],
             pred_y,
             '-r',
@@ -114,18 +112,19 @@ for i in range(len(comp_cols)):
            )
     predictor = f"{np.round(coeffs[1], 2)} {label_dict[cols[0]]}"
     intercept= f"{np.round(coeffs[0], 2)}"
-    eqxn_txt = f"{label_dict[cols[1]]} ~ {intercept} + {predictor}"
+    eqxn_txt = f"{label_dict[cols[1]]} ~\n{intercept} + {predictor}"
     r2_pval_txt = "$R^2 = $" + "%0.2f" % (np.round(r2, 2)) + f" (P≤{np.round(pval, 3)})"
-    ax.text(160, 345, eqxn_txt, size=7)
-    ax.text(260, 330, r2_pval_txt, color='red', size=7)
+    ax.text(175, 320, eqxn_txt, size=11)
+    ax.text(175, 290, r2_pval_txt, color='red', size=11)
     ax.text(15, 330, letter_labs[i], size=24, weight='bold')
     ax.set_xlim(0, 365)
     ax.set_ylim(0, 365)
-    ax.set_xlabel(label_dict[cols[0]], fontdict={'fontsize': 10})
-    ax.set_ylabel(label_dict[cols[1]], fontdict={'fontsize': 10})
+    ax.set_xlabel(label_dict[cols[0]], fontdict={'fontsize': 13})
+    ax.set_ylabel(label_dict[cols[1]], fontdict={'fontsize': 13})
+    ax.tick_params(labelsize=11)
 fig.subplots_adjust(left=0.06,
                     right=0.98,
-                    bottom=0.12,
+                    bottom=0.13,
                     top=0.96,
                     wspace=0.25,
                    )

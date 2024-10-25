@@ -82,7 +82,7 @@ for i, row in locs_gdf.iterrows():
                 row.geometry.y+0.01,
                 row['site'],
                 rotation=0,
-                size=14,
+                size=18,
                 weight='bold',
                )
 # plot Cal, as an easter egg! :)
@@ -92,8 +92,10 @@ ax_rgb.scatter(-122.25779,
                color='#271a69',
                s=2,
               )
-ax_rgb.set_xlabel('longitude', fontdict={'size': 12})
-ax_rgb.set_ylabel('latitude', fontdict={'size': 12})
+ax_rgb.set_xlabel('longitude', fontdict={'size': 17})
+ax_rgb.set_ylabel('latitude', fontdict={'size': 17})
+ax_rgb.set_xticks(ax_rgb.get_xticks(), ax_rgb.get_xticklabels(), rotation=45)
+ax_rgb.tick_params(labelsize=11)
 ax_rgb.set_title('')
 
 # get and plot both the raw and fitted time series for each site
@@ -130,15 +132,15 @@ for site, df in NIRv_dfs.items():
                label='fitted',
               )
     if i == 0:
-        ax_ts.legend()
+        ax_ts.legend(fontsize=16)
     ax_ts.set_title(site,
-                    y=0.91,
-                    fontdict={'size': 14,
+                    y=0.88,
+                    fontdict={'size': 19,
                               'weight': 'bold',
                              },
                    )
     ax_ts.set_ylabel('$NIR_{V}$',
-                     fontdict={'fontsize': 12},
+                     fontdict={'fontsize': 17},
                     )
     # add vertical gray lines at each year
     years = pd.date_range(df['date'].iloc[0],
@@ -168,21 +170,21 @@ for site, df in NIRv_dfs.items():
                               rotation=45,
                              )
         ax_ts.set_xlabel('date',
-                         fontdict={'fontsize': 12},
+                         fontdict={'fontsize': 17},
                         )
     else:
         ax_ts.set_xticks(())
         ax_ts.set_xlabel('')
-    ax_ts.tick_params(labelsize=10)
+    ax_ts.tick_params(labelsize=14)
     i+=1
 
 # adjust subplots and save
 fig.subplots_adjust(hspace=0,
                     wspace=0,
-                    left=0.02,
+                    left=0.03,
                     right=0.98,
-                    bottom=0.03,
-                    top=0.98,
+                    bottom=0.05,
+                    top=1.0,
                    )
 fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_SUPP_raw_and_fitted_NIRv_LSP.png'),
             dpi=600,

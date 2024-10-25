@@ -1,1 +1,0 @@
-mafft-linsi all_xiphorhynchus_fuscus.fasta > all_xiphorhynchus_fuscus_ALIGNED.fasta

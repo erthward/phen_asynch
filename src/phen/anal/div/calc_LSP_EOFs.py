@@ -53,7 +53,7 @@ if os.getcwd().split('/')[1] == 'home':
                             mask_filename_ext)
 # data dir on savio
 else:
-    data_dir = os.path.join('/global/scratch/users/drewhart/seasonality/GEE_outputs',
+    data_dir = os.path.join('/global/scratch/users/drewhart/seasonality/GEE_outputs_and_derivatives',
                             dataset + mask_filename_ext)
 
 # set the seed

@@ -56,7 +56,7 @@ if (strsplit(getwd(), '/')[[1]][2] == 'home'){
   # if on Savio
 } else {
   on.laptop=F
-  data.dir = '/global/scratch/users/drewhart/seasonality/rf_data/'
+  data.dir = '/global/scratch/users/drewhart/seasonality/asynch_drivers_analysis/'
 }
 
 # verbose?

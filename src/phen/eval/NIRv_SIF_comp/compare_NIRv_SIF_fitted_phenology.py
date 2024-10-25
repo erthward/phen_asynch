@@ -19,7 +19,7 @@ masking_mode = 'default'
 masking_suffix = '_STRICT' * (masking_mode == 'strict')
 
 # data directory
-coeffs_data_dir = '/global/scratch/users/drewhart/seasonality/GEE_outputs/'
+coeffs_data_dir = '/global/scratch/users/drewhart/seasonality/GEE_outputs_and_derivatives/'
 
 
 def make_design_matrix():

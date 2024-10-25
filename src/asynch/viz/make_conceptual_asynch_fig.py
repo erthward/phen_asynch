@@ -321,7 +321,7 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
                 ax2.set_xlabel('time of year',
                            fontdict={'fontsize': axislab_fontsize})
             if asynch=='high':
-                ax2.set_ylabel(f'{" "*35}phenological signal',
+                ax2.set_ylabel(f'{" "*37}phenocycle',
                                fontdict={'fontsize': axislab_fontsize})
 
             ax3.set_xticks(())
@@ -355,7 +355,7 @@ def plot_all(betas, rad=rad, dims=(21,21), plot_it=True,
         cbar_ax.set_yticks(())
         ax1.text(-5,
                  7,
-                 'date of peak phenology ',
+                 'date of phenocycle peak ',
                  size=axislab_fontsize,
                  clip_on=False,
                  rotation=90,

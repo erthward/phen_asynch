@@ -1,6 +1,4 @@
 library(rnpn)
-library(ggplot2)
-
 
 # function for converting complex list of phenophase output to data.frame
 get_phenophase_df = function(phenophase_list){
