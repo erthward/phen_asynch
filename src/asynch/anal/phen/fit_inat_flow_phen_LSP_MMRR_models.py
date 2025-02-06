@@ -55,9 +55,9 @@ crs = 8857
 # extracting fitted LSP patterns at flower observation localities
 strict_coeffs = True
 if strict_coeffs:
-    coeffs_file = phf.COEFFS_STRICT_FILE
+    COEFFS_FILE = phf.COEFFS_STRICT_FILE
 else:
-    coeffs_file = phf.COEFFS_FILE
+    COEFFS_FILE = phf.COEFFS_FILE
 
 # directory where hex GeoJSON is to be saved
 hex_data_dir = phf.EXTERNAL_INAT_DATA_DIR
@@ -174,7 +174,7 @@ mmrr_res_filename = 'inat_flower_doy_LSP_MMRR_res.csv'
 if not os.path.isfile(mmrr_res_filename):
 
     def fit_LSP_MMRR(obs,
-                     strict_coeffs=strict_coeffs,
+                     coeffs_file,
                      bioclim_nodata_val=bioclim_nodata_val,
                      standardize_lsp_ts=True,
                      interp_lsp_data=interp_lsp_data,
@@ -337,7 +337,7 @@ if not os.path.isfile(mmrr_res_filename):
             obs_fn = f"TID_{tid}_{name.replace(' ', '_')}.json"
             obs = gpd.read_file(os.path.join(obs_data_dir, obs_fn))
             res, n, pct_lsp_miss = fit_LSP_MMRR(obs,
-                                                strict_coeffs=strict_coeffs,
+                                                coeffs_file=COEFFS_FILE,
                                                 bioclim_nodata_val=bioclim_nodata_val,
                                                 standardize_lsp_ts=True,
                                                 interp_lsp_data=interp_lsp_data,

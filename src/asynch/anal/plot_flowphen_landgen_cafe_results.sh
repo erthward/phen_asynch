@@ -1,0 +1,1 @@
+python /home/deth/Desktop/CAL/research/projects/seasonality/seasonal_asynchrony/src/asynch/anal/plot_flowphen_landgen_cafe_results.py > /home/deth/Desktop/CAL/research/projects/seasonality/seasonal_asynchrony/src/asynch/anal/plot_flowphen_landgen_cafe_results.log 

@@ -1,6 +1,3 @@
-# CHRIS PACIOREK'S WORKAROUND TO FIX THE rgdal/sp/sf ISSUE I RAN INTO:
-#Sys.setenv(GDAL_DATA = "/global/home/groups/consultsw/sl-7.x86_64/modules/gdal/2.2.3/share/gdal")
-
 library(rgdal)                # GDAL bindings
 library(sp)                   # spatial data
 library(raster)               # raster data
@@ -196,7 +193,9 @@ names = c('phn.asy',
           'def.asy',
           'cld.asy',
           'vrm.med',
-          'veg.ent')
+          'veg.ent',
+          'brn.frq.std',
+          'hum.mod.std')
 # load rasters of prepped variables
 vars = brick(paste0(data.dir, "asynch_model_all_vars_",
                     asynch.var, '_',
@@ -429,7 +428,8 @@ if (coords.as.covars == 'y'){
 } else {
   rf_final = ranger(phn.asy ~ tmp.min.asy + tmp.max.asy + ppt.asy +
                               def.asy + cld.asy +
-                              vrm.med + veg.ent,
+                              vrm.med + veg.ent +
+                              brn.frq.std + hum.mod.std,
                     data=trn,
                     num.trees=ntree,
                     mtry=mtry,

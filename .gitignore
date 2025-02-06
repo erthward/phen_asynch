@@ -17,6 +17,7 @@
 *.cpg
 *.dbf
 *.prj
+res_OLD/
 data/
 savio_analysis/
 src/phen/anal/div/WGA*

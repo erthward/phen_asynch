@@ -77,15 +77,22 @@ cont.loc[cont['CONTINENT'] == 'Oceania', 'geometry'] = new_oceania.values[0]
 cont = cont[cont['CONTINENT'] != 'Australia']
 
 
-def map_mask(ax, mask_filename, axlabel, lcMask_mode=None):
+def map_mask(ax, mask_filename, axlabel):
     """
     plot a masking map from the LSP-fitting process
     """
-    files = [f for f in os.listdir(data_dir) if
+    if 'lcMask' not in mask_filename:
+        files = [f for f in os.listdir(data_dir) if
              os.path.split(f)[-1] == mask_filename]
-    assert len(files) == 1
-    mask = rxr.open_rasterio(os.path.join(data_dir, files[0]),
-                             masked=True)[0]
+        assert len(files) == 1
+        mask = rxr.open_rasterio(os.path.join(data_dir, files[0]),
+                                 masked=True)[0]
+    else:
+        files = [f for f in os.listdir(data_dir) if 'lcMask' in f]
+        assert len(files) == 2
+        masks = [rxr.open_rasterio(os.path.join(data_dir, f),
+                                   masked=True)[0] for f in files]
+        mask = masks[0] + masks[1]
     # NOTE: for some reason, the short ts mask and significance mask
     #       saved with one extra row and column and with order of y coordinates
     #       reversed, but a simple reproject_match to the unprojected
