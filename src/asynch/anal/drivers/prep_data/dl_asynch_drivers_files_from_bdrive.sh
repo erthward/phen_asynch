@@ -3,5 +3,7 @@
 
 # copy all mosaicked GeoTIFFs back to Google Drive
 rclone copy bdrive:LSP_asynch_drivers_analysis_covars/MODIS_IGBP_veg_entropy.tif /global/scratch/users/drewhart/seasonality/asynch_drivers_analysis/
+rclone copy bdrive:LSP_asynch_drivers_analysis_covars/MODIS_fire_freq_std.tif /global/scratch/users/drewhart/seasonality/asynch_drivers_analysis/
+rclone copy bdrive:LSP_asynch_drivers_analysis_covars/hansen_lulcc_pct_neigh_mean.tif /global/scratch/users/drewhart/seasonality/asynch_drivers_analysis/
 rclone copy bdrive:LSP_asynch_drivers_analysis_covars/vrm_100KMmd_GMTEDmd.tif /global/scratch/users/drewhart/seasonality/asynch_drivers_analysis/
 

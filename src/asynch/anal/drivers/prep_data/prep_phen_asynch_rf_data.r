@@ -154,12 +154,12 @@ brn.frq.std = read.file('MODIS_fire_freq_std', asynch.file=F,
 # mask to other datasets
 brn.frq.std = raster::mask(brn.frq.std, phn.asy)
 
-cat('\nreading human modification std. dev. file...\n')
-# 100 km neighborood std. dev. of Kennedy et al. ca. 2016 human modification
-hum.mod.std = read.file('kennedy_hum_mod_std', asynch.file=F,
+cat('\nreading LULCC fraction mean file...\n')
+# 100 km neighborood mean fraction Hansen LULCC
+luc.pct.mea = read.file('hansen_lulcc_pct_neigh_mean', asynch.file=F,
                     align.to=phn.asy, mask.it=F)
 # mask to other datasets
-hum.mod.std = raster::mask(hum.mod.std, phn.asy)
+luc.pct.mea = raster::mask(luc.pct.mea, phn.asy)
 
 
 
@@ -177,7 +177,7 @@ vars = stack(phn.asy,
              vrm.med,
              veg.ent,
              brn.frq.std,
-             hum.mod.std)
+             luc.pct.mea)
 
 # rename all bands 
 names = c('phn.asy',
@@ -189,7 +189,7 @@ names = c('phn.asy',
           'vrm.med',
           'veg.ent',
           'brn.frq.std',
-          'hum.mod.std')
+          'luc.pct.mea')
 
 names(vars) = names
 

@@ -34,7 +34,7 @@ cax = divider.append_axes('bottom', size='8%', pad=0.5)
 r2s.plot.imshow(ax=ax,
                 vmin=0,
                 vmax=1,
-                cmap='gray',
+                cmap='cubehelix',
                 zorder=2,
                 add_colorbar=True,
                 cbar_ax=cax,

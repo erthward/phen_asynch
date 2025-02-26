@@ -21,6 +21,7 @@
 #module load r/4.0.3
 #module load r-packages
 #module load r-spatial/2020-11-30-r40
+conda activate asynch
 
 # run for both vars and for all neigh rads
 for var in NIRv SIF
@@ -40,7 +41,7 @@ do
         echo
         echo "Running random forest model for var ${var}, neigh_rad ${neigh_rad}, coord_as_covars ${coords_as_covars}..."
         echo
-         Rscript --vanilla /global/home/users/drewhart/seasonality/seasonal_asynchrony/src/asynch/anal/drivers/run_rf/run_phen_asynch_rf.r $var $neigh_rad $coords_as_covars > ch3_rf_${var}_${neigh_rad}_${coords_as_covars}.Rout 
+        Rscript --vanilla /global/home/users/drewhart/seasonality/seasonal_asynchrony/src/asynch/anal/drivers/run_rf/run_phen_asynch_rf.r $var $neigh_rad $coords_as_covars > ch3_rf_${var}_${neigh_rad}_${coords_as_covars}.Rout 
       done
  done
 done

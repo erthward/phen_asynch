@@ -79,15 +79,15 @@ if only_top_covars:
 else:
     # NOTE: adapted from 'light' colormap at https://personal.sron.nl/~pault/#sec:qualitative
     colors = [
-              '#77AADD', # light blue -> ppt.asy
-              '#FFAABB', # pink -> tmp.min.asy
-              '#BBCC33', # pear -> veg.ent
-              '#44BB99', # mint -> vrm.med
+              '#0e6380', # black -> ppt.asy
+              '#800e32', # gray -> tmp.min.asy
+              '#EE8866', # orange -> brn.frq.std
+              '#FFAABB', # pink -> tmp.max.asy
+              '#EEDD88', # light yellow -> vrm.med
+              '#44BB99', # mint -> veg.ent
+              '#AAAA00', # olive -> def.asy
+              '#BBCC33', # pear -> luc.pct.mea
               '#99DDFF', # light cyan -> cld.asy
-              '#EE8866', # orange -> tmp.max.asy
-              '#EEDD88', # light yellow -> def.asy
-              #'#AAAA00', # olive
-              #'#ADADAD', # light grey
              ]
     predom_cmap = ListedColormap(colors)
 
@@ -99,21 +99,25 @@ top_covars = ['ppt.asy', 'tmp.min.asy']
 covar_cbar_labels = {
     'ppt.asy': '$\Delta dist_{seas_{P}}/\Delta  dist_{geo}$',
     'tmp.min.asy': '$\Delta dist_{seas_{T_{min}}}/\Delta  dist_{geo}$',
-    'veg.ent': '$entropy$',
-    'vrm.med': '$med_{VRM}$',
-    'cld.asy': '$\Delta dist_{seas_{cld}}/\Delta  dist_{geo}$',
+    'brn.frq.std': '$\sigma_{frequency}$',
     'tmp.max.asy': '$\Delta dist_{seas_{T_{max}}}/\Delta  dist_{geo}$',
+    'vrm.med': '$med_{VRM}$',
+    'veg.ent': '$entropy$',
     'def.asy': '$\Delta dist_{seas_{def}}/\Delta  dist_{geo}$',
+    'luc.pct.mea': '$\mu_{LULCC}$',
+    'cld.asy': '$\Delta dist_{seas_{cld}}/\Delta  dist_{geo}$',
 }
 
 covar_longnames = {
     'ppt.asy': 'precipitation\nasynchrony',
     'tmp.min.asy': 'min. temperature\nasynchrony',
-    'veg.ent': 'vegetation\nentropy',
-    'vrm.med': 'median vector\nruggedness metric',
-    'cld.asy': 'cloud\nasynchrony',
+    'brn.frq.std': 'std. dev. of\nburn frequency',
     'tmp.max.asy': 'max. temperature\nasynchrony',
+    'vrm.med': 'median vector\nruggedness metric',
+    'veg.ent': 'vegetation\nentropy',
     'def.asy': 'CWD\nasynchrony',
+    'luc.pct.mea': 'mean fraction LULCC',
+    'cld.asy': 'cloud\nasynchrony',
     'codom':   'codominance',
 }
 
@@ -175,7 +179,7 @@ def map_asynch(fig, cbar_axlab,
                cbar_axlab_fontsize=cbar_axlab_fontsize,
                cbar_ticklab_fontsize=cbar_ticklab_fontsize):
     """
-    plot the a phenological or climatic asynchrony map
+    plot a phenological or climatic asynchrony map
     """
     assert var in ['NIRv', 'SIF', 'tmmn', 'tmmx', 'pr', 'def', 'cloud']
     if var in ['NIRv', 'SIF']:
@@ -329,7 +333,7 @@ if __name__ == '__main__':
     # CREATE PREDOM FIG
     ###################
         # stack all covars' SHAP maps
-        file_patt = f'SHAP_map_{include_coords}COORDS_[cdptv].*_{var}_{neigh_rad}km.tif'
+        file_patt = f'SHAP_map_{include_coords}COORDS_[cdptvbh].*_{var}_{neigh_rad}km.tif'
         files = [f for f in os.listdir(data_dir) if re.search(file_patt, f)]
         # reorder per decreasing SHAP covar importance in our main RF model
         # (i.e., the order of the covar_cbar_labels dict)
@@ -362,6 +366,10 @@ if __name__ == '__main__':
                 shap_maps.append(shap_map)
             xr_stack = xr.concat(shap_maps, dim=pd.Index(covars, name='covar'))
             da = dask.array.stack(xr_stack)
+
+        # double-check covars are correctly ordered to match covar_cbar_labels
+        for covar, shap_map in zip(covar_cbar_labels, shap_maps):
+            assert shap_map.attrs['var'] == covar
 
         # rechunk (to run slowly but successfully on laptop)
         # NOTE: axis sizes apparently needn't be exact multiples of their chunk sizes!

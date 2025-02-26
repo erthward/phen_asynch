@@ -40,8 +40,7 @@ rs_var = sys.argv[1]
 assert rs_var in ['SIF', 'NIRv']
 
 # choose masking mod
-masking_mode = 'default'
-#masking_mode = 'strict'
+masking_mode = 'default' # or 'strict'
 masking_suffix = '_STRICT' * (masking_mode == 'strict')
 
 

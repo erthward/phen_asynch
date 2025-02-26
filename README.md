@@ -128,7 +128,7 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ### produce RGB phenology map:
-1. *On Savio*, run `sbatch src/phen/anal/div/LSP_EOF_job.sh` to calculate the global NIRv LSP EOF map and save results (**1 job, <1h total runtime**).
+1. *On Savio*, run `sbatch src/phen/anal/div/LSP_EOF_clust_job.sh` to calculate the global NIRv LSP EOF map and save results (**1 job, <1h total runtime**).
 2. *On Savio*, run `bash src/phen/anal/div/ul_EOF_results_to_bdrive.sh` to push the EOF results back to BDrive (**1 job, <5m runtime**).
 3. *On laptop*, run `bash src/phen/anal/div/dl_LSP_EOFs.sh` to download the EOF results to the local hard drive (**1 job, <5m runtime**).
 4. *On laptop*, download ancillary cheatgrass data from [Maestas *et. al*](http://www.sciencebase.gov/catalog/item/5ec5159482ce476925eac3b7) (to be used in a statistical test embedded in `src/phen/anal/div/plot_EOF_and_RGB_results.py`).
@@ -140,7 +140,7 @@ Each step of the following workflow was executed in the environment indicated *i
 
 ### map examples of LSP fitted to raw NIRv data:
 1. *On GEE*, run `src/phen/calc/GEE/io/extract_raw_NIRv_at_CA_sites.js` to extract the raw, 20-year NIRv time series at a transect of 3 California FLUXNET sites with divergent phenologies (**1 task, 1m runtime**).
-2. *On laptop*, run `src/phen/viz/plot_NIRv_raw_and_fitted_at_example_sites.py` to produce a supplemental figure demonstrating the LSP time series fitted to the raw NIRv data for those three sites (**1 task, <5m runtime**).
+2. *On laptop*, run `python src/phen/viz/plot_NIRv_raw_and_fitted_at_example_sites.py` to produce a supplemental figure demonstrating the LSP time series fitted to the raw NIRv data for those three sites (**1 task, <5m runtime**).
 
 
 ### produce LSP modality map:
@@ -149,11 +149,6 @@ Each step of the following workflow was executed in the environment indicated *i
 
 ### produce LSP video:
 1. *On laptop*, run `python src/phen/viz/make_LSP_global_video.py` to produce an mp4 video of one year of global, minmax-scaled LSP variability (**1 task, ~3h runtime**).
-
-
-### run NPN and SI-x evaluation:
-1. *On laptop*, run `Rscript --vanilla src/phen/eval/NPN_and_SI-x/get_NPN_leaf_data.r` to download, for a wide range of dominant US tree genera and at all NPN sites, both the day of year of first leaf based on NPN ground observations and mean day of year of start of season (SOS) based on MODIS-derived SI-x phenology maps (**1 task, <1h runtime**).
-2. *On laptop*, run `python src/phen/eval/NPN_and_SI-x/compare_NIRv_LSP_to_NPN_first_leaf.py` to evaluate SOS estimates derived from our NIRv LSP data against both the NPN first-leaf and SI-x SOS datasets (**1 task, <1m runtime**).
 
 
 ### run NIRv-SIF LSP comparison:
@@ -166,13 +161,12 @@ Each step of the following workflow was executed in the environment indicated *i
 ### run FLUXNET evaluation:
 1. *On laptop*, manually download all subset data products (using DownThemAll!) from the FLUXNET network's [download page](http://fluxnet.org/data/download-data/) (**1 task, runs roughly overnight**).
 2. *On laptop*, run `bash src/phen/eval/flux_tower_GPP/run_flux_evaluations.sh` to run the flux-tower GPP comparison, at all usable FLUXNET2015 sites, for both the fitted NIRv and SIF LSP results (**1 task, ~15m runtime**).
-4. *On laptop*, run `python src/phen/eval/plot_phen_evaluation_results.py` to combine both LSP datasets' FLUXNET evaluations and the NIRv-SIF comparison evaluation to make supplemental figure (**1 task, <5m runtime**).
-5. *On laptop*, run `python src/phen/eval/flux_tower_GPP/combine_fluxnet_val_outputs.py` to combine of flux-tower evaluation results, listed by FLUXNET site, into a single supplemental table (**1 task, <10s runtime**).
-6. *On laptop*, run `python src/phen/eval/flux_tower_GPP/plot_flux_eval_results.py` to generate the flux-tower evaluation supplemental figure (**1 task, <1m runtime**).
+3. *On laptop*, run `python src/phen/eval/flux_tower_GPP/combine_fluxnet_val_outputs.py` to combine flux-tower evaluation results for all FLUXNET sites into a single supplemental table (**1 task, <10s runtime**).
+4. *On laptop*, run `python src/phen/eval/flux_tower_GPP/plot_flux_eval_results.py` to generate the flux-tower evaluation supplemental figure (**1 task, <1m runtime**).
 
 
 ### run asynchrony neighborhood-comparison evaluation:
-1. *On laptop*, run `python src/asynch/eval/calc_asynch_r2s_btwn_neighborhood_radii.py` to produce Table S2, containing R2s for all neighborhood radius comparisons and for all variables for which we produced asynchrony maps (**1 task, <1m runtime**).
+1. *On laptop*, run `python src/asynch/eval/neigh_rad_comp/calc_asynch_r2s_btwn_neighborhood_radii.py` to produce Table S2, containing R2s for all neighborhood radius comparisons and for all variables for which we produced asynchrony maps (**1 task, <1m runtime**).
 
 
 ### run NIRv-SIF asynchrony comparison:
@@ -187,8 +181,8 @@ Each step of the following workflow was executed in the environment indicated *i
 ### collect all covariates for asynch drivers analysis:
 1. *On GEE*, run `src/phen/calc/GEE/other_datasets/calc_veg_entropy.js` to produce the vegetation cover entropy map that will be used as a covariate in the phenological asynchrony predictive model. (**1 task, <10m runtime**)
 2. *On laptop*, manually download the GMTED-derived, 100-km median-aggregated vector ruggedness metric (VRM) dataset from [EarthEnv](http://www.earthenv.org/topography) (file 'vrm_100KMmd_GMTEDmd.tif'), then uploade to the 'LSP_ancillary_datasets' folder on Google Drive (**1 task, <10s runtime**)
-3. *On Savio*, run `bash src/asynch/anal/drivers/prep_data/dl_asynch_drivers_covariates_from_bdrive.sh` to download both of these covariate maps into the correct directory (**1 task, <1m runtime**).
-4. *On Savio*, run `bash src/asynch/anal/drivers/prep_data/cp_asynch_files_to_rf_data.sh` to copy all asynch maps into the random forest-modelling data directory (**1 task, <1m runtime**).
+3. *On Savio*, run `bash src/asynch/anal/drivers/prep_data/dl_asynch_drivers_files_from_bdrive.sh` to download both of these covariate maps into the correct directory (**1 task, <1m runtime**).
+4. *On Savio*, run `bash src/asynch/anal/drivers/prep_data/cp_asynch_drivers_files_to_rf_data.sh` to copy all asynch maps into the random forest-modelling data directory (**1 task, <1m runtime**).
 
 
 ### run phenological asynchrony drivers analysis:
@@ -226,7 +220,7 @@ Each step of the following workflow was executed in the environment indicated *i
 3. *On laptop*, manually compile the sample locations (from the [supplemental data in Zenodo](http://zenodo.org/records/5012226)) and FASTA-format sequences (from NCBI, based on sample voucher IDs in the supplemental data) for all samples of *Xiphorhychus fuscus*, the only species in [Quintero et al. 2014](http://www.journals.uchicago.edu/doi/full/10.1086/677261) (a multi-species test of the ASH using archived microsatellite data) that is sympatric with the *Rhinella granulosa*, the eastern Brazilian toad studied by Thomé et al.
 4. *On laptop*, run `bash src/asynch/anal/gen/xiphorhynchus/align_xiphorhynchus_fuscus.sh` to use [MAFFT v7.520](http://mafft.cbrc.jp/alignment/software/) to align all raw *X. fuscus* sequence data.
 5. *On laptop*, run `Rscript --vanilla src/asynch/anal/gen/xiphorhynchus/calc_gen_dist_mat_xiphorhynchus_fuscus.r` to produce a genetic distance matrix from the aligned _Xiphorhynchus fuscus_ sequences.
-6. *On laptop*, run `python src/asynch/anal/plot_flowphen_landgen_cafe_results.py` to execute both of the landscape genetic analyses (for *R. granulosa* and *X. fuscus*) and visualize the results, as well as running and visualizing the Colombian coffee harvest analysis and visualizing results from the iNaturalist flowering phenology analysis (**1 task, ~30m runtime**).
+6. *On laptop*, run `bash src/asynch/anal/plot_flowphen_landgen_cafe_results.sh` to execute both of the landscape genetic analyses (for *R. granulosa* and *X. fuscus*) and visualize the results, as well as running and visualizing the Colombian coffee harvest analysis and visualizing results from the iNaturalist flowering phenology analysis (**1 task, ~30m runtime**).
 
 
 ### set up online data viewer:
@@ -249,7 +243,7 @@ Each step of the following workflow was executed in the environment indicated *i
     - numpy 1.22.4
     - rasterio 1.2.10
     - xarray 2022.3.0
-    - rioxarray 0.11.1
+    - rioxarray 0.15.0
     - pandas 2.2.1
     - shapely 2.0.3
     - geopandas 0.14.3
@@ -283,7 +277,6 @@ Each step of the following workflow was executed in the environment indicated *i
   - R 4.0.5
     - adegent 2.1.5
     - ape 5.6.2
-    - rnpn 1.2.8.0
   - MAFFT 7.520
   - LibreOffice 7.3.7.2 30(Build:2)
 - **UC Berkeley Savio Cluster**:
