@@ -81,7 +81,7 @@ else:
     colors = [
               '#0e6380', # black -> ppt.asy
               '#800e32', # gray -> tmp.min.asy
-              '#EE8866', # orange -> brn.frq.std
+              '#EE8866', # orange -> brn.frq.mea
               '#FFAABB', # pink -> tmp.max.asy
               '#EEDD88', # light yellow -> vrm.med
               '#44BB99', # mint -> veg.ent
@@ -99,7 +99,7 @@ top_covars = ['ppt.asy', 'tmp.min.asy']
 covar_cbar_labels = {
     'ppt.asy': '$\Delta dist_{seas_{P}}/\Delta  dist_{geo}$',
     'tmp.min.asy': '$\Delta dist_{seas_{T_{min}}}/\Delta  dist_{geo}$',
-    'brn.frq.std': '$\sigma_{frequency}$',
+    'brn.frq.mea': '$\mu_{frequency}$',
     'tmp.max.asy': '$\Delta dist_{seas_{T_{max}}}/\Delta  dist_{geo}$',
     'vrm.med': '$med_{VRM}$',
     'veg.ent': '$entropy$',
@@ -111,7 +111,7 @@ covar_cbar_labels = {
 covar_longnames = {
     'ppt.asy': 'precipitation\nasynchrony',
     'tmp.min.asy': 'min. temperature\nasynchrony',
-    'brn.frq.std': 'std. dev. of\nburn frequency',
+    'brn.frq.mea': 'mean burn\nfrequency',
     'tmp.max.asy': 'max. temperature\nasynchrony',
     'vrm.med': 'median vector\nruggedness metric',
     'veg.ent': 'vegetation\nentropy',

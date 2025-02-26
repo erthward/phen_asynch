@@ -194,7 +194,7 @@ names = c('phn.asy',
           'cld.asy',
           'vrm.med',
           'veg.ent',
-          'brn.frq.std',
+          'brn.frq.mea',
           'luc.pct.mea')
 # load rasters of prepped variables
 vars = brick(paste0(data.dir, "asynch_model_all_vars_",
@@ -429,7 +429,7 @@ if (coords.as.covars == 'y'){
   rf_final = ranger(phn.asy ~ tmp.min.asy + tmp.max.asy + ppt.asy +
                               def.asy + cld.asy +
                               vrm.med + veg.ent +
-                              brn.frq.std + luc.pct.mea,
+                              brn.frq.mea + luc.pct.mea,
                     data=trn,
                     num.trees=ntree,
                     mtry=mtry,

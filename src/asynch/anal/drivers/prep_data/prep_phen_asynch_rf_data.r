@@ -146,16 +146,17 @@ veg.ent = read.file('MODIS_IGBP_veg_entropy', asynch.file=F,
 # mask to other datasets
 veg.ent = raster::mask(veg.ent, phn.asy)
 
-cat('\nreading fire frequency std. dev. file...\n')
-# 100 km neighborood std. dev. of MODIS fire frequency
+cat('\nreading fire frequency neighborhood mean file...\n')
+# 100 km neighborood mean of MODIS fire frequency
 # (derived from MODIS burned area dataset)
-brn.frq.std = read.file('MODIS_fire_freq_std', asynch.file=F,
+brn.frq.mea = read.file('MODIS_fire_freq_std', asynch.file=F,
                         align.to=phn.asy, mask.it=F)
 # mask to other datasets
-brn.frq.std = raster::mask(brn.frq.std, phn.asy)
+brn.frq.mea = raster::mask(brn.frq.mea, phn.asy)
 
-cat('\nreading LULCC fraction mean file...\n')
-# 100 km neighborood mean fraction Hansen LULCC
+cat('\nreading LULCC fraction neighborhood mean file...\n')
+# 100 km neighborood mean percent LULCC within pixel
+# (derived from Hansen et al. 2022 global LULCC dataset)
 luc.pct.mea = read.file('hansen_lulcc_pct_neigh_mean', asynch.file=F,
                     align.to=phn.asy, mask.it=F)
 # mask to other datasets
@@ -176,7 +177,7 @@ vars = stack(phn.asy,
              cld.asy,
              vrm.med,
              veg.ent,
-             brn.frq.std,
+             brn.frq.mea,
              luc.pct.mea)
 
 # rename all bands 
@@ -188,7 +189,7 @@ names = c('phn.asy',
           'cld.asy',
           'vrm.med',
           'veg.ent',
-          'brn.frq.std',
+          'brn.frq.mea',
           'luc.pct.mea')
 
 names(vars) = names
