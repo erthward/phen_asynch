@@ -27,21 +27,21 @@ library(dplyr)                # reshaping dfs
 args = commandArgs(trailingOnly=T)
 
 # phen-asynch var to use
-#asynch.var = args[1]
+asynch.var = args[1]
 # COMMENT PRIOR LINE AND UNCOMMENT NEXT LINE FOR INTERACTIVE HYPERPARAMETER TUNING!
-asynch.var = 'NIRv'
+#asynch.var = 'NIRv'
 cat('\nVAR: ', asynch.var, '\n')
 
 # asynchrony neighborhood radius to use (in km)
-#neigh.rad = args[2]
+neigh.rad = args[2]
 # COMMENT PRIOR LINE AND UNCOMMENT NEXT LINE FOR INTERACTIVE HYPERPARAMETER TUNING!
-neigh.rad = '100'
+#neigh.rad = '100'
 cat('\nNEIGH RAD: ', neigh.rad, '\n')
 
 # include coordinates in RF?
-#coords.as.covars = args[3]
+coords.as.covars = args[3]
 # COMMENT PRIOR LINE AND UNCOMMENT NEXT LINE FOR INTERACTIVE HYPERPARAMETER TUNING!
-coords.as.covars = 'y'
+#coords.as.covars = 'y'
 cat('\nCOORDS AS COVARS? ', coords.as.covars, '\n')
 
 
