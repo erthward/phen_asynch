@@ -14,7 +14,7 @@ from sklearn.linear_model import LinearRegression
 from rasterio.fill import fillnodata
 from geopy.distance import geodesic
 from shapely.geometry import Point
-from sklearn.cluster import KMeans
+from sklearn.cluster import MiniBatchKMeans
 from scipy.spatial import cKDTree
 import matplotlib.pyplot as plt
 from copy import deepcopy
@@ -655,14 +655,23 @@ def plot_flowerdate_LSP_comparison(flower_obs,
     lsp_ts = lsp_ts[keep, :]
     assert np.all(lsp_ts.shape == (len(flower_obs), 365))
     assert np.all(pts.shape == (len(flower_obs), 2))
-    # cluster by genetics and by LSP
-    lsp_clusts = KMeans(n_clusters=K).fit(lsp_ts)
+    # cluster by phenocycle
+    lsp_clusts = MiniBatchKMeans(n_clusters=K,
+                                 init="k-means++",
+                                 batch_size=40,
+                                 n_init=10,
+                                 max_no_improvement=10,
+                                ).fit(lsp_ts)
     # also save a scree plot for values of K=[1,10], if requested
     if save_scree_plot:
         assert name is not None and tid is not None
         fig_scree, ax_scree = plt.subplots(1,1)
-        inertias = [KMeans(n_clusters=i).fit(lsp_ts).inertia_ for i in range(1,
-                                                                             11)]
+        inertias = [MiniBatchKMeans(n_clusters=i,
+                                    init="k-means++",
+                                    batch_size=40,
+                                    n_init=10,
+                                    max_no_improvement=10,
+                                   ).fit(lsp_ts).inertia_ for i in range(1, 11)]
         ax_scree.plot([*range(1, 11)], inertias)
         ax.set_xlabel('K')
         ax.set_ylabel('K-means clustering inertia')
@@ -861,7 +870,12 @@ def plot_popgen_LSP_comparison(gen_dist_mat,
     (i.e., the number of genetic and LSP clusters to fit by K-means clustering)
     """
     # cluster by genetics and by LSP
-    gen_clusts = KMeans(n_clusters=K).fit(gen_dist_mat)
+    gen_clusts = MiniBatchKMeans(n_clusters=K,
+                                 init="k-means++",
+                                 batch_size=40,
+                                 n_init=10,
+                                 max_no_improvement=10,
+                                ).fit(gen_dist_mat)
     lsp_ts = get_raster_info_points(COEFFS_STRICT_FILE,
                                     pts,
                                     'ts',
@@ -869,7 +883,12 @@ def plot_popgen_LSP_comparison(gen_dist_mat,
                                     fill_nans=interp_lsp_data,
                                     fill_tol=neigh_dist_lsp_fill_tol,
                                    )
-    lsp_clusts = KMeans(n_clusters=K).fit(lsp_ts)
+    lsp_clusts = MiniBatchKMeans(n_clusters=K,
+                                 init="k-means++",
+                                 batch_size=40,
+                                 n_init=10,
+                                 max_no_improvement=10,
+                                ).fit(lsp_ts)
     # get the first index of the points at the northernmost
     # location in the dataset, as this will be used to ensure that
     # that point's cluster is blue in each figure (for clearer visual

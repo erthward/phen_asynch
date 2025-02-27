@@ -5,4 +5,7 @@
 rclone copy bdrive:LSP_EOF_results/NIRv_4_EOFs_sqrt_coswts_standts.tif /media/deth/SLAB/diss/3-phn/final_maps_and_results/
 rclone copy bdrive:LSP_EOF_results/NIRv_EOF_PC_table.csv /media/deth/SLAB/diss/3-phn/final_maps_and_results/
 rclone copy bdrive:LSP_EOF_results/NIRv_EOF_scree_plot.png /media/deth/SLAB/diss/3-phn/final_maps_and_results/
+rclone copy bdrive:LSP_EOF_results/NIRv_LSP_clust_scree_GLOBAL.png /media/deth/SLAB/diss/3-phn/final_maps_and_results/
+rclone copy bdrive:LSP_EOF_results/NIRv_LSP_7_clusts_arr_GLOBAL.txt /media/deth/SLAB/diss/3-phn/final_maps_and_results/
+rclone copy bdrive:LSP_EOF_results/NIRv_LSP_7_clusts_cents_GLOBAL.pkl /media/deth/SLAB/diss/3-phn/final_maps_and_results/
 

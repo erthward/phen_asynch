@@ -1,3 +1,2 @@
-*.odg
-.ipynb_checkpoints
+scratch_global_clust/
 __pycache__
