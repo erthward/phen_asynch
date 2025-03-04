@@ -522,7 +522,7 @@ ax.tick_params(labelsize=ticklabel_size)
 #        color='red',
 #        size=16,
 #       )
-ax.text(0.35*ax.get_xlim()[1],
+ax.text(0.25*ax.get_xlim()[1],
         0.75*ax.get_ylim()[1],
         '$P_{permut} \ll %s' % f'{np.round(emp_pval, 3)}$',
         color='black',
@@ -531,7 +531,7 @@ ax.text(0.35*ax.get_xlim()[1],
 
 # add label for part C
 ax.text(ax.get_xlim()[0] - (0.2*(ax.get_xlim()[1]-ax.get_xlim()[0])),
-        1.05*ax.get_ylim()[1],
+        .95*ax.get_ylim()[1],
         'C.', size=partlabel_size, weight='bold')
 
 

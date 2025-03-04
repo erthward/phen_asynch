@@ -19,7 +19,6 @@ import cmcrameri.cm as cmc
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from scipy import stats
-from sklearn.cluster import KMeans
 from shapely.geometry import Point
 from collections import OrderedDict
 from matplotlib.colors import Normalize
@@ -660,8 +659,10 @@ def plot_focal_inat_taxa(mmrr_res_gdf,
     ct = 0
     for taxon, K in taxa.items():
         # plot the photo first (so its axes don't overlap anything else)
-        plot_taxon_photo(photo_axs[ct], taxon)
-
+        try:
+            plot_taxon_photo(photo_axs[ct], taxon)
+        except Exception:
+            print('\nUNABLE TO PLOT PHOTO.\n')
         tax_dict = mmrr_res_gdf[mmrr_res_gdf['name'] == taxon].iloc[0,:]
         tid = tax_dict['tid']
         name = tax_dict['name']
@@ -705,6 +706,7 @@ def plot_focal_inat_taxa(mmrr_res_gdf,
                                            name=name,
                                            tid=tid,
                                           )
+        ax_ts.set_ylim(-0.1, 1.1)
         # set axis titles after all other components have been plotted
         if set_title:
             ax_map.set_title("$" + name.replace(' ', '\ ') + "$",
@@ -719,10 +721,10 @@ def plot_focal_inat_taxa(mmrr_res_gdf,
 # plot example taxon in SW USA and Mexico
 # . . . . . . . . . . . . . . . . . . . .
 # set taxa and their K values (based on manual inspection of scree plots)
-sw_taxa_clust_Ks = {'Xanthisma spinulosum': 2}
+sw_taxa_clust_Ks = {'Menodora scabra': 2}
 # set up axes objects and params for plotting
-map_xlims = [-115, -105]
-map_ylims = [24.66, 38]
+map_xlims = [-116.5, -100.4]
+map_ylims = [28.7, 37.2]
 cont_map_xlims = [-135, -60]
 cont_map_ylims = [17, 52]
 ax_cont_map = fig.add_subplot(gs[sw_cont_map_slices[0],
@@ -761,6 +763,7 @@ plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
 # set taxa and their K values (based on manual inspection of scree plots)
 zaf_taxa_clust_Ks = {'Satyrium parviflorum': 2}
 # set map bounding box
+
 map_xlims = [17, 31]
 map_ylims = [-35.5, -22]
 cont_map_xlims = [-20, 59]

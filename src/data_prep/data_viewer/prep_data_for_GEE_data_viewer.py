@@ -70,5 +70,6 @@ output_filepath = os.path.join(phf.EXTERNAL_DATA_DIR,
 output_ds = xr.Dataset()
 for band_name in band_names:
     output_ds[band_name] = output.sel({'band': band_name})
+    output_ds[band_name].attrs['long_name'] = band_name
 output_ds.rio.to_raster(output_filepath)
 

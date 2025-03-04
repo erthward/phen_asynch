@@ -30,9 +30,6 @@ sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
 import phen_helper_fns as phf
 
 
-# set data-directory path
-data_dir = phf.EXTERNAL_RF_DATA_DIR
-
 # general plotting params:
 cbar_axlab_fontsize = 35
 cbar_ticklab_fontsize = 24

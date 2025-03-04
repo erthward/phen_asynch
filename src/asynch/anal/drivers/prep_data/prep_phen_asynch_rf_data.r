@@ -20,7 +20,6 @@ args = commandArgs(trailingOnly=T)
 
 # variable for which to prep data
 asynch.var = args[1]
-#asynch.var = 'NIRv'
 cat(paste0('\nVAR: ', asynch.var, '\n'))
 
 # set neighborhood radius (in km) to use for asynch analysis
@@ -149,7 +148,7 @@ veg.ent = raster::mask(veg.ent, phn.asy)
 cat('\nreading fire frequency neighborhood mean file...\n')
 # 100 km neighborood mean of MODIS fire frequency
 # (derived from MODIS burned area dataset)
-brn.frq.mea = read.file('MODIS_fire_freq_std', asynch.file=F,
+brn.frq.mea = read.file('MODIS_fire_freq_mean', asynch.file=F,
                         align.to=phn.asy, mask.it=F)
 # mask to other datasets
 brn.frq.mea = raster::mask(brn.frq.mea, phn.asy)

@@ -647,7 +647,7 @@ def plot_flowerdate_LSP_comparison(flower_obs,
     miss = np.sum(pd.isnull(lsp_ts), axis=1) > 0
     pct_lsp_miss = np.mean(miss)
     pct_lsp_miss_msg = (f"{np.round(100*pct_lsp_miss, 2)}% "
-                        f"of sites for are missing LSP data")
+                        f"of sites are missing LSP data")
     print(pct_lsp_miss_msg)
     keep = np.invert(miss)
     flower_obs = flower_obs.loc[keep, :]
@@ -734,7 +734,9 @@ def plot_flowerdate_LSP_comparison(flower_obs,
         ax_map.set_ylim(*map_ylim)
     # plot LSP fitted time series, colored by both the LSP and genetic clusters
     for i in range(lsp_ts.shape[0]):
-        ax_ts.plot(lsp_ts[i, :],
+        ts_minmax = ((lsp_ts[i, :] - np.min(lsp_ts[i, :]))/
+                     (np.max(lsp_ts[i, :]) - np.min(lsp_ts[i, :])))
+        ax_ts.plot(ts_minmax,
                    color=colors[lsp_clusts.labels_[i]],
                    alpha=0.7,
                    linewidth=ts_linewidth,
@@ -746,7 +748,7 @@ def plot_flowerdate_LSP_comparison(flower_obs,
             #       plotted time series, which starts at 0
             doy = flower_obs.iloc[i, :]['doy'] - 1
             ax_ts.scatter(doy,
-                          lsp_ts[i, doy],
+                          ts_minmax[doy],
                           marker=flower_obs_hatch_marker,
                           color=colors[lsp_clusts.labels_[i]],
                           s=flower_obs_hatch_size,
@@ -760,7 +762,7 @@ def plot_flowerdate_LSP_comparison(flower_obs,
     assert np.round(np.min(lsp_ts), 0) == -2
     ax_ts.set_yticks(())
     ax_ts.set_xlim(0, 364)
-    ax_ts.set_ylim(1.1*np.min(lsp_ts), 1.1*np.max(lsp_ts))
+    ax_ts.set_ylim(-0.1, 1.1)
     ax_ts.set_xlabel('')
     ax_ts.set_ylabel('', fontdict={'fontsize': 8})
     if flower_obs_plot_type == 'stack':
@@ -948,7 +950,9 @@ def plot_popgen_LSP_comparison(gen_dist_mat,
                           [lsp_clusts, gen_clusts],
                          ):
         for i in range(lsp_ts.shape[0]):
-            ax.plot(lsp_ts[i, :],
+            ts_minmax = ((lsp_ts[i, :] - np.min(lsp_ts[i, :]))/
+                         (np.max(lsp_ts[i, :]) - np.min(lsp_ts[i, :])))
+            ax.plot(ts_minmax,
                     color=colors[clusts.labels_[i]],
                     alpha=0.7,
                     linewidth=0.5,

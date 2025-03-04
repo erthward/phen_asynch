@@ -13,7 +13,6 @@ from matplotlib.transforms import Affine2D
 import mpl_toolkits.axisartist.floating_axes as floating_axes
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import LinearSegmentedColormap
-from colorsys import hls_to_rgb
 from sklearn.metrics.pairwise import pairwise_distances_argmin
 from sklearn.cluster import MiniBatchKMeans
 import scipy.stats as stats
@@ -82,7 +81,7 @@ else:
 dm = phf.make_design_matrix()
 
 # number of clusters used for global clustering?
-k_global = 7
+k_global = 9
 
 
 ####################
@@ -149,24 +148,24 @@ reg_K_vals = {
 # their labels, their gridspec indices for both the maps and line plots,
 # and the positioning of their box labels within the global RGB map (expressed
 # using transform=ax.transAxes)
-main_fig_figsize = (19,12)
+main_fig_figsize = (20.25,13.5)
 regs_in_main_gridspec_dims = (400, 600)
-global_map_slices = (slice(0, 260), slice(0, 470))
+global_map_slices = (slice(0, 225), slice(0, 520))
 regs_in_main = {'Ba': ('A.',
-                       (slice(158, 378), slice(90),
-                        slice(375, 400), slice(0, 90)),
+                       (slice(143, 373), slice(25, 125),
+                        slice(375, 400), slice(30, 120)),
                        (-0.7, -1.1)),
                 'GB': ('B.',
-                       (slice(235, 375), slice(135, 235),
-                        slice(375, 400), slice(130, 220)),
+                       (slice(235, 375), slice(190, 290),
+                        slice(375, 400), slice(195, 285)),
                        (-0.6, -1.1)),
                 'Fl': ('C.',
-                       (slice(243, 373), slice(260, 350),
-                        slice(375, 400), slice(260, 350)),
+                       (slice(242, 372), slice(340, 430),
+                        slice(375, 400), slice(340, 430)),
                        (1.3, -1.3)),
                 'Am': ('D.',
-                       (slice(239, 379), slice(385, 495),
-                        slice(375, 400), slice(395, 485)),
+                       (slice(242, 382), slice(490, 600),
+                        slice(375, 400), slice(500, 590)),
                        (1.1, -1.1)),
                }
 
@@ -306,10 +305,12 @@ def run_clust_analysis(coeffs_rast,
     # plot cluster centers (i.e., characteristic phenocycles)
     for i in range(centers.shape[0]):
         center = centers[i, :]
-        ax_lines.plot(center,
+        center_minmax = (center-np.min(center))/(np.max(center)-np.min(center))
+        ax_lines.plot(center_minmax,
                       color=center_colors[i],
                       linewidth=3.5)
         ax_lines.set_xlim((0, 365))
+        ax_lines.set_ylim(-0.055, 1.055)
     return labels, centers, center_colors
 
 
@@ -339,23 +340,33 @@ def add_phen_labs(ax, reg, text_size=12, mark_size=65, hspace_frac=0.22):
     #       are more intuitive in the figure
     if reg == 'SAf':
         line_order = [line_order[-1]] + list(line_order[:-1])
+    # NOTE: reordering line colors for Amazon to be first open-veg in green,
+    #       then forest in blue and purple
+    elif reg == 'Am':
+        line_order = [line_order[1], line_order[2], line_order[0]]
     colors = [ax.get_lines()[n].get_color() for n in line_order]
+    if len(colors) == 4:
+        ys = np.linspace(0.98, 0.02, len(colors))
+    elif len(colors) == 3:
+        ys = np.linspace(0.82, 0.18, len(colors))
     for n, color in enumerate(colors):
         lab = n+1
-        ax.text(400,
-                (ylim[1]-
-                 (n*hspace_frac*np.diff(ylim))-
-                 (0.5*hspace_frac)-
-                 hspace_top_offset+0.1),
+        ax.text(385,
+                ys[n]-0.08,
+                #(ylim[1]-
+                 #(n*hspace_frac*np.diff(ylim))-
+                 #(0.5*hspace_frac)-
+                 #hspace_top_offset+0),
                 str(lab),
                 color='black',
                 size=text_size,
                 clip_on=False,
                )
         ax.scatter(373,
-                   (ylim[1]-
-                    (n*hspace_frac*np.diff(ylim))-
-                    hspace_top_offset),
+                   ys[n],
+                   #(ylim[1]-
+                   # (n*hspace_frac*np.diff(ylim))-
+                   # hspace_top_offset),
                    c=color,
                    edgecolor='black',
                    marker='s',
@@ -452,6 +463,9 @@ eofs_wt_sum_for_map = phf.mask_xarr_to_other_xarr_bbox(eofs_wt_sum_for_map,
                                                        n_bbox_xcoords=4000,
                                                        n_bbox_ycoords=2000,
                                                       )
+# prep ITCZ for plotting with the same map
+itcz_for_plot = itcz[itcz['time'] == 'mean'].to_crs(
+    eofs_wt_sum_for_map.rio.crs.to_epsg())
 
 # if requested, write mapping-prepped, folded EOFS to file
 if write_wt_sum_eofs_to_file:
@@ -596,6 +610,12 @@ if what_to_plot == 'raw_rgb_maps':
                               strip_axes=True,
                               reset_axlims=False,
                              )
+        itcz_for_plot.plot(ax=ax,
+                      linestyle='--',
+                      linewidth=0.5,
+                      color='k',
+                      alpha=0.5,
+                     )
         ax.set_ylim(eofs_for_map.rio.bounds()[1::2])
         ax.set_aspect('equal')
         phf.set_upper_ylim(ax)
@@ -620,12 +640,15 @@ if what_to_plot == 'main_rgb_map':
     gs = GridSpec(*regs_in_main_gridspec_dims, figure=fig_1)
     ax_map = fig_1.add_subplot(gs[global_map_slices[0], global_map_slices[1]])
 
+    # get rid of first 198 columns and first 310 rows, to reduce white space
+    # (first column with unmasked values is 199, and row is 312)
+    eofs_wt_sum_for_map_trunc = eofs_wt_sum_for_map[:, 310:,198:]
     # plot the RGB map of EOFs 1-3 together
-    eofs_wt_sum_for_map.plot.imshow(ax=ax_map,
-                                        add_colorbar=False,
-                                        alpha=1,
-                                        zorder=0,
-                                       )
+    eofs_wt_sum_for_map_trunc.plot.imshow(ax=ax_map,
+                                          add_colorbar=False,
+                                          alpha=1,
+                                          zorder=0,
+                                         )
     phf.plot_juris_bounds(ax_map,
                           lev0_linewidth=0.2,
                           lev0_alpha=0.7,
@@ -633,7 +656,14 @@ if what_to_plot == 'main_rgb_map':
                           lev1_alpha=0.5,
                           strip_axes=True,
                          )
-    ax_map.set_ylim(eofs_wt_sum_for_map.rio.bounds()[1::2])
+    # add the ITCZ as a thin gray line
+    itcz_for_plot.plot(ax=ax_map,
+                      linestyle='--',
+                      linewidth=0.5,
+                      color='k',
+                      alpha=0.5,
+                     )
+    ax_map.set_ylim(eofs_wt_sum_for_map_trunc.rio.bounds()[1::2])
     ax_map.set_aspect('equal')
     phf.set_upper_ylim(ax_map)
     ax_map.spines['bottom'].set_color('none')
@@ -658,17 +688,20 @@ if what_to_plot == 'main_rgb_map':
         clust_colors.append(color)
     # order by doy of max value
     order_top_bot = np.argsort([np.argmax(cent) for cent in clust_centers])
+    otb = order_top_bot
+    order_top_bot = otb[[2, 4, 3, 5, 8, 7, 6, 1, 0]]
     for n, i in enumerate(order_top_bot):
         cent = clust_centers[i]
         color = clust_colors[i]
-        ax_lines_slice_x = slice(490, 600)
-        ax_lines_slice_y = slice(5+n*30, 5+(n+1)*30)
+        ax_lines_slice_x = slice(510, 595)
+        ax_lines_slice_y = slice(n*25, (n+1)*25)
         ax_lines = fig_1.add_subplot(gs[ax_lines_slice_y,
                                         ax_lines_slice_x])
         ax_lines.plot(cent, color=color, linewidth=3.5)
         phf.strip_axes_labels_and_ticks(ax_lines)
         ax_lines.set_xlabel('')
-        ax_lines.set_ylabel(f'{n+1}', size=14)
+        ax_lines.set_ylabel(f'  {n+1}', size=16, rotation=0)
+        ax_lines.yaxis.set_label_position("right")
         ax_lines.set_xlim(0, 364)
         if n == k_global-1:
             # TODO: ADD SOUTHERN HEM LABELS AS SECOND SET OF LABELS ROTATED 180?
@@ -687,6 +720,46 @@ if what_to_plot == 'main_rgb_map':
         for axis in ['top','bottom','left','right']:
             ax_lines.spines[axis].set_linewidth(2)
             ax_lines.spines[axis].set_color('black')
+
+    # also create identical miniature figure, for embedding in top left of
+    # supplemental figs
+    asp_ratio = eofs_wt_sum_for_map_trunc.shape[1]/eofs_wt_sum_for_map_trunc.shape[2]
+    fig_miniglobal = plt.figure(figsize=(6,6*asp_ratio))
+    ax_mini = fig_miniglobal.add_subplot(1,1,1)
+    eofs_wt_sum_for_map_trunc.plot.imshow(ax=ax_mini,
+                                          add_colorbar=False,
+                                          alpha=1,
+                                          zorder=0,
+                                         )
+    phf.plot_juris_bounds(ax_mini,
+                          lev0_linewidth=0.2,
+                          lev0_alpha=0.7,
+                          lev1_linewidth=0.1,
+                          lev1_alpha=0.5,
+                          strip_axes=True,
+                         )
+    # add the ITCZ as a thin gray line
+    itcz_for_plot.plot(ax=ax_mini,
+                      linestyle='--',
+                      linewidth=0.5,
+                      color='k',
+                      alpha=0.5,
+                     )
+    ax_mini.set_ylim(eofs_wt_sum_for_map_trunc.rio.bounds()[1::2])
+    phf.set_upper_ylim(ax_mini)
+    ax_mini.spines['bottom'].set_color('none')
+    ax_mini.spines['top'].set_color('none')
+    ax_mini.spines['right'].set_color('none')
+    ax_mini.spines['left'].set_color('none')
+    ax_mini.set_aspect('equal')
+    fig_miniglobal.subplots_adjust(left=0.0,
+                                   right=0.99,
+                                   bottom=0.04,
+                                   top=0.98)
+    if save_it:
+        fig_miniglobal.savefig(os.path.join(phf.FIGS_DIR, 'SUBFIG_mini_global_LSP_RGB_map.png'),
+                      dpi=400)
+
 
 
 ########################
@@ -811,10 +884,10 @@ if what_to_plot in ['reg_figs', 'main_rgb_map']:
 # save main figure after regional maps have been added
 if what_to_plot == 'main_rgb_map':
     # save figure
-    fig_1.subplots_adjust(left=0.03,
+    fig_1.subplots_adjust(left=0.0,
                           right=0.99,
                           bottom=0.04,
-                          top=1.0)
+                          top=0.98)
     if save_it:
         fig_1.savefig(os.path.join(phf.FIGS_DIR, 'FIG_LSP_RGB_map.png'),
                       dpi=700)

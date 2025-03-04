@@ -82,7 +82,7 @@ neofs = 4
 
 # number of clusters to produce globally?
 # NOTE: chosen by scree plot inspection
-k_global = 6
+k_global = 9
 
 # load ITCZ shapefile
 # NOTE: digitized from Li and Zeng 2005, as reproduced in Zhisheng et al. 2015

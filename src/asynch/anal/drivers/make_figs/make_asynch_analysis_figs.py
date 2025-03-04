@@ -78,16 +78,20 @@ if only_top_covars:
     predom_cmap = palettable.scientific.diverging.Berlin_20.get_mpl_colormap()
 else:
     # NOTE: adapted from 'light' colormap at https://personal.sron.nl/~pault/#sec:qualitative
+    # NOTE: THESE COLORS ARE ORDERED ACCORDING TO DECREASING
+    #       SHAP-BASED COVAR IMPORTANCE IN OUR MAIN RF MODEL,
+    #       THE SAME AS THE FOLLOWING TWO DICTS
+
     colors = [
-              '#0e6380', # black -> ppt.asy
-              '#800e32', # gray -> tmp.min.asy
+              '#0e6380', # dark blue -> ppt.asy
+              '#800e32', # dark pink -> tmp.min.asy
               '#EE8866', # orange -> brn.frq.mea
               '#FFAABB', # pink -> tmp.max.asy
-              '#EEDD88', # light yellow -> vrm.med
-              '#44BB99', # mint -> veg.ent
               '#AAAA00', # olive -> def.asy
-              '#BBCC33', # pear -> luc.pct.mea
               '#99DDFF', # light cyan -> cld.asy
+              '#44BB99', # mint -> veg.ent
+              '#BBCC33', # pear -> vrm.med
+              '#EEDD88', # light yellow -> luc.pct.mea
              ]
     predom_cmap = ListedColormap(colors)
 
@@ -101,11 +105,11 @@ covar_cbar_labels = {
     'tmp.min.asy': '$\Delta dist_{seas_{T_{min}}}/\Delta  dist_{geo}$',
     'brn.frq.mea': '$\mu_{frequency}$',
     'tmp.max.asy': '$\Delta dist_{seas_{T_{max}}}/\Delta  dist_{geo}$',
-    'vrm.med': '$med_{VRM}$',
-    'veg.ent': '$entropy$',
     'def.asy': '$\Delta dist_{seas_{def}}/\Delta  dist_{geo}$',
-    'luc.pct.mea': '$\mu_{LULCC}$',
     'cld.asy': '$\Delta dist_{seas_{cld}}/\Delta  dist_{geo}$',
+    'veg.ent': '$entropy$',
+    'vrm.med': '$med_{VRM}$',
+    'luc.pct.mea': '$\mu_{LULCC}$',
 }
 
 covar_longnames = {
@@ -113,11 +117,11 @@ covar_longnames = {
     'tmp.min.asy': 'min. temperature\nasynchrony',
     'brn.frq.mea': 'mean burn\nfrequency',
     'tmp.max.asy': 'max. temperature\nasynchrony',
-    'vrm.med': 'median vector\nruggedness metric',
-    'veg.ent': 'vegetation\nentropy',
     'def.asy': 'CWD\nasynchrony',
-    'luc.pct.mea': 'mean fraction LULCC',
     'cld.asy': 'cloud\nasynchrony',
+    'veg.ent': 'vegetation\nentropy',
+    'vrm.med': 'median vector\nruggedness metric',
+    'luc.pct.mea': 'proportion\nLULCC',
     'codom':   'codominance',
 }
 
@@ -333,7 +337,7 @@ if __name__ == '__main__':
     # CREATE PREDOM FIG
     ###################
         # stack all covars' SHAP maps
-        file_patt = f'SHAP_map_{include_coords}COORDS_[cdptvbh].*_{var}_{neigh_rad}km.tif'
+        file_patt = f'SHAP_map_{include_coords}COORDS_[cdptvbl].*_{var}_{neigh_rad}km.tif'
         files = [f for f in os.listdir(data_dir) if re.search(file_patt, f)]
         # reorder per decreasing SHAP covar importance in our main RF model
         # (i.e., the order of the covar_cbar_labels dict)
