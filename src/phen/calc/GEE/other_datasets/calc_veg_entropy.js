@@ -53,8 +53,12 @@ if (params.map_intermediates){
   Map.addLayer(lc_img_agg, lc_viz, 'lc_img_agg'); 
 }
 
+// mask to only pixels whose LSP signal is being factored into the LSP asynchrony map
+var strict_mask = ee.Image('users/drewhart/LSP_mask_STRICT');
+var lc_img_agg_mask = lc_img_agg.updateMask(strict_mask);
+
 // calc neighborhood entropy within 100km
-var lc_entropy = lc_img_agg
+var lc_entropy = lc_img_agg_mask
   .entropy(ee.Kernel.circle(100000, 'meters'))
   // NOTE: clamp to [0, 1]
   .clamp({low: 0, high: 1});

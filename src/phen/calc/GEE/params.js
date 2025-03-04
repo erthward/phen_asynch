@@ -50,6 +50,10 @@ exports.maskLowBRDFAlbQual = false;
 // max quality value to allow for the MODIS BRDF and albedo QAQC flags
 exports.maxBRDFAlbQualVal = 3;
 
+// maximum percent sub-pixel invalid land cover that is allowed to contribute to an aggregated pixel's LSP signal
+// (beyond which the aggregated pixel is simply masked out of the analysis)
+exports.maxPctInvalidLandCoverSubpixels = 10;
+
 // whether to mask water (separately from the masking that will be done in LULC filtering)
 exports.maskWaterSeparately = false;
 

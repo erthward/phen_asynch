@@ -16,16 +16,17 @@ var SIFScale = SIFProj.nominalScale();
 var validLCClasses = ee.List([1,2,3,4,5,6,7,8,9,10,11,12,14]);
 var remapClasses = ee.List([1,1,1,1,1,1,1,1,1,1,1,2,2]);
 
+
 // load land cover dataset
 // NOTE: replaced previously used MODIS-res product (MCD12Q1)
 // with pre-aggregated majority LC product recommended by Reviewer 1 (MCD12C1)
 var lc = ee.ImageCollection("MODIS/061/MCD12C1")
-  .filterDate(start_datestr, end_datestr)
-  .select('Majority_Land_Cover_Type_1');
+  .filterDate(start_datestr, end_datestr);
 
-// create a separate, simple water mask asset
+// create a separate, simple water mask asset, flagging water wherever it is the majority land cover
 // (to be used below and to be used for plotting supp figs of all mask maps)
 var waterMask = lc
+  .select('Majority_Land_Cover_Type_1')
   .map(function(img){return img
     .reduceResolution({
         reducer: ee.Reducer.mode(),
@@ -35,8 +36,9 @@ var waterMask = lc
     .rename('waterMask')})
   .reduce(ee.Reducer.allNonZero());
 
-// remap pixels to the classes defined above
+// remap pixels from their majority land cover classes to the classes defined above
 var lcReclass = lc
+  .select('Majority_Land_Cover_Type_1')
   .map(function(img){return img
     .reduceResolution({
         reducer: ee.Reducer.mode(),
@@ -48,9 +50,9 @@ var lcReclass = lc
             to: remapClasses,
             defaultValue: 0
            })
-    .rename('lcMask')});
+    .rename('lcNaturalAgMask')});
 
-// reduce time series, flagging pixels that are always 'natural'
+// reduce majority land cover time series, flagging pixels that are always majority 'natural'
 // (even if they change class, since a lot of hard-to-class regions do so meaninglessly,
 // e.g., western Chaco, woodland and xeric regions of southern Africa)
 // and/or always agricultural (the latter of which will be dropped only from asynch analyses,
@@ -61,17 +63,29 @@ var alwaysAg = lcReclass.map(function(img){return img.eq(2)}).reduce(ee.Reducer.
 // combine into a single mask map, in which 1s are either always 'natural' or always agricultural
 // and 2s are strictly always natural (such that all non-zeros will be used in LSP analyses
 // but only 2s will be used in asynch analyses)
-var lcMask = alwaysNat.or(alwaysAg).add(alwaysNat);
+var lcNaturalAgMask = alwaysNat.or(alwaysAg).add(alwaysNat);
+
+// also calculate an ImageCollection that indicates the percent invalid subpixel land cover within each aggergated pixel, year by year
+var lcPctInvalidSubpixels = lc.map(function(img){return img
+  .select('Land_Cover_Type_1_Percent_Class_0')
+  .add(img.updateMask(waterMask).select('Land_Cover_Type_1_Percent_Class_13'))
+  .add(img.updateMask(waterMask).select('Land_Cover_Type_1_Percent_Class_15'))
+  .add(img.updateMask(waterMask).select('Land_Cover_Type_1_Percent_Class_16'));
+});
+
+// reduce that to get each pixel's max percent invalid subpixel land cover that occurs across the time series
+var lcMaxPctInvalidSubpixels = lcPctInvalidSubpixels.reduce(ee.Reducer.max());
 
 // map the results, if requested
 if (params.map_intermediates){
   Map.addLayer(lc, {}, 'original MCD12C1 land cover', false);
-  Map.addLayer(lcMask.gt(0).selfMask(), {palette:['black', 'yellow'], opacity:0.7}, 'lcMask: default', true);
-  Map.addLayer(lcMask.gt(1).selfMask(), {palette:['black', 'red'], opacity:0.7}, 'lcMask: strict', true);
+  Map.addLayer(lcNaturalAgMask.gt(0).selfMask(), {palette:['black', 'yellow'], opacity:0.7}, 'lcNaturalAgMask: always natural and always ag', true);
+  Map.addLayer(lcNaturalAgMask.gt(1).selfMask(), {palette:['black', 'red'], opacity:0.7}, 'lcNaturalAgMask: always natural only', true);
+  var maxPctInvalidLandCoverSubpixels = params.maxPctInvalidLandCoverSubpixels;
+  Map.addLayer(lcMaxPctInvalidSubpixels.gt(maxPctInvalidLandCoverSubpixels), {palette: ['white', 'maroon'], opacity:0.7, min:0, max:1}, 'lcMaxPctInvalidSubpixels', true);
+}
 
-  }
-
-// export masking layers
+// export land cover masking layers
 Export.image.toAsset({image: waterMask,
                       description: 'LSP_waterMask',
                       assetId: 'users/drewhart/LSP_waterMask',
@@ -79,10 +93,19 @@ Export.image.toAsset({image: waterMask,
                       pyramidingPolicy: 'mode',
                       maxPixels: params.maxPixels,
                       scale: lc.first().projection().nominalScale().getInfo()});
-Export.image.toAsset({image: lcMask,
-                      description: 'LSP_lcMask',
-                      assetId: 'users/drewhart/LSP_lcMask',
+Export.image.toAsset({image: lcNaturalAgMask,
+                      description: 'LSP_lcNaturalAgMask',
+                      assetId: 'users/drewhart/LSP_lcNaturalAgMask',
                       region: params.roi,
                       pyramidingPolicy: 'mode',
                       maxPixels: params.maxPixels,
                       scale: lc.first().projection().nominalScale().getInfo()});
+Export.image.toAsset({image: lcMaxPctInvalidSubpixels,
+                      description: 'LSP_lcMaxPctInvalidSubpixels',
+                      assetId: 'users/drewhart/LSP_lcMaxPctInvalidSubpixels',
+                      region: params.roi,
+                      pyramidingPolicy: 'max',
+                      maxPixels: params.maxPixels,
+                      scale: lc.first().projection().nominalScale().getInfo()});
+
+

@@ -12,7 +12,9 @@ var params = require('users/drewhart/seasonality/:params.js');
 // LOAD FUNCTIONS AND ASSETS
 //==========================
 
-var lcMask = ee.Image('users/drewhart/LSP_lcMask');
+var lcMaxPctInvalidSubpixelsMask = ee.Image('users/drewhart/LSP_lcMaxPctInvalidSubpixels');
+var lcMaxPctInvalidSubpixels = ee.Number(params.maxPctInvalidLandCoverSubpixels);
+var lcNaturalAgMask = ee.Image('users/drewhart/LSP_lcNaturalAgMask');
 var tsPctDataAvailability = ee.Image('users/drewhart/NIRv_ts_pct_data_availability');
 var tsEvenness = ee.Image('users/drewhart/NIRv_monthly_Pielou_evenness')
   // NOTE: some pixels are getting values erroneously >1, but I spent a long time inspecting and it appears
@@ -69,16 +71,21 @@ if (params.datasetName === 'NIRv'){
 var evennessMask = tsEvenness.unmask().gte(params.minTSEvenness);
 
 
-//--------------------
-// impose LC threshold
-//--------------------
+//------------------
+// filter land cover
+//------------------
+// only keep pixels whose percent of invalid-land-cover subpixels
+// never exceeds our max threshold
+var lcMask = lcMaxPctInvalidSubpixelsMask.lte(lcMaxPctInvalidSubpixels);
+// and only keep pixels whose majority land cover is either...
 if (params.maskingMode == 'default'){
-  // get all pixels that are valid (i.e., not barren, ice, water, urban)
-  // and either always 'natural' or always ag across our time series...
-  var lcMaskThresholded = lcMask.gt(0);
+  // ...always 'natural' or always ag across our time series
+  // (for filtering used for all non-asynchrony analyses)
+  var lcMask = lcMask.and(lcNaturalAgMask.gt(0));
 } else {
-  // ... or get only valid pixels that are always 'natural' across our time series
-  var lcMaskThresholded = lcMask.gt(1);
+  // ...or only always 'natural'
+  // (for stricter filtering used for asynchrony analyses)
+  var lcMask = lcMask.and(lcNaturalAgMask.gt(1));
 }
   
   
@@ -91,7 +98,7 @@ var shortTSMask = tsPctDataAvailability.gte(params.minPctTSDataAvailability);
 //---------------------
 // compose overall mask
 //---------------------
-var overallMask = evennessMask.and(lcMaskThresholded).and(shortTSMask).and(signifMask);
+var overallMask = evennessMask.and(lcMask).and(shortTSMask).and(signifMask);
 if (params.map_intermediates){
   Map.addLayer(overallMask, {min:0, max:1, palette:['red', 'white']}, 'overallMask');
 }
@@ -139,7 +146,7 @@ if (params.plotAndExportMasks && params.datasetName == 'NIRv'){
   // and also mask other masks using the water mask and then export them
   var waterMask = ee.Image('users/drewhart/LSP_waterMask');
   Map.addLayer(evennessMask.unmask().and(waterMask).selfMask(), {palette:['blue']}, 'evennessMask', false);
-  Map.addLayer(lcMask.unmask().and(waterMask).selfMask(), {palette:['black', 'yellow', 'red']}, 'lcMask (default and strict)', false);
+  Map.addLayer(lcMask.unmask().and(waterMask).selfMask(), {palette:['black', 'yellow', 'red']}, 'lcMask', false);
   Map.addLayer(shortTSMask.unmask().and(waterMask).selfMask(), {palette:['blue']}, 'shortTSMask', false);
   Map.addLayer(signifMask.unmask().and(waterMask).selfMask(), {palette:['blue']}, 'signifMask', false);
   Export.image.toDrive({image: waterMask,
@@ -154,7 +161,7 @@ if (params.plotAndExportMasks && params.datasetName == 'NIRv'){
                         }
                        );
   Export.image.toDrive({image: lcMask.unmask().updateMask(waterMask),
-                       description: 'lcMask',
+                       description: ee.String('lcMask_').cat(ee.String(params.maskingMode).toUpperCase()).getInfo(),
                        folder: 'LSP_mask_outputs_from_GEE',
                        region: params.roi,
                        scale: scale,

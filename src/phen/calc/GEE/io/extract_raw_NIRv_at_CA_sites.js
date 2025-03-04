@@ -53,4 +53,3 @@ Export.table.toDrive({'collection': NIRv_pts,
                       'fileFormat': 'GeoJSON',
                       //'selectors': ['name', 'NIRv'],
 });
-
