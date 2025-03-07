@@ -140,7 +140,8 @@ Each step of the following workflow was executed in the environment indicated *i
 
 ### map examples of LSP fitted to raw NIRv data:
 1. *On GEE*, run `src/phen/calc/GEE/io/extract_raw_NIRv_at_CA_sites.js` to extract the raw, 20-year NIRv time series at a transect of 3 California FLUXNET sites with divergent phenologies (**1 task, 1m runtime**).
-2. *On laptop*, run `python src/phen/viz/plot_NIRv_raw_and_fitted_at_example_sites.py` to produce a supplemental figure demonstrating the LSP time series fitted to the raw NIRv data for those three sites (**1 task, <5m runtime**).
+2. *On GEE*, run `src/phen/calc/GEE/io/extract_raw_NIRv_at_other_test_sites.js` to extract the raw, 20-year NIRv time series at the points used in the other raw-versus-fitted supplemental figures (**1 task, 1m runtime**).
+3. *On laptop*, run `bash src/phen/viz/plot_all_LSP_fitting_examples.sh` to produce the four supplemental figures demonstrating the LSP phenocycles fitted to the raw NIRv data at sites across California's Mediterranean climates and in arid Australian outback climates, in Colombian tropical montane climates, and in different land cover types within boreal Saskatchewan (**1 task, <5m runtime**).
 
 
 ### produce LSP modality map:
@@ -158,11 +159,18 @@ Each step of the following workflow was executed in the environment indicated *i
 4 *On laptop*, run `python src/phen/eval/NIRv_SIF_comp/map_NIRv_SIF_LSP_comparison.py` to map the $R^2$ values between the fitted NIRv and SIF LSP datasets (**1 task, <1m runtime**).
 
 
+### run PhenoCam evaluation:
+1. *On laptop*, run `Rscript --vanilla src/phen/eval/phenocam/get_all_phenocam_ROIs.r` to download a table of all PhenoCam  regions of interest (ROIs) across all PhenoCam cameras (**1 task, ~1m runtime**).
+2. *On laptop*, run `python src/phen/eval/phenocam/get_all_phenocam_NDVI_data_and_site_metadata.py` to download all available PhenoCam NDVI 3-day summary datasets and to compile a table of all PhenoCam site metadata (**1 task, <2h runtime**).
+3. *On laptop*, run `bash src/phen/eval/phenocam/run_phenocam_evaluations.sh` to run intercomparison with PhenoCam for both NIRv and SIF datasets (**1 taks, <10m runtime**).
+5. *On laptop*, run `python src/phen/eval/phenocam/plot_phenocam_eval_results.py` to generate the PhenoCam intercomparison results supplemental figure and combined supplemental table of both NIRv and SIF results (**1 task, <1m runtime**).
+
+
 ### run FLUXNET evaluation:
 1. *On laptop*, manually download all subset data products (using DownThemAll!) from the FLUXNET network's [download page](http://fluxnet.org/data/download-data/) (**1 task, runs roughly overnight**).
-2. *On laptop*, run `bash src/phen/eval/flux_tower_GPP/run_flux_evaluations.sh` to run the flux-tower GPP comparison, at all usable FLUXNET2015 sites, for both the fitted NIRv and SIF LSP results (**1 task, ~15m runtime**).
-3. *On laptop*, run `python src/phen/eval/flux_tower_GPP/combine_fluxnet_val_outputs.py` to combine flux-tower evaluation results for all FLUXNET sites into a single supplemental table (**1 task, <10s runtime**).
-4. *On laptop*, run `python src/phen/eval/flux_tower_GPP/plot_flux_eval_results.py` to generate the flux-tower evaluation supplemental figure (**1 task, <1m runtime**).
+2. *On laptop*, run `bash src/phen/eval/flux_tower/run_flux_evaluations.sh` to run the flux-tower GPP intercomparison, at all usable FLUXNET2015 sites, for both the fitted NIRv and SIF LSP results (**1 task, ~15m runtime**).
+3. *On laptop*, run `python src/phen/eval/flux_tower/combine_fluxnet_val_outputs.py` to combine flux-tower evaluation results for all FLUXNET sites into a single supplemental table (**1 task, <10s runtime**).
+4. *On laptop*, run `python src/phen/eval/flux_tower/plot_flux_eval_results.py` to generate the flux-tower intercomparison results supplemental figure (**1 task, <1m runtime**).
 
 
 ### run asynchrony neighborhood-comparison evaluation:
@@ -280,6 +288,7 @@ Each step of the following workflow was executed in the environment indicated *i
   - R 4.0.5
     - adegent 2.1.5
     - ape 5.6.2
+    - phenocamapi 0.1.5
   - MAFFT 7.520
   - LibreOffice 7.3.7.2 30(Build:2)
 - **UC Berkeley Savio Cluster**:

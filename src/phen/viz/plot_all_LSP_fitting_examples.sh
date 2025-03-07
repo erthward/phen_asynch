@@ -1,0 +1,5 @@
+python plot_NIRv_raw_and_fitted_at_CA_flux_sites.py
+python plot_NIRv_raw_and_fitted_at_example_sites.py boreal
+python plot_NIRv_raw_and_fitted_at_example_sites.py andes
+python plot_NIRv_raw_and_fitted_at_example_sites.py outback
+

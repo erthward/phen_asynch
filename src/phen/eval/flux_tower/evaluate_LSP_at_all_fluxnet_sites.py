@@ -339,7 +339,7 @@ def process_site_data(zip_filename,
     reg = fit_harmonic_regression(gpp, response_var)
     predict_fluxnet_detrended_vals(gpp, reg, rescale=rescale)
 
-    # get the overall model P-value
+    # get overall model P-value
     pval = reg.f_pvalue
 
     # delete the file, if requested

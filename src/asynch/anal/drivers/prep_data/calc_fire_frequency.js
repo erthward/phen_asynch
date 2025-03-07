@@ -40,7 +40,7 @@ if (params.map_intermediates){
   Map.addLayer(burnFreq_agg_mask, {palette: ['black', 'red', 'orange', 'yellow', 'white'], min:0, max:1/25, opacity:0.8}, 'burnFreq_agg_mask'); 
 }
 
-// calc neighborhood standard deviation within 100km
+// calc neighborhood mean within 100km
 var burnFreq_mean = burnFreq_agg_mask
   .reduceNeighborhood(ee.Reducer.mean(), ee.Kernel.circle(100000, 'meters'));
 if (params.map_intermediates){

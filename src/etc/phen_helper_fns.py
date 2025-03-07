@@ -59,6 +59,7 @@ EXTERNAL_DATA_DIR = '/media/deth/SLAB/diss/3-phn/final_maps_and_results/'
 EXTERNAL_MASK_DATA_DIR = '/media/deth/SLAB/diss/3-phn/GEE_outputs_and_derivatives/LSP_masks/'
 EXTERNAL_RF_DATA_DIR = '/media/deth/SLAB/diss/3-phn/final_maps_and_results/rf/'
 EXTERNAL_INAT_DATA_DIR = '/media/deth/SLAB/diss/3-phn/inat/'
+EXTERNAL_PHENOCAM_DATA_DIR = '/media/deth/SLAB/diss/3-phn/phenocam/'
 EXTERNAL_FLUX_DATA_DIR = '/media/deth/SLAB/diss/3-phn/flux/'
 COEFFS_FILE = os.path.join(EXTERNAL_DATA_DIR, 'NIRv_coeffs.tif')
 COEFFS_STRICT_FILE = os.path.join(EXTERNAL_DATA_DIR, 'NIRv_STRICT_coeffs.tif')

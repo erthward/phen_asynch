@@ -50,6 +50,12 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
     ax1 = fig.add_subplot(gs[:40, biome_start_col:biome_end_col])
     results_df = pd.read_csv('./FLUXNET_evaluation_results_%s.csv' % rs_var)
 
+    # double-check that there's no need to drop any results for being
+    # insignificant harmonic regression fits (even if we were using
+    # strict Bonferroni correction)
+    assert np.sum(results_df['gpp_pval']>(0.05/len(results_df))) == 0, ('insignificant '
+                                                        'results need to be dropped!')
+
     whittaker = pd.read_csv('./whittaker_biomes.csv', sep=';')
     whittaker['temp_c'] = whittaker['temp_c'].apply(lambda x:
                                                 float(x.replace(',', '.')))
@@ -144,7 +150,10 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
                                          cmap='gray',
                                          orientation='vertical',
                                         )
-        cbar_ax.set_ylabel('$GPP-LSP\ R^2$', fontdict={'fontsize': 11})
+        cbar_ax.set_ylabel('$R^2$, FLUXNET GPP ~ LSP',
+                           fontdict={'fontsize': 11},
+                           labelpad=5,
+                          )
 
     ax2 = fig.add_subplot(gs[50:, scat_start_col:scat_end_col])
     pt_biomes = []

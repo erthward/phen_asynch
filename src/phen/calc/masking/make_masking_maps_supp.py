@@ -167,7 +167,7 @@ def map_mask(ax, mask_filename, axlabel):
                          )
     ax.set_xlim(mask_proj.rio.bounds()[0::2])
     ax.set_ylim(mask_proj.rio.bounds()[1::2])
-    ax.text(0, -6.4e6, axlabel, size=8, ha='center')
+    ax.text(-15e6, -6.4e6, axlabel, size=8, weight='bold')
     # process the zonal means and return them
     # NOTE: taking 1 minus the calculated mean, to express as percent masked out
     zonal_means = [{j['properties']['CONTINENT']: 1-j['properties']['mean']
@@ -182,11 +182,11 @@ if __name__ == '__main__':
     fracs['mask'] = []
 
     # dict for renaming masks, for display in fig and in table
-    label_dict = {'lcMask': 'land cover',
-                  'monthPropsMinMask_NIRv': 'monthly data availability',
-                  'evennessMask_NIRv': 'monthly data avaiability evenness',
-                  'shortTSMask_NIRv': 'total data avaiability',
-                  'signifMask_NIRv': 'regression significance',
+    label_dict = {'lcMask': 'A. land cover',
+                  'monthPropsMinMask_NIRv': 'B. monthly data availability',
+                  'evennessMask_NIRv': 'C. monthly data availability evenness',
+                  'shortTSMask_NIRv': 'D. total data availability',
+                  'signifMask_NIRv': 'E. regression significance',
                  }
 
     fig = plt.figure(figsize=(8.7, 6))
