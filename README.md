@@ -37,7 +37,7 @@ That same asset can also be explored through the [Google Earth Engine app](https
 [![GEE_app_screenshot](etc/GEE_app_screenshot.PNG)](https://lyrical-ring-231401.projects.earthengine.app/view/globalphenologicaldiversityandasynchronyterasakihart2024)
 
 Any questions, concerns, interests, or requests can be directed
-to: drew *dot* hart *at* berkeley *dot* edu. 
+to: drew *dot* terasaki *dot* hart *at* gmail *dot* com. 
 
 
 
@@ -139,9 +139,9 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ### map examples of LSP fitted to raw NIRv data:
-1. *On GEE*, run `src/phen/calc/GEE/io/extract_raw_NIRv_at_CA_sites.js` to extract the raw, 20-year NIRv time series at a transect of 3 California FLUXNET sites with divergent phenologies (**1 task, 1m runtime**).
-2. *On GEE*, run `src/phen/calc/GEE/io/extract_raw_NIRv_at_other_test_sites.js` to extract the raw, 20-year NIRv time series at the points used in the other raw-versus-fitted supplemental figures (**1 task, 1m runtime**).
-3. *On laptop*, run `bash src/phen/viz/plot_all_LSP_fitting_examples.sh` to produce the four supplemental figures demonstrating the LSP phenocycles fitted to the raw NIRv data at sites across California's Mediterranean climates and in arid Australian outback climates, in Colombian tropical montane climates, and in different land cover types within boreal Saskatchewan (**1 task, <5m runtime**).
+1. *On GEE*, run `src/phen/calc/GEE/io/extract_raw_NIRv_at_CA_flux_sites.js` to extract the raw, 20-year NIRv time series at a transect of 3 California FLUXNET sites with divergent phenologies (**1 task, 1m runtime**).
+2. *On GEE*, run `src/phen/calc/GEE/io/extract_raw_NIRv_at_other_example_sites.js` to extract the raw, 20-year NIRv time series at the points used in the other raw-versus-fitted supplemental figures (**1 task, 1m runtime**).
+3. *On laptop*, run `bash src/phen/viz/model_fitting/plot_all_LSP_fitting_examples.sh` to produce the four supplemental figures demonstrating the LSP phenocycles fitted to the raw NIRv data at sites across California's Mediterranean climates and in arid Australian outback climates, in Colombian tropical montane climates, and in different land cover types within boreal Saskatchewan (**1 task, <5m runtime**).
 
 
 ### produce LSP modality map:

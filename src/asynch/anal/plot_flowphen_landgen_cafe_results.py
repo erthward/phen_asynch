@@ -522,6 +522,11 @@ def plot_taxon_photo(ax, name):
                             filename,
                            )
     img = mpimg.imread(filepath)
+    # add alpha band, if missing
+    if img.shape[2] == 3:
+        img = img[:, :, [0,1,2,2]]
+        # set to all 1s
+        img[:, :, 3] = img[:, :, 3]*0+1
     # make white pixels (i.e. pixels with 1s in the first 3 layers) transparent
     img[:,:,3] *= (img[:,:,:3].sum(axis=2)!=3)
     # swap x and y axes, if necessary
@@ -659,10 +664,7 @@ def plot_focal_inat_taxa(mmrr_res_gdf,
     ct = 0
     for taxon, K in taxa.items():
         # plot the photo first (so its axes don't overlap anything else)
-        try:
-            plot_taxon_photo(photo_axs[ct], taxon)
-        except Exception:
-            print('\nUNABLE TO PLOT PHOTO.\n')
+        plot_taxon_photo(photo_axs[ct], taxon)
         tax_dict = mmrr_res_gdf[mmrr_res_gdf['name'] == taxon].iloc[0,:]
         tid = tax_dict['tid']
         name = tax_dict['name']

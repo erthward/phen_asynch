@@ -121,7 +121,7 @@ covar_longnames = {
     'cld.asy': 'cloud\nasynchrony',
     'veg.ent': 'vegetation\nentropy',
     'vrm.med': 'median vector\nruggedness metric',
-    'luc.pct.mea': 'proportion\nLULCC',
+    'luc.pct.mea': 'mean fraction\nLULCC',
     'codom':   'codominance',
 }
 

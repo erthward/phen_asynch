@@ -74,10 +74,10 @@ eofs.rio.set_crs(8857)
 eofs = eofs.rio.reproject(crs)
 
 # set up the figure
-fig = plt.figure(figsize=(23,8))
+fig = plt.figure(figsize=(19,5.8))
 gs = fig.add_gridspec(nrows=100, ncols=230)
-ax_rgb = fig.add_subplot(gs[:, 3:120])
-ts_axs = [fig.add_subplot(gs[i0:i1, 130:]) for i0, i1 in zip([2, 52],
+ax_rgb = fig.add_subplot(gs[:, 3:82])
+ts_axs = [fig.add_subplot(gs[i0:i1, 98:]) for i0, i1 in zip([2, 52],
                                                             [50, 100])]
 
 # plot the EOFS map and the sites
@@ -145,7 +145,7 @@ for site, df in NIRv_dfs.items():
         if i == 0:
             ax_ts.legend(fontsize=16)
         ax_ts.set_title(site.replace('_', ' ').capitalize(),
-                        y=0.88,
+                        y=0.84,
                         fontdict={'size': 19,
                                   'weight': 'bold',
                                  },
@@ -193,7 +193,7 @@ fig.subplots_adjust(hspace=0,
                     wspace=0,
                     left=0.03,
                     right=0.98,
-                    bottom=0.12,
+                    bottom=0.16,
                     top=0.97
                    )
 fig.savefig(os.path.join(phf.FIGS_DIR, f'FIG_SUPP_raw_and_fitted_NIRv_LSP_{spn}.png'),

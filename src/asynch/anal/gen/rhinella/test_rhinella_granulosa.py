@@ -129,6 +129,8 @@ def run_analysis():
                                          )
     print((f"\n\n{np.round(100*np.mean(pd.isnull(lsp_dist)), 2)} % "
             "of lsp_dist consists of missing values"))
+    print((f"\n\n{np.sum(np.sum(pd.notnull(lsp_dist), axis=0) > 1)} "
+           "sites missing data"))
 
     # check all diagonals are zeros
     assert np.all([geo_dist[i, i] == 0 for i in range(geo_dist.shape[0])])
