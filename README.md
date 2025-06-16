@@ -305,7 +305,7 @@ Each step of the following workflow was executed in the environment indicated *i
     - phenocamapi 0.1.5
   - MAFFT 7.520
   - LibreOffice 7.3.7.2 30(Build:2)
-- **UC Berkeley Savio Cluster**:
+- **UC Berkeley Savio Cluster (savio3 partition)**:
   - Scientific Linux 7.9
   - Bash 4.2.26
   - GDAL 2.2.3
