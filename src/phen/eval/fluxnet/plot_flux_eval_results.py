@@ -256,11 +256,11 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
 
     # add part labels
     if rs_var == 'NIRv':
-        ax1_lab = 'A.'
-        ax2_lab = 'B.'
+        ax1_lab = 'i.'
+        ax2_lab = 'ii.'
     else:
-        ax1_lab = 'C.'
-        ax2_lab = 'D.'
+        ax1_lab = 'iii.'
+        ax2_lab = 'iv.'
     ax1.text(ax1.get_xlim()[0]-(0.24*np.diff(ax1.get_xlim())),
              1.005*ax1.get_ylim()[1],
              ax1_lab,
@@ -271,7 +271,7 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
              1,
              ax2_lab,
              weight='bold',
-             size=24,
+             size=21,
             )
 
 

@@ -1,6 +1,12 @@
 # Global phenology maps reveal the diversity, convergence, and asynchrony of ecosystem function
 
+------------------------------------
+
 ### < PUT CITATION HERE >
+
+Code: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15671260.svg)](https://doi.org/10.5281/zenodo.15671260)
+
+Data: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15654956.svg)](https://doi.org/10.5281/zenodo.15654956)
 
 -------------------------------------------
 
@@ -28,7 +34,7 @@ with contributions from Lauren Di Maggio and Thao-Nguyen Bui.
 Code is made freely available under the MIT License,
 to be distributed and/or modified with due attribution.
 
-Data are archived [here](PUT LINK HERE) (DOI: **PUT DATA DOI HERE**),
+Data are archived [here](https://doi.org/10.5281/zenodo.15654956) (10.5281/zenodo.15654956),
 and the main mapping results are also made publicly
 available as a Google Earth Engine asset ('users/drewhart/Terasaki_Hart_2024_LSP_diversity_asynchrony_main_map_results').
 
@@ -149,7 +155,7 @@ Each step of the following workflow was executed in the environment indicated *i
 
 
 ### produce LSP video:
-1. *On laptop*, run `python src/phen/viz/make_LSP_global_video.py` to produce an mp4 video of one year of global, minmax-scaled LSP variability (**1 task, ~3h runtime**).
+1. *On laptop*, run `python src/phen/viz/video/make_LSP_global_video.py` to produce an mp4 video of one year of global, minmax-scaled LSP variability (**1 task, ~3h runtime**).
 
 
 ### run NIRv-SIF LSP comparison:
@@ -168,9 +174,9 @@ Each step of the following workflow was executed in the environment indicated *i
 
 ### run FLUXNET evaluation:
 1. *On laptop*, manually download all subset data products (using DownThemAll!) from the FLUXNET network's [download page](http://fluxnet.org/data/download-data/) (**1 task, runs roughly overnight**).
-2. *On laptop*, run `bash src/phen/eval/flux_tower/run_flux_evaluations.sh` to run the flux-tower GPP intercomparison, at all usable FLUXNET2015 sites, for both the fitted NIRv and SIF LSP results (**1 task, ~15m runtime**).
-3. *On laptop*, run `python src/phen/eval/flux_tower/combine_fluxnet_val_outputs.py` to combine flux-tower evaluation results for all FLUXNET sites into a single supplemental table (**1 task, <10s runtime**).
-4. *On laptop*, run `python src/phen/eval/flux_tower/plot_flux_eval_results.py` to generate the flux-tower intercomparison results supplemental figure (**1 task, <1m runtime**).
+2. *On laptop*, run `bash src/phen/eval/fluxnet/run_flux_evaluations.sh` to run the flux-tower GPP intercomparison, at all usable FLUXNET2015 sites, for both the fitted NIRv and SIF LSP results (**1 task, ~15m runtime**).
+3. *On laptop*, run `python src/phen/eval/fluxnet/combine_fluxnet_val_outputs.py` to combine flux-tower evaluation results for all FLUXNET sites into a single supplemental table (**1 task, <10s runtime**).
+4. *On laptop*, run `python src/phen/eval/fluxnet/plot_flux_eval_results.py` to generate the flux-tower intercomparison results supplemental figure (**1 task, <1m runtime**).
 
 
 ### run asynchrony neighborhood-comparison evaluation:
@@ -184,6 +190,7 @@ Each step of the following workflow was executed in the environment indicated *i
 ### produce asynchrony supplemental figures:
 1. *On laptop*, run `python src/asynch/viz/make_conceptual_asynch_fig.py` to create the asynchrony-calculation conceptual figure (**1 task, <1m runtime**).
 2. *On laptop*, run `python src/asynch/viz/plot_all_asynch_maps.py` to create each LSP and climate variable's supplemental figure, displaying the asynchrony maps for all three neighborhood radii (50, 100, and 150 km) (**1 task, <30m runtime**).
+3. *On laptop*, run `python src/asynch/viz/make_triangular_asynh_correlation_plots.py` to create a column of triangular plots depicting inter-neighborhood correlations for all variables' asynchrony maps (**1 task, <1m runtime**).
 
 
 ### collect all covariates for asynch drivers analysis:
@@ -205,7 +212,7 @@ Each step of the following workflow was executed in the environment indicated *i
 6. *On Savio*, run `bash src/asynch/anal/drivers/summ_results/ul_asynch_drivers_results_to_bdrive.sh` to upload all drivers-modeling results to Google Drive (**1 task, <1 h runtime**).
 7. *On laptop*, run `bash src/asynch/anal/drivers/summ_results/dl_asynch_drivers_results_from_bdrive.sh` to download all drivers-modeling results into the appropriate directory on the external hard drive (**1 task, <1h runtime**).
 8. *On laptop*, run `python src/asynch/anal/drivers/summ_results/tabulate_model_summaries.py` to combine all permuation-based and SHAP-based importance values and model $R^2$s and MSEs into a single output table, for supplmental materials (**1 task, <1m runtime**).
-9. *On laptop*, manually copy the contents of each of the three sheets in both of the .xlsx files created by the last step into their corresponding sections in `res/tabs/TAB_SUPP_model_summary_table_full.xlsx` using LibreOffice Calc, save the file, then save a static image of the table (by manually selecting the entire gray boxed area, clicking "File" > "Export...", checking the 'Selection' checkbox in the bottom left corner, selecting .png as the file type, clicking "Save", clicking the "Modify resolution" radio-button on the pop-up and setting the resolution to 500 pixels/inch, then clicking the "Modify dimensions" radio button, setting the width to 10 inches and letting the height auto-adjust, then clicking "OK").
+9. *On laptop*, manually copy the contents of each of the three sheets in both of the .xlsx files created by the last step into their corresponding sections in `res/tabs/TAB_model_summary_table_full.xlsx` using LibreOffice Calc, save the file, then save a static image of the table (by manually selecting the entire tan boxed area, clicking "File" > "Export...", checking the 'Selection' checkbox in the bottom left corner, selecting .png as the file type, clicking "Save", clicking the "Modify resolution" radio-button on the pop-up and setting the resolution to 500 pixels/inch, then clicking the "Modify dimensions" radio button, setting the width to 10 inches and letting the height auto-adjust, then clicking "OK").
 10. *On laptop*, run `bash src/asynch/anal/drivers/make_figs/make_all_asynch_analysis_figs.sh` to produce the main asynch figure (global map, as well as map summarizing the predominance of the two top-importance covariates), as well as the supplemental figures showing the random forest error map and the map of SHAP-value predominance across all random forest covariates (**1 task, <10m runtime**).
 
 
@@ -240,6 +247,13 @@ Each step of the following workflow was executed in the environment indicated *i
 3. *On GEE*, once the asset is uploaded, make it publicly accessible.
 4. *On GEE*, use the 'Get Link' button to create a URL pointing to the script saved at 'src/phen/viz/data_viewer/viz_results_GEE_APP.js' (saved at a different path within my GEE cloud project's repo), then copy that URL to the appropriate place at the top of this README.
 4. *On GEE*, interested individuals can now use the link at the top of this README to navigate to a very basic data viewer for our main mapping results.
+
+
+### extended data:
+1. Compose multipanel items (all items except 3, 8, and 10) in Google Drawings.
+2. Download as PDF at appropriate pixel dimensions.
+3. Use `pdf2toppm` to convert to 300-DPI PNGs.
+
 
 -------------------------------------------
 
@@ -308,7 +322,7 @@ Each step of the following workflow was executed in the environment indicated *i
     - haversine
     - eofs 1.4.0
     - scipy 1.4.1
-    - scikit-learn 0.21.3
+    - sklearn 0.21.3
     - matplotlib 3.1.1
   - R 4.0.3
     - dplyr 1.0.8

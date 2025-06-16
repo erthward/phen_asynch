@@ -83,7 +83,7 @@ for coords_as_covars in ['y', 'n']:
 
     # write to file
     with pd.ExcelWriter(os.path.join(data_dir,
-                    'model_summary_table_%sCOORDS.xlsx' % coords_as_covars),
+                    'TAB_drivers_model_summary_%sCOORDS.xlsx' % coords_as_covars),
                         engine='xlsxwriter') as w:
         for import_metric, out_df in out_dfs.items():
             out_df.to_excel(w, sheet_name='%s_importance' % import_metric)

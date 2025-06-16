@@ -157,8 +157,8 @@ try:
                            )
 except Exception:
     pass
-cax.set_xlabel('LSP modality',
-               fontdict={'fontsize': 15},
+cax.set_xlabel('$NIR_{V}$ LSP modality',
+               fontdict={'fontsize': 17},
               )
 cax.set_ylabel('')
 cax.set_xticks([0, 0.5, 1],
@@ -166,7 +166,7 @@ cax.set_xticks([0, 0.5, 1],
                 'bimodal:\none peak twice as high',
                 'unimodal',
                ],
-               size=12,
+               size=14,
               )
 cax.set_yticks(())
 phf.plot_juris_bounds(ax,
@@ -178,5 +178,5 @@ phf.plot_juris_bounds(ax,
                       crs=8857,
                      )
 phf.set_upper_ylim(ax)
-fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_SUPP_NIRv_LSP_ann_sem_seasonality.png'), dpi=600)
+fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_SUPP_NIRv_LSP_ann_sem_modality.png'), dpi=600)
 

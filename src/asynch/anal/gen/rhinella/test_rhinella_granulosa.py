@@ -129,7 +129,7 @@ def run_analysis():
                                          )
     print((f"\n\n{np.round(100*np.mean(pd.isnull(lsp_dist)), 2)} % "
             "of lsp_dist consists of missing values"))
-    print((f"\n\n{np.sum(np.sum(pd.notnull(lsp_dist), axis=0) > 1)} "
+    print((f"\n\n{np.sum(np.sum(pd.notnull(lsp_dist), axis=0) == 1)} "
            "sites missing data"))
 
     # check all diagonals are zeros
@@ -188,7 +188,7 @@ def run_analysis():
     # save MMRR results to a table
     res_df = pd.DataFrame({k:[v] for k, v in res.items()})
     res_df.to_csv(os.path.join(phf.TABS_DIR,
-                               'rhinella_granulosa_MMRR_res.csv'),
+                               'TAB_rhinella_granulosa_MMRR_res.csv'),
                   index=False,
                  )
 

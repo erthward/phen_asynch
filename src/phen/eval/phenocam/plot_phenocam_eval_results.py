@@ -274,7 +274,7 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
                    )
     ax2.set_xlim(0, 20.5)
     ax2.set_ylim(0,1)
-    ax2.set_xlabel('NDVI time series length (years)', fontdict=axlabel_fontdict)
+    ax2.set_xlabel('camera NDVI time series length (years)', fontdict=axlabel_fontdict)
     if rs_var == 'NIRv':
         ylab_str = 'NIR_{V}'
     else:
@@ -284,16 +284,16 @@ for i, rs_var in enumerate(['NIRv', 'SIF']):
 
     # add part labels
     if rs_var == 'NIRv':
-        ax1_lab = 'A.'
-        ax2_lab = 'B.'
+        ax1_lab = 'i.'
+        ax2_lab = 'ii.'
     else:
-        ax1_lab = 'C.'
-        ax2_lab = 'D.'
+        ax1_lab = 'iii.'
+        ax2_lab = 'iv.'
     ax1.text(ax1.get_xlim()[0]-(0.24*np.diff(ax1.get_xlim())),
              1.005*ax1.get_ylim()[1],
              ax1_lab,
              weight='bold',
-             size=24,
+             size=21,
             )
     ax2.text(-5.1,
              1,
@@ -368,7 +368,7 @@ print(f'\n\n{len(val)} total datasets')
 
 # write out
 val.to_csv(os.path.join(phf.TABS_DIR,
-                        'TAB_SUPP_PhenoCam_evaluation_all_results.csv'),
+                        'SUPP_TAB_2_PhenoCam_evaluation_all_results.csv'),
            index=False,
           )
 

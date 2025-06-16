@@ -45,7 +45,7 @@ data_dir = phf.EXTERNAL_RF_DATA_DIR
 # some general plotting params:
 cbar_axlab_fontsize = 35
 cbar_ticklab_fontsize = 24
-supp_axlabel_fontdict = {'fontsize': 18}
+supp_axlabel_fontdict = {'fontsize': 24}
 cbarticklabel_fontsize = 12
 plot_crs = 8857
 
@@ -423,7 +423,7 @@ if __name__ == '__main__':
                         f'SHAP_predom_{file_suffix}.tif'), masked=True)[0]
 
         # reproject rasters
-        # NOTE: crop the raster 179 longitude for now because for some odd
+        # NOTE: crop the raster at 179 longitude for now because for some odd
         #       reason I'm now getting the last couple columns hugging
         #       -/+180 and causing crazy projection issues;
         #       does nothing to influence the results, but I should debug
@@ -484,7 +484,7 @@ if __name__ == '__main__':
                                      )
 
             fig_main.savefig(os.path.join(phf.FIGS_DIR,
-                                          'FIG_asynch_and_drivers.png'), dpi=500)
+                                          'FIG_2_asynch_and_drivers.pdf'), dpi=500)
 
             del fig_main
 
@@ -522,30 +522,32 @@ if __name__ == '__main__':
     # plot model errors
 
     if what_to_plot == 'error_supp':
-        fig_err = plt.figure(figsize=(16,8))
+        fig_err = plt.figure(figsize=(19,10))
         err_filename = f'err_map_{include_coords}COORDS_{var}_{neigh_rad}km.tif'
-        rast = rxr.open_rasterio(os.path.join(data_dir,
+        err = rxr.open_rasterio(os.path.join(data_dir,
                                               err_filename), masked=True)[0]
-        # NOTE: multiply raster by -1 because I accidentally subtracted real value from
-        #       prediction instead of vice versa
+        # reproject
+        err_proj = err.sel(x=slice(-180, 179)).rio.write_crs(
+                                4326).rio.reproject(plot_crs, nodata=np.nan)
+        err = phf.mask_xarr_to_other_xarr_bbox(err_proj,
+                                            err.sel(x=slice(-180, 179)))
         ax = fig_err.add_subplot(111)
         divider = make_axes_locatable(ax)
         where = 'bottom'
         orientation = 'horizontal'
         size = '4%'
         cax = divider.append_axes(where, size=size, pad=0.2)
-
-        vminmax = np.max(np.abs([np.nanpercentile(rast, 1),
-                                 np.nanpercentile(rast, 99)]))
-        rast.plot.imshow(ax=ax,
-                         vmin=-vminmax,
-                         vmax=vminmax,
-                         cmap='cmo.balance_r',
-                         add_colorbar=True,
-                         cbar_ax=cax,
-                         cbar_kwargs = {'orientation': orientation},
-                         zorder=0,
-                        )
+        vminmax = np.max(np.abs([np.nanpercentile(err, 1),
+                                 np.nanpercentile(err, 99)]))
+        err.plot.imshow(ax=ax,
+                             vmin=-vminmax,
+                             vmax=vminmax,
+                             cmap='cmo.balance_r',
+                             add_colorbar=True,
+                             cbar_ax=cax,
+                             cbar_kwargs = {'orientation': orientation},
+                             zorder=0,
+                            )
         cax.tick_params(labelsize=cbarticklabel_fontsize)
         if orientation == 'vertical':
             axis = 'y'
@@ -554,19 +556,19 @@ if __name__ == '__main__':
         getattr(cax, f'set_{axis}label')('standardized prediction error', supp_axlabel_fontdict)
         phf.plot_juris_bounds(ax,
                               lev1_linewidth=0.1,
-                              lev1_alpha=0.5,
+                              lev1_alpha=0.3,
                               lev1_zorder=1,
-                              lev0_linewidth=0.25,
+                              lev0_linewidth=0.5,
                               lev0_alpha=0.6,
                               lev0_zorder=2,
-                              crs=rast.rio.crs,
+                              crs=err.rio.crs,
                               strip_axes=True,
                              )
         # trim to the raster's bounds
-        ax.set_xlim(rast.rio.bounds()[::2])
-        ax.set_ylim(rast.rio.bounds()[1::2])
+        ax.set_xlim(err.rio.bounds()[::2])
+        ax.set_ylim(err.rio.bounds()[1::2])
         # crop at top of LSP map
-        phf.set_upper_ylim(ax, uplim=60)
+        phf.set_upper_ylim(ax)
 
         # adjust subplots and save
         fig_err.subplots_adjust(bottom=0.08,

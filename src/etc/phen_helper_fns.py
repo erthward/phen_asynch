@@ -622,6 +622,7 @@ def plot_flowerdate_LSP_comparison(flower_obs,
                                    radar_alpha=0.5,
                                    radar_width_shrink_factor=0.9,
                                    radar_ticklabel_size=11,
+                                   ax_ts_ticklabel_size=9.3,
                                    save_scree_plot=False,
                                    name=None,
                                    tid=None,
@@ -758,7 +759,7 @@ def plot_flowerdate_LSP_comparison(flower_obs,
         xax_ticks = [0, 90, 180, 271, 364]
         xax_ticklabs = ['Jan', 'Apr', 'Jul', 'Oct', 'Jan']
         ax_ts.set_xticks(xax_ticks)
-        ax_ts.set_xticklabels(xax_ticklabs, size=8)
+        ax_ts.set_xticklabels(xax_ticklabs, size=ax_ts_ticklabel_size)
     assert np.round(np.max(lsp_ts), 0) == 2
     assert np.round(np.min(lsp_ts), 0) == -2
     ax_ts.set_yticks(())
@@ -865,6 +866,7 @@ def plot_popgen_LSP_comparison(gen_dist_mat,
                                map_ylim=None,
                                interp_lsp_data=False,
                                neigh_dist_lsp_fill_tol=2,
+                               ax_ts_ticklabel_size=9.3,
                               ):
     """
     plot a visual comparison between the genetic structure of the given genetic
@@ -961,7 +963,7 @@ def plot_popgen_LSP_comparison(gen_dist_mat,
         xax_ticks = [0, 90, 180, 271, 364]
         xax_ticklabs = ['Jan', 'Apr', 'Jul', 'Oct', 'Jan']
         ax.set_xticks(xax_ticks)
-        ax.set_xticklabels(xax_ticklabs, size=7)
+        ax.set_xticklabels(xax_ticklabs, size=ax_ts_ticklabel_size)
         assert np.round(np.max(lsp_ts), 0) == 2
         assert np.round(np.min(lsp_ts), 0) == -2
         ax.set_yticks(())

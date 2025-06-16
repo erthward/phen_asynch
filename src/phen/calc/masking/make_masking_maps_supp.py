@@ -154,7 +154,7 @@ def map_mask(ax, mask_filename, axlabel):
     phf.plot_juris_bounds(ax,
                           lev0_color='none',
                           lev0_linecolor='gray',
-                          lev0_linewidth=0.5,
+                          lev0_linewidth=0.1,
                           lev0_alpha=0.8,
                           lev0_zorder=2,
                           lev1_color='none',
@@ -167,7 +167,7 @@ def map_mask(ax, mask_filename, axlabel):
                          )
     ax.set_xlim(mask_proj.rio.bounds()[0::2])
     ax.set_ylim(mask_proj.rio.bounds()[1::2])
-    ax.text(-15e6, -6.4e6, axlabel, size=8, weight='bold')
+    ax.set_ylabel(axlabel, size=10)
     # process the zonal means and return them
     # NOTE: taking 1 minus the calculated mean, to express as percent masked out
     zonal_means = [{j['properties']['CONTINENT']: 1-j['properties']['mean']
@@ -182,15 +182,15 @@ if __name__ == '__main__':
     fracs['mask'] = []
 
     # dict for renaming masks, for display in fig and in table
-    label_dict = {'lcMask': 'A. land cover',
-                  'monthPropsMinMask_NIRv': 'B. monthly data availability',
-                  'evennessMask_NIRv': 'C. monthly data availability evenness',
-                  'shortTSMask_NIRv': 'D. total data availability',
-                  'signifMask_NIRv': 'E. regression significance',
+    label_dict = {'lcMask': 'land cover\n(ag in black)',
+                  'monthPropsMinMask_NIRv': 'monthly data\navailability',
+                  'evennessMask_NIRv': 'data availability\nevenness',
+                  'shortTSMask_NIRv': 'total data\navailability',
+                  'signifMask_NIRv': 'regression\nsignificance',
                  }
 
-    fig = plt.figure(figsize=(8.7, 6))
-    gs = GridSpec(3, 4, figure=fig)
+    fig = plt.figure(figsize=(3.45, 6.0))
+    gs = GridSpec(5, 1, figure=fig)
     filenames = ['lcMask.tif',
                  'monthPropsMinMask_NIRv.tif',
                  'evennessMask_NIRv.tif',
@@ -200,10 +200,7 @@ if __name__ == '__main__':
 
     for ct, fn in enumerate(filenames):
         print(f"\n\nNOW PROCESSING {fn}...\n\n")
-        if ct < len(filenames) - 1:
-            ax = fig.add_subplot(gs[ct//2, ((ct%2)*2):((ct%2)*2+2)])
-        else:
-            ax = fig.add_subplot(gs[ct//2, ((ct%2)*2+1):((ct%2)*2+3)])
+        ax = fig.add_subplot(gs[ct, :])
         label = label_dict[fn.replace('.tif', '')]
         zonal_means = map_mask(ax, fn, label)
         if 'lcMask' in fn:
@@ -226,7 +223,7 @@ if __name__ == '__main__':
     frac_tab = pd.DataFrame.from_dict(fracs)
     frac_tab = frac_tab.iloc[:, [6]+[*range(6)]]
     frac_tab.to_csv(os.path.join(phf.TABS_DIR,
-                                 'TAB_SUPP_mask_fracs.csv'),
+                                 'TAB_LSP_masking_fracs.csv'),
                     index=False,
                    )
 

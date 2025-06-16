@@ -94,6 +94,12 @@ for neigh_rad_i, neigh_rad in enumerate(['50', '100', '150']):
             color='red',
             size=11,
            )
+    #ax.text(get_text_pos(ax.get_xlim(), 0.5),
+    #        get_text_pos(ax.get_ylim(), 0.75),
+    #        '$P=%E$' % lm.pvalues[1],
+    #        color='red',
+    #        size=11,
+    #       )
     if neigh_rad_i == 2:
         ax.set_xlabel('$SIF$ asynchrony', fontdict={'fontsize': 14})
     else:
@@ -109,5 +115,5 @@ fig.subplots_adjust(top=0.95,
                     wspace=0.2,
                    )
 fig.savefig(os.path.join(phf.FIGS_DIR,
-                         'FIG_SUPP_scaled_NIRv_asynch_vs_scaled_SIF_asynch.png'), dpi=500)
+                         'FIG_SUPP_scaled_NIRv_asynch_vs_scaled_SIF_asynch.jpg'), dpi=500)
 

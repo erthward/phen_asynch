@@ -64,8 +64,8 @@ radar_width_shrink_factor=0.9
 section_lab_fontsize=17
 cbar_lab_fontsize = 16
 title_fontsize = 14
-taxon_fontsize = 9
-axlabel_fontsize = 10
+taxon_fontsize = 10
+axlabel_fontsize = 9.3
 
 # configure figure and axes sizes
 figsize = (14.5, 7)
@@ -256,7 +256,7 @@ fig_supp.subplots_adjust(top=0.96,
                          hspace=0.9,
                         )
 fig_supp.savefig(os.path.join(phf.FIGS_DIR,
-                              'FIG_SUPP_inat_taxa_npeaks_summary_maps.png'),
+                              'FIG_SUPP_inat_taxa_npeaks_summary_maps.jpg'),
                  dpi=600,
                 )
 
@@ -271,7 +271,7 @@ print(f"\n\n{all_taxa_count} have flowering observations in iNaturalist.")
 gt50_obs_taxa_count = len(gpd.read_file('./phen/inat_flower_phen_results.json'))
 print(f"\n\n{gt50_obs_taxa_count} have >= 50 flowering observations available.")
 
-mmrr_res_filename = './phen/inat_flower_doy_LSP_MMRR_res.csv'
+mmrr_res_filename = './phen/iNat_MMRR_results_ALL.csv'
 inat_mmrr_df = pd.read_csv(mmrr_res_filename)
 
 # drop all taxa for which MMRR models could not be fit
@@ -373,7 +373,7 @@ supp_tab.columns = ['taxon',
                     'F P',
                     'R2',
                    ]
-supp_tab.to_csv(os.path.join(phf.TABS_DIR, 'TAB_SUPP_iNat_MMRR_results.csv'),
+supp_tab.to_csv(os.path.join(phf.TABS_DIR, 'SUPP_TAB_4_iNat_MMRR_results.csv'),
                 index=False,
                )
 
@@ -422,11 +422,11 @@ print(f"{sig_MMRR_LSP_msg_fdr_corr}\n\n")
 
 # log the summary info, if not already logged
 MMRR_sum_logged = False
-with open('./phen/inat_phen_MMRR_log.txt', 'r') as f:
+with open('./phen/inat_phen_MMRR.log', 'r') as f:
     if re.search('={80}', f.read()) is not None:
         MMRR_sum_logged = True
 if not MMRR_sum_logged:
-    with open('./phen/inat_phen_MMRR_log.txt', 'a') as f:
+    with open('./phen/inat_phen_MMRR.log', 'a') as f:
         f.write(f'\n{"="*80}\n')
         f.write(f"{fail_fit_hull_msg}\n\n")
         f.write(f"{sig_nonunimodal_msg}\n\n")
@@ -515,8 +515,6 @@ def plot_taxon_photo(ax, name):
     the available CC BY and CC BY-NC photos on iNaturalist
     """
     filename = name.replace(' ', '_') + '.png'
-    if name == 'Xiphorhynchus fuscus':
-        filename = os.path.splitext(filename)[0] + '_horizontal.png'
     filepath = os.path.join(phf.EXTERNAL_INAT_DATA_DIR,
                             'photos',
                             filename,
@@ -530,8 +528,6 @@ def plot_taxon_photo(ax, name):
     # make white pixels (i.e. pixels with 1s in the first 3 layers) transparent
     img[:,:,3] *= (img[:,:,:3].sum(axis=2)!=3)
     # swap x and y axes, if necessary
-    if 'horizontal' in filename:
-        img = img.swapaxes(0, 1)
     ax.imshow(img)
     ax.set_aspect('equal')
     ax.set_title('')
@@ -998,7 +994,7 @@ ax_meta.text(0.541,
              size=title_fontsize,
             )
 ax_meta.text(0.04,
-             0.595,
+             0.585,
              [*sw_taxa_clust_Ks][0].replace(' ', '\n'),
              ha='center',
              fontdict={'fontsize': taxon_fontsize,
@@ -1065,7 +1061,7 @@ fig.subplots_adjust(hspace=0,
                     bottom=0.04,
                     top=0.98,
                    )
-fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_inat_landgen_coffea_results.png'),
+fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_4_inat_landgen_coffea_results.pdf'),
             dpi=600,
            )
 
@@ -1111,7 +1107,7 @@ out_df.columns = ['Intercept: coeff.',
                   'F stat. P-value',
                  ]
 out_df = out_df.T
-out_df.to_csv(os.path.join(phf.TABS_DIR, 'TAB_SUPP_landgen_MMRR_results.csv'),
+out_df.to_csv(os.path.join(phf.TABS_DIR, 'TAB_landgen_MMRR_results.csv'),
               index=True,
              )
 

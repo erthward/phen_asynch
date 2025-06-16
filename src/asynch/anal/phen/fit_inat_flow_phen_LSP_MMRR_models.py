@@ -170,7 +170,7 @@ else:
 #------------------------------------------------------------------------------
 # regress flowering observation doy distance on NIRv LSP data
 #------------------------------------------------------------------------------
-mmrr_res_filename = 'inat_flower_doy_LSP_MMRR_res.csv'
+mmrr_res_filename = 'iNat_MMRR_results_ALL.csv'
 if not os.path.isfile(mmrr_res_filename):
 
     def fit_LSP_MMRR(obs,
@@ -284,7 +284,7 @@ if not os.path.isfile(mmrr_res_filename):
     np.random.seed(1)
 
     # create logfile
-    with open('./inat_phen_MMRR_log.txt', 'w') as f:
+    with open('./inat_phen_MMRR.log', 'w') as f:
         f.write(f'INAT MMRR LOG:\n{"-"*80}\n\n')
 
     # run analysis for each species with a non-unimodal hist
@@ -354,7 +354,7 @@ if not os.path.isfile(mmrr_res_filename):
             # log results
             pct_lsp_miss_msg = (f"{np.round(100*pct_lsp_miss, 2)}% "
                                 "of sites are missing LSP coefficients")
-            with open('./inat_phen_MMRR_log.txt', 'a') as f:
+            with open('./inat_phen_MMRR.log', 'a') as f:
                 f.write(f"{tid}: {name}\n")
                 f.write(runtime_msg)
                 f.write(f"{pct_lsp_miss_msg}\n\n")
@@ -365,7 +365,7 @@ if not os.path.isfile(mmrr_res_filename):
             err_msg = f"\n\tERROR THROWN: {e}"
             print(f"{err_msg}\n\n\tmoving on...\n")
             # log results
-            with open('./inat_phen_MMRR_log.txt', 'a') as f:
+            with open('./inat_phen_MMRR.log', 'a') as f:
                 f.write(f"{tid}: {name}\n")
                 try:
                     f.write(f"{pct_lsp_miss_msg}\n\n")

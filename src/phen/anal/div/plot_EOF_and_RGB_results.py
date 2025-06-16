@@ -158,7 +158,7 @@ regs_in_main = {'Ba': ('A.',
                 'GB': ('B.',
                        (slice(235, 375), slice(190, 290),
                         slice(375, 400), slice(195, 285)),
-                       (-0.6, -1.1)),
+                       (-0.7, -1.1)),
                 'Fl': ('C.',
                        (slice(242, 372), slice(340, 430),
                         slice(375, 400), slice(340, 430)),
@@ -286,6 +286,25 @@ def run_clust_analysis(coeffs_rast,
                         vals in cluster_vals.items() if pd.notnull(i)}
         # run ANOVA
         fval, pval = stats.f_oneway(*cluster_vals.values())
+        # run Monte Carlo of ANOVA (since pixel-based samples not independent)
+        null_fvals = []
+        null_pvals = []
+        all_vals = [n for v in cluster_vals.values() for n in v]
+        clust_sizes = [len(v) for v in cluster_vals.values()]
+        for _ in range(1000):
+            np.random.shuffle(all_vals)
+            null_vals_0 = all_vals[:clust_sizes[0]]
+            null_vals_1 = all_vals[clust_sizes[0]:clust_sizes[0]+clust_sizes[1]]
+            null_vals_2 = all_vals[clust_sizes[0]+clust_sizes[1]:]
+            assert len(null_vals_0) + len(null_vals_1) + len(null_vals_2) == len(all_vals)
+            null_fval, null_pval = stats.f_oneway(null_vals_0,
+                                                  null_vals_1,
+                                                  null_vals_2,
+                                                 )
+            null_fvals.append(null_fval)
+            null_pvals.append(null_pval)
+        # NOTE: F-distribution is one-sided, so no need for np.abs()
+        anova_permut_signif = np.mean(np.array(null_fvals)>=fval)
         # run Tukey HSD
         tuk = pairwise_tukeyhsd(
             endog=np.array([val for val_list in cluster_vals.values(
@@ -293,10 +312,15 @@ def run_clust_analysis(coeffs_rast,
             groups=np.array([clust for clust, val_list in cluster_vals.items(
                                                 ) for val in val_list]))
         print('\n\n==========\nGreat Basin cheatgrass statistical results:')
-        print('\n\tANOVA: F-val: %0.2f; p-val: %0.2f\n\n' % (fval, pval))
+        print(f'\n\tANOVA: F-val: {fval}; p-val: {pval}\n\n')
+        print((f"\n\tANOVA: Monte Carlo p-val: {anova_permut_signif}\n"
+               f"\t(null F-vals [{np.min(null_fvals)}, {np.max(null_fvals)}])\n"
+               f"\t(null P-vals [{np.min(null_pvals)}, {np.max(null_pvals)}])\n"))
         print('\tgroup means:\n\t%s' % '\t'.join(['%i: %0.2f' % (i,
                 np.mean(vals)) for i, vals in cluster_vals.items()]))
+        print(f"\tgroup n's:\n\t{[len(v) for v in cluster_vals.values()]}")
         print('\n\n\tTukey HSD: %s' % str(tuk))
+        print(f"\n\n\tTukey HSD P-values: {tuk.pvalues}")
         print('\n\ncluster colors:\n')
         for clust, color in zip(sorted(np.unique(clusters_rxr)),
                                 center_colors):
@@ -314,7 +338,7 @@ def run_clust_analysis(coeffs_rast,
     return labels, centers, center_colors
 
 
-def add_phen_labs(ax, reg, text_size=12, mark_size=65, hspace_frac=0.22):
+def add_phen_labs(ax, reg, text_size=13, mark_size=65, hspace_frac=0.22):
     """
     Add colored numeric labels to a phenology line plot
     """
@@ -566,7 +590,7 @@ if what_to_plot == 'eof_summ_fig':
     fig_eof.subplots_adjust(wspace=.3)
     if save_it:
         fig_eof.savefig(os.path.join(phf.FIGS_DIR,
-                                     'FIG_SUPP_%s_EOF_summary%s.png' % (dataset,
+                                     'FIG_SUPP_%s_EOF_summary%s.pdf' % (dataset,
                                                 mask_filename_ext)), dpi=600)
 
 
@@ -623,7 +647,7 @@ if what_to_plot == 'raw_rgb_maps':
                                 hspace=0.05)
     if save_it:
         fig_untrans.savefig(os.path.join(phf.FIGS_DIR,
-                                         'FIG_SUPP_untransformed_EOF_maps.png'), dpi=600)
+                                         'FIG_SUPP_untransformed_EOF_maps.pdf'), dpi=600)
 
     del eofs_for_map
 
@@ -716,7 +740,7 @@ if what_to_plot == 'main_rgb_map':
         for month in np.linspace(0, 365, 13):
             ax_lines.axvline(month, color='black',
                        linewidth=0.25, linestyle=':', alpha=0.75, zorder=0)
-        ax_lines.tick_params(labelsize=10, rotation=0)
+        ax_lines.tick_params(labelsize=13, rotation=0)
         for axis in ['top','bottom','left','right']:
             ax_lines.spines[axis].set_linewidth(2)
             ax_lines.spines[axis].set_color('black')
@@ -828,7 +852,7 @@ if what_to_plot in ['reg_figs', 'main_rgb_map']:
             for month in np.linspace(0, 365, 13):
                 ax_lines.axvline(month, color='black',
                                  linewidth=0.25, linestyle=':', alpha=0.75, zorder=0)
-            ax_lines.tick_params(labelsize=10, rotation=0)
+            ax_lines.tick_params(labelsize=13, rotation=0)
             for axis in ['top','bottom','left','right']:
                 ax_lines.spines[axis].set_linewidth(2)
             if in_main:
@@ -889,7 +913,7 @@ if what_to_plot == 'main_rgb_map':
                           bottom=0.04,
                           top=0.98)
     if save_it:
-        fig_1.savefig(os.path.join(phf.FIGS_DIR, 'FIG_LSP_RGB_map.png'),
+        fig_1.savefig(os.path.join(phf.FIGS_DIR, 'FIG_1_LSP_RGB_map.pdf'),
                       dpi=700)
 
 

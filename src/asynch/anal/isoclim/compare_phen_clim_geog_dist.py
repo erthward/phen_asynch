@@ -45,6 +45,9 @@ sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
 from MMRR import MMRR
 import phen_helper_fns as phf
 
+# DETH: 02/06/2025: set seed, because I realized that each plot that was
+#       iteratively reproduced had a different histogram in subplot C
+np.random.seed(0)
 
 print(f"\n\nSETTING PARAMETERS AND LOADING DATA...\n\n")
 # BEHAVIORAL PARAMS:
@@ -494,11 +497,11 @@ for _ in range(1000):
     null_fx.append(null_fx_size)
 
 # display empirical p-value (i.e., percent of null results >= real result)
-emp_pval = np.mean(np.array(null_fx) >= fx_size)
+emp_pval = np.mean(np.abs(np.array(null_fx)) >= np.abs(fx_size))
 # NOTE: fix empirical p-value at 0.001 for display, if == 0
 if emp_pval == 0:
     emp_pval = 0.001
-emp_pval_str = '\n\nEMPIRICAL P-VALUE: %0.3f\n' % emp_pval
+emp_pval_str = '\nsubplot C: empirical P: %0.3f' % emp_pval
 print(emp_pval_str)
 
 
@@ -523,10 +526,10 @@ ax.tick_params(labelsize=ticklabel_size)
 #        size=16,
 #       )
 ax.text(0.25*ax.get_xlim()[1],
-        0.75*ax.get_ylim()[1],
+        0.65*ax.get_ylim()[1],
         '$P_{permut} \ll %s' % f'{np.round(emp_pval, 3)}$',
         color='black',
-        size=16,
+        size=19,
        )
 
 # add label for part C
@@ -545,6 +548,8 @@ ax = fig.add_subplot(gs[:60, 215:])
 ax.scatter(np.abs(all_loop_MMRR_res_gdf['mean_lat']),
             all_loop_MMRR_res_gdf['clim_dist'],
             c='black', s=35)
+print((f"\nsubplot B: n={len(all_loop_MMRR_res_gdf['mean_lat'].values)} "
+       "regions (i.e., points)"))
 xlim = np.array(ax.get_xlim())
 ax.plot(xlim,
         coeffs.const + coeffs.mean_lat * xlim,
@@ -563,20 +568,21 @@ ax.text(ax.get_xlim()[0] - (0.2*(ax.get_xlim()[1]-ax.get_xlim()[0])),
 # add slope and p-value
 slope = coeffs.mean_lat
 pval = pvalues.mean_lat
-# NOTE: fix p-value at 0.001 for display, if == 0
+print(f"\nsubplot B: P={pvalues.mean_lat}")
+# NOTE: fix p-value at 3 decimal places, for display, and fix at '<0.001' if ==0
 if np.round(pval, 3) == 0:
     pval = 0.001
 ax.text(-1.5,
-        0.9*ax.get_ylim()[1],
+        0.85*ax.get_ylim()[1],
         'slope = %0.5f' % slope,
         color='red',
-        size=16,
+        size=19,
        )
 ax.text(-1.5,
-        0.78*ax.get_ylim()[1],
+        0.65*ax.get_ylim()[1],
         f'$P \ll {np.round(pval, 3)}$',
         color='black',
-        size=16,
+        size=19,
        )
 
 
@@ -690,5 +696,5 @@ fig.subplots_adjust(top=0.92,
                     hspace=0.3,
                    )
 
-fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_isoclim_asynch.png'), dpi=700)
+fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_3_isoclim_asynch.pdf'), dpi=700)
 

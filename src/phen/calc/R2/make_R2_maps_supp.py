@@ -151,5 +151,5 @@ if __name__ == '__main__':
                         hspace=0,
                         wspace=0.2,
                        )
-    fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_SUPP_harm_reg_R2_maps.png'), dpi=500)
+    fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_SUPP_harm_reg_R2_maps.jpg'), dpi=500)
 

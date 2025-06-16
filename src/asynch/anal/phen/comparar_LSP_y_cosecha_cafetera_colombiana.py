@@ -241,14 +241,14 @@ def run_analysis(rgb_map_ax,
         ax.set_ylim(-2.5, 2)
         ax.set_yticks(())
         if i == 2:
-            ax.set_ylabel(f"{' '*27}scaled LSP", fontdict={'fontsize': 10})
+            ax.set_ylabel(f"{' '*27}scaled LSP", fontdict={'fontsize': 9.3})
         else:
             ax.set_ylabel('')
         if i == 3:
             ax.set_xticks([0, 90, 181, 273, 364],
                           ['Jan', 'Apr', 'Jul', 'Oct', 'Jan'],
                          )
-            ax.tick_params(labelsize=8)
+            ax.tick_params(labelsize=9.3)
         else:
             ax.set_xlabel('')
             ax.set_xticks(())

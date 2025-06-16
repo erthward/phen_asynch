@@ -24,7 +24,7 @@ genind_obj = read.structure('./dryad_archive/2-Mantel_test/Rgranulosa_Mantel.str
 # write out simple Euclidean genetic distance matrix
 dist_gen = as.matrix(dist(genind_obj, method='euclidean'))
 write.table(dist_gen,
-            './dryad_archive/2-Mantel_test/Rgranulosa_Mantel.csv',
+            './dryad_archive/2-Mantel_test/all_rhinella_granulosa_dist.csv',
             sep=',',
             row.names=T,
             col.names=T,

@@ -39,7 +39,7 @@ print(f'\n\n{len(val)} total datasets')
 
 # write out
 val.to_csv(os.path.join(phf.TABS_DIR,
-                        'TAB_SUPP_FLUXNET_evaluation_all_results.csv'),
+                        'SUPP_TAB_3_FLUXNET_evaluation_all_results.csv'),
            index=False,
           )
 

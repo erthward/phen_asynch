@@ -45,7 +45,7 @@ def run_analysis():
     print('\nreading genetic data...')
     gen_dist_filepath = os.path.join(phf.REPO_DIR,
                                      'src/asynch/anal/gen/xiphorhynchus/',
-                                     'all_xiphorhynchus_fuscus_dist_IAN.csv',
+                                     'all_xiphorhynchus_fuscus_dist.csv',
                                     )
     gen_dist = pd.read_csv(gen_dist_filepath)
     # set first column as index
@@ -124,7 +124,7 @@ def run_analysis():
                                          )
     print((f"\n\n{np.round(100*np.mean(pd.isnull(lsp_dist)), 2)} % "
             "of lsp_dist consists of missing values"))
-    print((f"\n\n{np.sum(np.sum(pd.notnull(lsp_dist), axis=0) > 1)} "
+    print((f"\n\n{np.sum(np.sum(pd.notnull(lsp_dist), axis=0) == 1)} "
            "sites missing data"))
 
 
@@ -192,7 +192,7 @@ def run_analysis():
     # save MMRR results to a table
     res_df = pd.DataFrame({k:[v] for k, v in res.items()})
     res_df.to_csv(os.path.join(phf.TABS_DIR,
-                               'xiphorhynchus_fuscus_MMRR_res.csv'),
+                               'TAB_xiphorhynchus_fuscus_MMRR_res.csv'),
                   index=False,
                  )
 

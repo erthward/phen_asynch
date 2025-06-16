@@ -23,17 +23,9 @@ sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
 import phen_helper_fns as phf
 
 
-######
-# TODO
-######
-
-    #1 decide whether I should be using 757nm or 771nm original SIF
-
-    #2 instead of using all the polygons, just make a grid of lower-left grid
-    #  corners, then subtract some amount from the centroid of each footprint
-    #  and round to the closest cell in the grid, to find grid cells that are
-    #  some effective buffer distance from any orbital track
-
+# DETH: 02-06-2025: set seed, to prevent random variation in the sets of random
+#                   points from run to run
+np.random.seed(0)
 
 
 ###########
@@ -450,9 +442,9 @@ def make_scatter_and_tsgrid():
 #                      fontdict={'fontsize': 25})
     scat_ax = fig_scat.add_subplot(111)
     scat_ax.set_xlabel('ANN-gridded SIF ($mW/m^2/sr/nm$)',
-                       fontdict={'fontsize':22})
+                       fontdict={'fontsize':32})
     scat_ax.set_ylabel('TROPOMI SIF ($mW/m^2/sr/nm$)',
-                       fontdict={'fontsize':22})
+                       fontdict={'fontsize':32})
     # grid of paired time-series plots, one per site
     region_dict = {(-76.4851409407,-11.1511447176,
                     -60.7356888937,7.6883728971): 'S.Am.' ,
@@ -500,17 +492,15 @@ def make_scatter_and_tsgrid():
         if n%20 != 2:
             ax.set_yticklabels([])
         else:
-            plt.yticks(size=6)
-            #ax.set_yticklabels(ax.get_yticklabels(), size=6)
+            plt.yticks(size=24)
         if n <= 161:
             ax.set_xticklabels([])
         else:
-            plt.xticks(size=6, rotation=45)
-            #ax.set_xticklabels(ax.get_xticklabels(), size=6, rotation=45)
+            plt.xticks(size=24, rotation=45)
         if n == 82:
-            ax.set_ylabel('SIF ($mW/m^2/sr/nm$)', fontdict={'fontsize':22})
+            ax.set_ylabel('SIF ($mW/m^2/sr/nm$)', fontdict={'fontsize':32})
         if n == 171:
-            ax.set_xlabel('time', fontdict={'fontsize':22})
+            ax.set_xlabel('time', fontdict={'fontsize':32})
         # add the site's TROPOMI and ANN-gridded data to the overall
         # scatterplot
         scat_ax.plot(grid_series, trop_subset_data_series[site], '.',
@@ -522,22 +512,26 @@ def make_scatter_and_tsgrid():
     mod = sm.regression.linear_model.OLS(
                     endog = [n for n in tot_series[0] if not np.isnan(n)],
                     exog = [n for n in tot_series[1] if not np.isnan(n)]).fit()
+    print(f"\nscatter plot n = {np.sum(pd.notnull(tot_series[0]))}\n")
+    print(f"\nRESULTS:\n\t{mod.summary()}")
+    print(f"\nP-values: {mod.pvalues}")
     pred_xs = np.arange(0, 0.9, 0.01)
     pred_ys = mod.predict(pred_xs)
     scat_ax.plot(pred_ys, pred_xs, ':k')
     scat_ax.text(0.5, 0.25, '$R^2$: ' + str(np.round(mod.rsquared, 2)),
-                 color='black', fontdict={'fontsize':20})
+                 color='black', fontdict={'fontsize':28})
     scat_ax.text(0.5, 0.15, '$slope$: ' + str(np.round(mod.params[0], 2)),
-                 color='black', fontdict={'fontsize':20})
-    scat_ax.tick_params(labelsize=15)
-    fig_scat.subplots_adjust(left=0.07, right=0.98, bottom=0.1, top=0.97)
+                 color='black', fontdict={'fontsize':28})
+    scat_ax.tick_params(labelsize=24)
+    fig_scat.subplots_adjust(left=0.09, right=0.97, bottom=0.12, top=0.96)
     fig_scat.savefig(os.path.join(phf.FIGS_DIR,
                                   'FIG_SUPP_orbital_gap_validation_scatter.png'), dpi=500)
     fig_scat.show()
     fig_tsgrid.show()
+    return mod
 
 # call that function
-make_scatter_and_tsgrid()
+mod = make_scatter_and_tsgrid()
 
 
 def make_sample_point_map():
@@ -549,7 +543,7 @@ def make_sample_point_map():
     points = [(np.abs(grid_lons - site[0]).argmin(),
                np.abs(grid_lats[::-1]-site[1]).argmin()) for site in site_set]
     map_ax.scatter([p[0] for p in points], [p[1] for p in points],
-                   c=site_set_colors, edgecolors='black', linewidth=0.4, s=8, alpha=0.7)
+                   c=site_set_colors, edgecolors='black', linewidth=0.4, s=24, alpha=0.7)
     map_ax.set_xticks([])
     map_ax.set_yticks([])
     fig_map.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98)

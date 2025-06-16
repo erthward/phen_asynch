@@ -25,6 +25,13 @@ flux_datadir = phf.EXTERNAL_FLUX_DATA_DIR
 r2s = rxr.open_rasterio(os.path.join(rs_datadir, 'NIRv_SIF_phen_R2s.tif'),
                         masked=True)[0]
 print(f'\n\nMEDIAN NIRv-SIF R2 VALUE: {np.nanmedian(r2s)}\n\n')
+# reproject in Equal Earth
+r2s = r2s.rio.reproject(8857)
+r2s = r2s.where(np.abs(r2s) < 1e30, np.nan)
+# get rid of repeat values that wrap around because of projection
+r2s[:600, :600] = np.nan
+r2s[-1000:, :300] = np.nan
+r2s[:600, -800:] = np.nan
 
 # map results
 fig = plt.figure(figsize=(7,4.6))
@@ -44,7 +51,8 @@ phf.plot_juris_bounds(ax,
                       lev0_color='#ede6d1', #'#9e8e67',
                       lev0_alpha=0.8,
                       lev0_zorder=0,
-                      lev1_linewidth=0.25,
+                      lev0_linewidth=0.1,
+                      lev1_linewidth=0.1,
                       lev1_alpha=0.6,
                       lev1_zorder=1,
                       crs = r2s.rio.crs.to_epsg(),
@@ -53,11 +61,11 @@ phf.plot_juris_bounds(ax,
 ax.set_xlim(r2s.rio.bounds()[::2])
 ax.set_ylim(r2s.rio.bounds()[1::2])
 # truncate northern extent to match that of LSP dataset
-phf.set_upper_ylim(ax, uplim=60)
+phf.set_upper_ylim(ax)
 cax.set_xlabel('')
 cax.text(0.49, 1.25, '$R^2$', size=16)
 
 fig.subplots_adjust(top=0.98, bottom=0.04, left=0.05, right=0.97)
 
-fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_SUPP_NIRv-SIF_LSP_comparison_results.png'), dpi=700)
+fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_SUPP_NIRv-SIF_LSP_R2.png'), dpi=700)
 

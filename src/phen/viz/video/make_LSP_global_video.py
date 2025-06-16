@@ -16,15 +16,24 @@ import os
 import sys
 import re
 import cv2
-
+import time
 
 sys.path.insert(1, ('/home/deth/Desktop/CAL/research/projects/seasonality/'
                     'seasonal_asynchrony/src/etc/'))
 import phen_helper_fns as phf
 
 
+# calc full runtime
+start = time.time()
+
 # data dir for saving intermediate images and final video
 data_dir = '/media/deth/SLAB/diss/3-phn/phen_video'
+
+# image resolution
+dpi = 300
+
+# compress resulting video?
+compress = False
 
 # set crs for mapping
 crs = 8857
@@ -54,7 +63,7 @@ def plot_calendar_bar(ax, doy):
     yrng = ymax - ymin
     # plot timeline
     ax.plot([xmin+0.125*xrng, xmin+0.875*xrng],
-            [ymin-0.045*yrng]*2,
+            [ymin-0.065*yrng]*2,
             '-k',
             linewidth=3,
             clip_on=False,
@@ -72,14 +81,14 @@ def plot_calendar_bar(ax, doy):
                           )
     for month, tick_loc, lab_loc in zip(months+[months[0]], tick_locs, lab_locs):
         ax.plot([tick_loc]*2,
-                [ymin-0.06*yrng,
-                 ymin-0.03*yrng],
+                [ymin-0.08*yrng,
+                 ymin-0.05*yrng],
                 '-k',
                 linewidth=3,
                 clip_on=False,
                )
         ax.text(lab_loc,
-                ymin-0.018*yrng,
+                ymin-0.038*yrng,
                 month,
                 color='black',
                 fontsize=5,
@@ -89,9 +98,9 @@ def plot_calendar_bar(ax, doy):
     timepoint_frac = doy/365
     loc = xmin + 0.125*xrng + ((0.875-0.125)*timepoint_frac)*xrng
     ax.plot([loc]*2,
-            [ymin-0.06*yrng, ymin-0.03*yrng],
+            [ymin-0.08*yrng, ymin-0.05*yrng],
             '-',
-            color='#6d00a3',
+            color='#8b0000',
             linewidth=8,
             alpha=0.5,
             clip_on=False,
@@ -123,7 +132,7 @@ else:
 # create and save an image for each day of the year
 cmap = Speed_20.mpl_colormap
 for doy in range(365):
-    fn = f'map_img_doy{doy}.png'
+    fn = f'map_img_doy{doy}_{dpi}dpi.png'
     if not os.path.isfile(os.path.join(data_dir, fn)):
         print(f'\n\tmapping day number {doy}...\n\n')
         # get the fitted image daily image
@@ -139,31 +148,42 @@ for doy in range(365):
         # mask values outside global Equal Area projection bounds
         fit_proj = phf.mask_xarr_to_other_xarr_bbox(fit_proj, fit)
         # plot it
-        fig = plt.figure(figsize=(10, 5))
+        # NOTE: want 16:9 aspect ratio
+        fig = plt.figure(figsize=(8, 4.5))
         ax = fig.add_subplot(1, 1, 1)
-        phf.plot_juris_bounds(lev1=False,
-                              lev0_color='black',
-                              lev0_alpha=1,
-                              lev0_zorder=0,
-                              strip_axes=False,
-                             )
         fit_proj.plot.imshow(ax=ax,
                             vmin=0,
                             vmax=1,
                             cmap=cmap,
                             add_colorbar=False,
-                            zorder=1,
+                            zorder=0,
                            )
-        phf.plot_juris_bounds(lev1_linecolor='gray',
-                              lev1_linewidth=0.1,
+        phf.plot_juris_bounds(ax=ax,
+                              lev1_linecolor='#bbbbbb',
+                              lev1_linewidth=0.03,
                               lev1_alpha=0.8,
-                              lev1_zorder=2,
-                              lev0_linecolor='gray',
-                              lev0_linewidth=0.2,
+                              lev1_zorder=1,
+                              lev0_linecolor='#bbbbbb',
+                              lev0_linewidth=0.05,
                               lev0_alpha=0.8,
-                              lev0_zorder=3,
+                              lev0_zorder=2,
                               strip_axes=True,
                              )
+        ax.text(0.64,
+                0.006,
+                "Terasaki Hart et al. 2025, 'Global phenology ...':",
+                color='#bbbbbb',
+                size=4,
+                transform=ax.transAxes,
+               )
+        ax.text(0.813,
+                0.006,
+                "Supp. Vid. 1: Timing of global average phenocycles",
+                color='#bbbbbb',
+                style='italic',
+                size=4,
+                transform=ax.transAxes,
+               )
         fig.subplots_adjust(left=0,
                             right=1,
                             bottom=0,
@@ -171,8 +191,8 @@ for doy in range(365):
                            )
         # add the timeline
         plot_calendar_bar(ax, doy)
-        fig.savefig(os.path.join(data_dir, f'map_img_doy{doy}.png'),
-                    dpi=700,
+        fig.savefig(os.path.join(data_dir, fn),
+                    dpi=dpi,
                     pad_inches=0,
                     orientation='landscape',
                    )
@@ -182,8 +202,8 @@ for doy in range(365):
 
 # turn into movie
 print('\n\ncompiling video file...\n\n')
-avifile = os.path.join(data_dir, 'VID_SUPP_normalized_NIRv_LSP.avi')
-frame_filename_patt = 'map_img_doy\d{1,3}\.png'
+mp4file = os.path.join(data_dir, f'SUPP_VID_1_scaled_NIRv_LSP_phenocycles_{dpi}dpi.mp4')
+frame_filename_patt = 'map_img_doy\d{1,3}_%idpi\.png' % (dpi)
 pngs = [f for f in os.listdir(data_dir) if re.search(frame_filename_patt, f)]
 # sort in day order
 pngs.sort(key=lambda f: int(re.sub('\D', '', f)))
@@ -192,18 +212,27 @@ RGB_img = imageio.imread(os.path.join(data_dir, pngs[0]))
 height, width, layers = RGB_img.shape
 # about one month per second
 frame_rate = int(365/12)
-video = cv2.VideoWriter(avifile, 0, frame_rate, (width,height))
+fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+video = cv2.VideoWriter(mp4file, fourcc, frame_rate, (width,height))
 for png in pngs:
     video.write(cv2.imread(os.path.join(data_dir, png)))
 cv2.destroyAllWindows()
 video.release()
 
-# compress the full-size video (otherwise it's ~3GB)
-cmd = "ffmpeg -i VID_SUPP_normalized_NIRv_LSP.avi -vcodec libx264 -pix_fmt yuv420p VID_SUPP_normalized_NIRv_LSP_COMPRESSED.mp4"
-cwd = os.getcwd()
-os.chdir(data_dir)
-os.system(cmd)
-os.chdir(cwd)
+# reduce the full-size video (otherwise it's >>30 MB when hi res, e.g.,, 700 DPI)
+# NOTE: want to use H.264 encoding
+if compress:
+    cmd = (f"ffmpeg -i SUPP_VID_1_normalized_NIRv_LSP_{dpi}dpi.mp4 "
+           "-vcodec libx264 -pix_fmt yuv420p "
+           f"VID_SUPP_normalized_NIRv_LSP_{dpi}dpi_COMPRESSED.mp4")
+    cwd = os.getcwd()
+    os.chdir(data_dir)
+    os.system(cmd)
+    os.chdir(cwd)
 
+# calc full runtime
+stop = time.time()
+diff = stop-start
+print(f"\n\n\tTOTAL RUNTIME: {np.round(diff/60, 1)} mins\n")
 print('Yeehaw!')
 
