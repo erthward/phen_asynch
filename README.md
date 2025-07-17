@@ -10,7 +10,7 @@ Data: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15654956.svg)](https:/
 
 -------------------------------------------
 
-![lava_lamp_map](etc/global_phen_video.gif)
+![lava_lamp_map](etc/global_phen_video.GIF)
 $${\color{gray}Timing \space of \space global \space average \space phenology}$$
 
 
