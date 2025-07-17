@@ -1,4 +1,9 @@
-# Global phenology maps reveal the diversity, convergence, and asynchrony of ecosystem function
+# Global phenology maps reveal the drivers and effects of seasonal asynchrony
+
+![lava_lamp_map](./etc/global_phen_video.gif)
+
+$${\color{gray}Timing \space of \space global \space average \space phenology}$$
+
 
 ------------------------------------
 
@@ -9,9 +14,6 @@ Code: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15671260.svg)](https:/
 Data: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15654956.svg)](https://doi.org/10.5281/zenodo.15654956)
 
 -------------------------------------------
-
-![lava_lamp_map](etc/global_phen_video.GIF)
-$${\color{gray}Timing \space of \space global \space average \space phenology}$$
 
 
 ## overview
