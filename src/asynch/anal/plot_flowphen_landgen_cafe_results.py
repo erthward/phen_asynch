@@ -16,6 +16,7 @@ import rasterio as rio
 import geopandas as gpd
 import rioxarray as rxr
 import cmcrameri.cm as cmc
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from scipy import stats
@@ -71,7 +72,7 @@ axlabel_fontsize = 9.3
 figsize = (14.5, 7)
 gridspec_dims = (100, 205)
 sw_cont_map_slices = (slice(2, 17),
-                     slice(0, 15),
+                     slice(1, 16),
                     )
 sw_photo_slices = [(slice(15, 37),
                     slice(0, 19),
@@ -86,10 +87,10 @@ sw_ts_slices = [(slice(36, 46),
                 ),
                ]
 zaf_cont_map_slices = (slice(53, 68),
-                      slice(0, 15),
+                      slice(2, 17),
                      )
-zaf_photo_slices = [(slice(71, 95),
-                     slice(0, 18),
+zaf_photo_slices = [(slice(61, 95),
+                     slice(4, 9),
                     )
                    ]
 zaf_scat_map_slices = [(slice(54, 88),
@@ -103,11 +104,11 @@ zaf_ts_slices = [(slice(88, 98),
 e_brz_cont_map_slices = (slice(4, 19),
                         slice(54, 69),
                        )
-e_brz_photo_slices = [(slice(19, 37),
-                       slice(54, 68),
+e_brz_photo_slices = [(slice(17, 35),
+                       slice(55, 68),
                       ),
                       (slice(58, 83),
-                       slice(50, 72),
+                       slice(48, 75),
                       ),
                      ]
 e_brz_genclust_map_slices = [(slice(13, 43),
@@ -141,8 +142,8 @@ e_brz_lspclust_ts_slices = [(slice(43, 53),
 cafe_cont_map_slices = (slice(5, 20),
                        slice(128, 143),
                       )
-cafe_photo_slices = (slice(4, 20),
-                     slice(137, 167),
+cafe_photo_slices = (slice(4, 23),
+                     slice(139, 160),
                     )
 cafe_rgb_map_slices = (slice(20, 100),
                        slice(130, 160),
@@ -773,7 +774,7 @@ scatter_map_axs = [fig.add_subplot(gs[zaf_scat_map_slices[i][0],
 ts_axs = [fig.add_subplot(gs[zaf_ts_slices[i][0],
                              zaf_ts_slices[i][1]]) for i in range(len(zaf_taxa_clust_Ks))]
 photo_axs = [fig.add_subplot(gs[zaf_photo_slices[i][0],
-                                zaf_photo_slices[i][1]]) for i in range(len(sw_taxa_clust_Ks))]
+                                zaf_photo_slices[i][1]]) for i in range(len(zaf_taxa_clust_Ks))]
 plot_focal_inat_taxa(mmrr_res_gdf=inat_mmrr_filt_adeq_n,
                      taxa=zaf_taxa_clust_Ks,
                      ax_cont_map=ax_cont_map,
@@ -1019,15 +1020,15 @@ ax_meta.text(0.30,
                       },
             )
 ax_meta.text(0.30,
-             0.13,
+             0.12,
              'Xiphorhynchus\nfuscus',
              ha='center',
              fontdict={'fontsize': taxon_fontsize,
                        'style': 'italic',
                       },
             )
-ax_meta.text(0.74,
-             0.79,
+ax_meta.text(0.775,
+             0.785,
              'Coffea\narabica',
              ha='center',
              fontdict={'fontsize': taxon_fontsize,
@@ -1061,6 +1062,8 @@ fig.subplots_adjust(hspace=0,
                     bottom=0.04,
                     top=0.98,
                    )
+# NOTE: need to save fonts as text, not outlines
+mpl.rcParams['pdf.fonttype'] = 42
 fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_4_inat_landgen_coffea_results.pdf'),
             dpi=600,
            )

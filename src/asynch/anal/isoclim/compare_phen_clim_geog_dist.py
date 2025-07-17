@@ -22,6 +22,7 @@ import itertools
 import alphashape
 import rasterio as rio
 import rioxarray as rxr
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from descartes import PolygonPatch
 from matplotlib.collections import PatchCollection
@@ -696,5 +697,7 @@ fig.subplots_adjust(top=0.92,
                     hspace=0.3,
                    )
 
+# NOTE: need to save fonts as text, not outlines
+mpl.rcParams['pdf.fonttype'] = 42
 fig.savefig(os.path.join(phf.FIGS_DIR, 'FIG_3_isoclim_asynch.pdf'), dpi=700)
 

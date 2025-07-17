@@ -509,6 +509,8 @@ if __name__ == '__main__':
                                             hspace=0.8,
                                             wspace=0.0
                                            )
+            # NOTE: need to save fonts as text, not outlines
+            mpl.rcParams['pdf.fonttype'] = 42
             fig_predom_supp.savefig(os.path.join(phf.FIGS_DIR,
                                                  'FIG_SUPP_predom_all_covars.png'), dpi=500)
 

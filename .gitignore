@@ -6,7 +6,6 @@
 *.docx
 *.html
 *.png
-*.gif
 *.mp4
 *.pdf
 *.pyc
@@ -21,5 +20,6 @@ res_OLD/
 data/
 savio_analysis/
 src/phen/anal/div/WGA*
+src/etc/for_presentations/
 .ipynb_checkpoints
 TMP_old_before_revisions/

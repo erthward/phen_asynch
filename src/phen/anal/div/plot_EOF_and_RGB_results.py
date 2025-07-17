@@ -913,6 +913,8 @@ if what_to_plot == 'main_rgb_map':
                           bottom=0.04,
                           top=0.98)
     if save_it:
+        # NOTE: need to save fonts as texts, not outlines
+        mpl.rcParams['pdf.fonttype'] = 42
         fig_1.savefig(os.path.join(phf.FIGS_DIR, 'FIG_1_LSP_RGB_map.pdf'),
                       dpi=700)
 
