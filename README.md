@@ -5,8 +5,6 @@
 $${\color{gray}Global \space variation \space in \space the \space timing \space of \space average \space seasonal \space phenologies.}$$
 
 
-------------------------------------
-
 ### < PUT CITATION HERE >
 
 Code: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15671260.svg)](https://doi.org/10.5281/zenodo.15671260)
