@@ -2,7 +2,7 @@
 
 ![lava_lamp_map](./etc/global_phen_video.gif)
 
-$${\color{gray}Timing \space of \space global \space average \space phenology}$$
+$${\color{gray}Global \space variation \space in \space timing \space of \space average \space seasonal \space phenologies.}$$
 
 
 ------------------------------------
