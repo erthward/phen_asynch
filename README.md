@@ -103,7 +103,7 @@ Each step of the following workflow was executed in the environment indicated *i
 6. *On GEE*, run `src/phen/calc/GEE/masking/calc_permutation_fail_count_maps.js` to produce GEE assets representing, in total, 20 permutations of the seasonal phenology-fitting code for the NIRv data (unreasonable to produce more because of compute limitations). (**10 tasks, each ~6-20h runtime**)
 7. *On GEE*, run `src/phen/calc/GEE/masking/calc_permutation_signif_mask.js` to combine the outputs of the previous step into the overall significance masks, to be used in the masking procedure for the final phenology maps. (**1 task, <10m runtime**)
 8. *On GEE*, run `src/phen/calc/GEE/masking/create_overall_mask.js` twice, once with 'maskingMode' set to 'default' in `src/phen/calc/GEE/params.js` and once with it set to 'strict', to combine all previously created masks into a pair of default (used for LSP analyses) and strict (used for asynchrony analyses) mask assets. (**7 tasks total, <10m runtime**)
-9. *On GEE*, run `src/phen/calc/GEE/io/calc_min_pos_NIRv.js` to calculate a global map asset of each pixel's minimum positive NIRv value (to be used to backfill negative NIRv values that occur, mainly in places and times with solid snow cover. (** 1 task, ~8h runtime**)
+9. *On GEE*, run `src/phen/calc/GEE/io/calc_min_pos_NIRv.js` to calculate a global map asset of each pixel's minimum positive NIRv value (to be used to backfill negative NIRv values that occur, mainly in places and times with solid snow cover. (**1 task, ~8h runtime**)
 
 
 ### calculate fitted seasonality maps:
