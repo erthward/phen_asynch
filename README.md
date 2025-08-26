@@ -1,11 +1,10 @@
 # Global phenology maps reveal the drivers and effects of seasonal asynchrony
 
+[Terasaki Hart et al, 2025, Nature](https://www.nature.com/articles/s41586-025-09410-3) (DOI: 10.1038/s41586-025-09410-3)
+
 ![lava_lamp_map](./etc/global_phen_video.gif)
 
 $${\color{gray}Global \space variation \space in \space the \space timing \space of \space average \space seasonal \space phenologies.}$$
-
-
-### < PUT CITATION HERE >
 
 Code: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15671260.svg)](https://doi.org/10.5281/zenodo.15671260)
 

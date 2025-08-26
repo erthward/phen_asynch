@@ -1,6 +1,6 @@
 // This script creates a GEE app that provides access to the main mapping
-// products from Terasaki Hart et al. 2025. (URL for the paper:
-// DOI for the paper). This work maps global estimates of the diversity
+// products from Terasaki Hart et al. 2025. (https://www.nature.com/articles/s41586-025-09410-3; DOI 10.1038/s41586-025-09410-3)
+// This work maps global estimates of the diversity
 // and asynchrony of annual vegetation seasonality
 // (also known as 'land surface phenology' (LSP))
 // and explores its ecological drivers and evolutionary implications.
@@ -23,7 +23,7 @@
 //
 // All data are free to use and redistribute, with proper
 // attribution under the MIT license and with proper
-// citation of the original scientific paper (DOI ).
+// citation of the original scientific paper (DOI 10.1038/s41586-025-09410-3).
 //
 //=======================================================================================
 //=======================================================================================
@@ -400,7 +400,7 @@ function addRefToPanel(panel) {
     var dataUseStatement = ui.Label({
         value: 'All data are free to use and redistribute, with proper ' +
                'attribution under the MIT license and with citation ' +
-               'of the original scientific paper (URL; DOI).',
+               'of the original scientific paper (https://www.nature.com/articles/s41586-025-09410-3; DOI 10.1038/s41586-025-09410-3).',
         style: {
             color: 'black',
             fontSize: '.7vw',
@@ -412,7 +412,7 @@ function addRefToPanel(panel) {
             color: 'black',
             textAlign: 'center'
         },
-        targetUrl: 'URL HERE'
+        targetUrl: 'https://www.nature.com/articles/s41586-025-09410-3'
     });
 
     // Add reference to the panel.
@@ -512,7 +512,7 @@ var createMainSubPanels = function(map, results, mainPanel, drawingTools){
       ui.Label({
             value: 'This app provides access to the main mapping ' +
                    'products from Terasaki Hart et al. 2025. ' +
-                   '(URL; DOI), which maps global estimates of ' +
+                   '(https://www.nature.com/articles/s41586-025-09410-3; DOI 10.1038/s41586-025-09410-3), which maps global estimates of ' +
                    'the diversity and asynchrony of annual vegetation seasonality ' +
                    '(also known as \'land surface phenology\' (LSP)) ' +
                    'and explores their ecological drivers and evolutionary implications. ',
