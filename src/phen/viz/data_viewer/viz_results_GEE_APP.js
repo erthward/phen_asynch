@@ -1,6 +1,6 @@
 // This script creates a GEE app that provides access to the main mapping
-// products from Terasaki Hart et al. 2025. (URL for the paper:
-// DOI for the paper). This work maps global estimates of the diversity
+// products from Terasaki Hart et al. 2025. (https://www.nature.com/articles/s41586-025-09410-3; DOI 10.1038/s41586-025-09410-3).
+// This work maps global estimates of the diversity
 // and asynchrony of annual vegetation seasonality
 // (also known as 'land surface phenology' (LSP))
 // and explores its ecological drivers and evolutionary implications.
@@ -13,7 +13,7 @@
 //   3. Once the map has loaded, click the '🖍 Draw points' button, then
 //      point and click to drop markers at any two locations.
 //   4. Wait for the line plots to render, providing a visualization of their raw
-//      modeled annual land surface phenology patterns
+//      modeled (detrended) annual land surface phenology patterns
 //      (based on MODIS Near Infrared Reflectance of Vegetation; NIRv).
 //   5. Click on markers, then click and drag to new locations, to dynamically
 //      update line plots.
@@ -23,7 +23,7 @@
 //
 // All data are free to use and redistribute, with proper
 // attribution under the MIT license and with proper
-// citation of the original scientific paper (DOI ).
+// citation of the original scientific paper (DOI 10.1038/s41586-025-09410-3).
 //
 //=======================================================================================
 //=======================================================================================
@@ -182,7 +182,7 @@ var calcR2 = function(imgColl, dependent){
 
 
 // a version of the harmonic regression function, trimmed down solely for use for the data viewer
-var calcHarmonicRegressionForViz = function(NIRvImgColl){
+var calcHarmonicRegressionForViz = function(NIRvImgColl, resultsImg){
   
   // define vars that are input args in the analysis-ready form of the function
   var dependent = 'NIRv';
@@ -198,6 +198,8 @@ var calcHarmonicRegressionForViz = function(NIRvImgColl){
   // Independent variables.
   var independents = ee.List(['constant', 't'])
     .cat(cosNames).cat(sinNames);
+  var independentsNoTrend = ee.List(['constant'])
+    .cat(cosNames).cat(sinNames);
     
   // Add variables
   var harmonicImgColl = ee.ImageCollection(NIRvImgColl
@@ -206,84 +208,34 @@ var calcHarmonicRegressionForViz = function(NIRvImgColl){
     .map(addHarmonics(harmonics, sinNames, cosNames))
     // and add independents as a property
     .set({'independents': independents}));
-  
-  //-------------------------
-  // Calculate the regression
-  //-------------------------
-  
-  // Calculate regression reduction and get output (a 4x1 array image)
-  var harmonicTrend = harmonicImgColl
-    .select(independents.add(dependent))
-    .reduce(ee.Reducer.linearRegression(independents.length(), 1));
-  
-  // Turn the array image into a multi-band image of coefficients.
-  var harmonicTrendCoefficients = harmonicTrend.select('coefficients')
-    .arrayProject([0])
-    .arrayFlatten([independents]);
-  
-  // calculate the residuals
-  var harmonicTrendResiduals = harmonicTrend.select('residuals')
-    .arrayProject([0])
-    .arrayFlatten([['residuals']]);
-    
-  // Pull out the bands to be visualized
-  var sin = harmonicTrendCoefficients.select(ee.String('sin_1'));
-  var cos = harmonicTrendCoefficients.select(ee.String('cos_1'));
-  
-  // Do some math to turn a first-order Fourier model into
-  // hue, saturation, and value in the range[0,1].
-  var amplitude = cos.hypot(sin).multiply(5).rename('amplitude');
-  var phase = sin.atan2(cos).unitScale(-Math.PI, Math.PI).rename('phase');
-  var val = harmonicImgColl.select(dependent).reduce('mean');
-  
-  // Turn the HSV data into an RGB image and add it to the map.
-  var seasonality = ee.Image.cat(phase, amplitude, val).hsvToRgb()
-                            .rename(['seasonality_R',
-                                     'seasonality_G',
-                                     'seasonality_B']);
-    
-  // get SD of seasonality phase within sliding-window neighborhoods
-  var phaseSD = phase.reduceNeighborhood({
-    reducer: ee.Reducer.stdDev(),
-    kernel: ee.Kernel.circle({radius: 100000, units: 'meters'})
-  }).rename('phaseSD');
-                           
+                 
   //---------------------------------
   // Calculate the fitted vals and R2
   //---------------------------------
   
+  // DETH: Nov. 6, 2025: seems like GEE has reduced the amount of on-the-fly compute
+  //                     allowed for the app because it has stopped working, so for now
+  //                     instead of calculating the regression on the fly I'll just
+  //                     read in the coefficients from the results image and calculate
+  //                     the time series of annually repeating fitted phenocycles from
+  //                     that. It will lack the trend component, but that's fine.
+  var resultsImgRenamed = resultsImg.rename(['constant', 'sin_1', 'cos_1', 'sin_2', 'cos_2',
+                                            'EOF0', 'EOF1', 'EOF2', 'EOF3',
+                                            'EOF0_FOR_VIZ', 'EOF1_FOR_VIZ', 'EOF2_FOR_VIZ',
+                                            'asynch', 'asynch_r2', 'asynch_pval', 'asynch_n']);
+  var harmonicTrendCoefficients = resultsImgRenamed.select(independentsNoTrend);
+    
   var fittedHarmonic = harmonicImgColl.map(function(img) {
     return ee.Image(img).addBands(
-      img.select(independents)
+      img.select(independentsNoTrend)
          .multiply(harmonicTrendCoefficients)
+         // NOTE: divide by 10,000 to correct to proper NIRv values
+         .divide(10000)
          .reduce('sum')
          .rename('fitted'));
   });
 
-  // Fix the time (in radians) of the maximum fitted value
-  var tmax = fittedHarmonic.select(['fitted', 't'])
-    .reduce(ee.Reducer.max(2))
-    .rename('max_fitted', 't_max')
-    .select('t_max')
-    .mod(6.283185307179586);
-    
-  // Calculate the R2s
-  var R2 = calcR2(fittedHarmonic, dependent);
-  
-  // compose final output ImageCollection for the model
-  var summary = seasonality.addBands(harmonicTrendCoefficients)
-                           .addBands(harmonicTrendResiduals)
-                           .addBands(tmax)
-                           .addBands(R2)
-                           // add max possible time_start val as property, to make it
-                           // easy later to separate from original NIRvImgColl it is merged with
-                           .set({'system:time_start': 999999999999});
-  
-  // merge the summary image and the rest of the ImageCollection
-  var harmonicReg = ee.ImageCollection(summary)
-    .merge(fittedHarmonic);
-  // extract just the raw and fitted NIRv values
-  var output = ee.ImageCollection(harmonicReg.toList(NIRvImgColl.size(),1)).select(['NIRv', 'fitted']);
+  var output = fittedHarmonic.select(['NIRv', 'fitted']);
   return output;
 };
 
@@ -400,19 +352,19 @@ function addRefToPanel(panel) {
     var dataUseStatement = ui.Label({
         value: 'All data are free to use and redistribute, with proper ' +
                'attribution under the MIT license and with citation ' +
-               'of the original scientific paper (URL; DOI).',
+               'of the original scientific paper (https://www.nature.com/articles/s41586-025-09410-3; DOI 10.1038/s41586-025-09410-3).',
         style: {
             color: 'black',
             fontSize: '.7vw',
         },
     });
     var reference = ui.Label({
-        value: 'PAPER TITLE HERE',
+        value: 'Terasaki Hart et al. 2025. "Global phenology maps reveal the drivers and effects of seasonal asynchrony."',
         style: {
             color: 'black',
             textAlign: 'center'
         },
-        targetUrl: 'URL HERE'
+        targetUrl: 'https://www.nature.com/articles/s41586-025-09410-3'
     });
 
     // Add reference to the panel.
@@ -512,7 +464,7 @@ var createMainSubPanels = function(map, results, mainPanel, drawingTools){
       ui.Label({
             value: 'This app provides access to the main mapping ' +
                    'products from Terasaki Hart et al. 2025. ' +
-                   '(URL; DOI), which maps global estimates of ' +
+                   '(https://www.nature.com/articles/s41586-025-09410-3; DOI 10.1038/s41586-025-09410-3), which maps global estimates of ' +
                    'the diversity and asynchrony of annual vegetation seasonality ' +
                    '(also known as \'land surface phenology\' (LSP)) ' +
                    'and explores their ecological drivers and evolutionary implications. ',
@@ -534,7 +486,7 @@ var createMainSubPanels = function(map, results, mainPanel, drawingTools){
                 },
               }),
       ui.Label({value: '3. Wait for the line plots to render, providing a visualizaiton of both the raw ' +
-                   'and modeled annual LSP patterns at both points (based on MODIS near-infrared ' +
+                   'and modeled (and detrended) annual LSP patterns at both points (based on MODIS near-infrared ' +
                    'reflectance of vegetation (NIRv)).',
                 style: {fontSize: '.5vw',
                         fontWeight: 'normal',
@@ -599,7 +551,7 @@ var createMainSubPanels = function(map, results, mainPanel, drawingTools){
 var createLinePlotPanel = function(drawingTools, LSPRawAndFittedTimeSeries){
   
   // create the line-plot panel and subpanels
-  var lineplotPanel = ui.Panel({style: {position: 'bottom-left', width: '40%'}});
+  var lineplotPanel = ui.Panel({style: {position: 'bottom-left', width: '80%'}});
   var p1chartPanel = ui.Panel({
     style:
         {position: 'top-center', shown: false}
@@ -669,7 +621,7 @@ var createApp = function(){
   var NIRv = getNIRvDataForViz();
   
   // calculate the harmonic regression fitted values
-  var NIRvRawAndFitted = calcHarmonicRegressionForViz(NIRv);
+  var NIRvRawAndFitted = calcHarmonicRegressionForViz(NIRv, results);
   //print('NIRv time series (both raw and fitted values)', NIRvRawAndFitted);
   
   // configure to display our data over top of Google Earth satellite-imagery mosaic, with placename labels               
@@ -710,3 +662,4 @@ var createApp = function(){
 
 // call the main app-creation function
 createApp();
+
